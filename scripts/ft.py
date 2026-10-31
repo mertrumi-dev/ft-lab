@@ -34,7 +34,9 @@ DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
 # Freqtrade backtests one timeframe per run, so strategies are grouped by it.
 # Default is 1h; list every strategy that uses something else here.
 STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h"}
-ALL_STRATEGIES = ["TrendEma", "TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
+ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
+ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2]
 
 
 def docker_cmd(*args: str) -> list[str]:

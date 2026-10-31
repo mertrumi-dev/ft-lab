@@ -9,6 +9,13 @@ exactly what that one change did. All of them keep TrendEma's risk rules
     TrendEma4h        TrendEma on 4-hour candles (fewer trades, less fee)
     TrendBreakout     entry = price breaks its 20-candle high (Turtle style)
 
+Round 2 (after the first train results, docs/results.md):
+
+    TrendEmaAtrWide   ATR stop at 5 x ATR (2.5 x was too tight on 1h candles)
+    TrendEmaSlow      slower averages: EMA50/200, trend filter EMA600
+    TrendEmaMulti     3 averages pairs vote; buy when 2 of 3 say "up"
+    TrendEmaBtc       only buy when Bitcoin itself is above its EMA200
+
 None of these run live. The live bot stays on TrendEma until a variant wins
 on the train AND validation slices.
 """
@@ -25,6 +32,7 @@ from trend_ema import (
     RISK_PER_TRADE,
     STOPLOSS,
     TrendEma,
+    ema,
     risk_based_stake,
 )
 
@@ -60,6 +68,7 @@ class TrendEmaAtr(TrendEma):
     """Volatility-based trailing stop. Calm coin -> tight stop, wild coin -> wide stop."""
 
     use_custom_stoploss = True
+    atr_mult = ATR_STOP_MULT
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
@@ -90,7 +99,7 @@ class TrendEmaAtr(TrendEma):
         candle = self._last_candle(pair)
         distance = abs(STOPLOSS)
         if candle is not None and candle["atr"] > 0:
-            distance = atr_stop_distance(candle["close"], candle["atr"], ATR_STOP_MULT, abs(STOPLOSS))
+            distance = atr_stop_distance(candle["close"], candle["atr"], self.atr_mult, abs(STOPLOSS))
         capital = self.wallets.get_total_stake_amount()
         stake = risk_based_stake(capital, RISK_PER_TRADE, -distance, MAX_STAKE_RATIO)
         return min(stake, max_stake)
@@ -110,7 +119,7 @@ class TrendEmaAtr(TrendEma):
             return None  # keep the -8% hard stop
         # Stop price follows the latest close. Freqtrade never moves a stop down,
         # so this trails upward as the price rises and locks in profit.
-        stop_price = candle["close"] - ATR_STOP_MULT * candle["atr"]
+        stop_price = candle["close"] - self.atr_mult * candle["atr"]
         return stoploss_from_absolute(stop_price, current_rate)
 
 
@@ -142,4 +151,87 @@ class TrendBreakout(TrendEma):
             & (dataframe["volume"] > 0),
             ["enter_long", "enter_tag"],
         ] = (1, "breakout_20")
+        return dataframe
+
+
+# --- Round 2 ----------------------------------------------------------------
+
+
+class TrendEmaAtrWide(TrendEmaAtr):
+    """Same as TrendEmaAtr with a wider stop; round 1 showed 2.5 x ATR stops out on noise."""
+
+    atr_mult = 5.0
+
+
+class TrendEmaSlow(TrendEma):
+    """Slower averages: fewer, longer trades (research 02: longer windows worked better on BTC)."""
+
+    startup_candle_count = 1200
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe["ema_fast"] = ema(dataframe["close"], 50)
+        dataframe["ema_slow"] = ema(dataframe["close"], 200)
+        dataframe["ema_trend"] = ema(dataframe["close"], 600)
+        return dataframe
+
+
+MULTI_PAIRS = [(20, 50), (50, 150), (100, 300)]
+
+
+class TrendEmaMulti(TrendEma):
+    """Three fast/slow pairs vote. Less dependent on one choice of numbers (research 02)."""
+
+    startup_candle_count = 600
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)  # keeps ema_trend (200)
+        votes = sum(
+            (ema(dataframe["close"], fast) > ema(dataframe["close"], slow)).astype(int)
+            for fast, slow in MULTI_PAIRS
+        )
+        dataframe["votes"] = votes
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        bull = dataframe["votes"] >= 2
+        dataframe.loc[
+            bull & ~bull.shift(1, fill_value=False)
+            & (dataframe["close"] > dataframe["ema_trend"])
+            & (dataframe["volume"] > 0),
+            ["enter_long", "enter_tag"],
+        ] = (1, "votes_up")
+        return dataframe
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        bull = dataframe["votes"] >= 2
+        dataframe.loc[
+            ~bull & bull.shift(1, fill_value=False) & (dataframe["volume"] > 0),
+            ["exit_long", "exit_tag"],
+        ] = (1, "votes_down")
+        return dataframe
+
+
+class TrendEmaBtc(TrendEma):
+    """Market filter: altcoins usually fall with Bitcoin, so only buy when BTC is in an uptrend."""
+
+    def informative_pairs(self):
+        return [("BTC/USDT", self.timeframe)]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["btc_bull"] = True
+        dp = getattr(self, "dp", None)  # set by Freqtrade; missing in plain unit tests
+        if dp is not None:
+            btc = dp.get_pair_dataframe("BTC/USDT", self.timeframe)
+            if not btc.empty:
+                btc = btc[["date", "close"]].copy()
+                btc["btc_bull"] = btc["close"] > ema(btc["close"], 200)
+                merged = dataframe[["date"]].merge(btc[["date", "btc_bull"]], on="date", how="left")
+                dataframe["btc_bull"] = merged["btc_bull"].fillna(False).astype(bool).to_numpy()
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[~dataframe["btc_bull"], ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
