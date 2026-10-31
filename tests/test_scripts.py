@@ -121,3 +121,9 @@ def test_hyperopt_always_train():
 def test_protections_always_simulated():
     assert "--enable-protections" in cmd("backtest", "--slice", "train")
     assert "--enable-protections" in cmd("hyperopt")
+
+
+def test_backtest_compares_several_strategies():
+    c = cmd("backtest", "--slice", "train", "--strategy", "TrendEma", "TrendEmaAtr")
+    i = c.index("--strategy-list")
+    assert c[i + 1 : i + 3] == ["TrendEma", "TrendEmaAtr"]

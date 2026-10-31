@@ -6,6 +6,7 @@ every run to docs/experiments.md so we can count how many times we tried.
 
     .venv/bin/python scripts/ft.py download
     .venv/bin/python scripts/ft.py backtest --slice train
+    .venv/bin/python scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr
     .venv/bin/python scripts/ft.py backtest --slice validation
     .venv/bin/python scripts/ft.py backtest --slice test --final-test   # once per strategy!
     .venv/bin/python scripts/ft.py hyperopt --epochs 200 --spaces buy sell
@@ -49,7 +50,7 @@ def build_command(args: argparse.Namespace) -> list[str]:
             )
         return docker_cmd(
             "backtesting", "--config", CONFIG,
-            "--strategy", args.strategy,
+            "--strategy-list", *args.strategy,
             "--timerange", SLICES[args.slice].timerange,
             "--fee", FEE,
             "--enable-protections",  # include our risk brakes in the simulation
@@ -83,7 +84,9 @@ def log_run(args: argparse.Namespace, cmd: list[str]) -> None:
     slice_name = "train" if args.command == "hyperopt" else args.slice
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
     with EXPERIMENTS_LOG.open("a") as f:
-        f.write(f"| {now} | {args.command} | {args.strategy} | {slice_name} | |\n")
+        strategies = args.strategy if isinstance(args.strategy, list) else [args.strategy]
+        for strategy in strategies:
+            f.write(f"| {now} | {args.command} | {strategy} | {slice_name} | |\n")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -94,7 +97,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
     bt.add_argument("--slice", choices=["train", "validation", "test"], required=True)
-    bt.add_argument("--strategy", default=DEFAULT_STRATEGY)
+    bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
+                    help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")

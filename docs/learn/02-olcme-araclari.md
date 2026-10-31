@@ -86,7 +86,7 @@ Her backtest/hyperopt çalıştırması `docs/experiments.md` dosyasına otomati
 - Sahte fiyat dosyaları üretip `benchmark.py`'nin dosyayı doğru okuduğunu ve sadece dilim tarihlerini aldığını kontrol.
 - `ft.py`: test dilimi bayraksız reddediliyor mu? Hyperopt hep train mi?
 
-Toplam: 39 test.
+Toplam: 39 test (kart 03 ile 49).
 
 ---
 

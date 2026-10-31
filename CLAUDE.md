@@ -49,6 +49,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır.
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
 - Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
+- Deneme stratejileri: `user_data/strategies/trend_variants.py` (TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout). Canlıya sadece train + validation'da kazanan geçer.
 - Risk kuralları: `docs/risk-rules.md`. Bir risk sayısını değiştirmek = Kaan'a sor + tabloyu ve testi güncelle. Testi gevşeterek kural gevşetmek yasak.
 - Demo borsa (Faz 5): Binance. Telegram: Faz 5'te.
 
@@ -60,7 +61,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (39)
+.venv/bin/python -m pytest          # tüm testler (49)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/benchmark.py --slice train          # al-tut
 ```
