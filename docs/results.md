@@ -34,3 +34,22 @@ python3 scripts/ft.py report --slice train
 - Bu **train** sonucu. Asıl soru validation diliminde de tutup tutmadığı.
 
 Deneme sayacı: train 5 strateji (1 çalıştırma). Validation 0. Test 0.
+
+## 2026-10-31 · Validation dilimi · TrendEma (validation bakışı #1)
+
+Komut: `python3 scripts/ft.py backtest --slice validation --strategy TrendEma` + `report --slice validation`
+`--timerange 20240613-20250807`, `--fee 0.0015`, `--enable-protections`.
+
+| Strateji | İşlem | Getiri | Yıllık | En büyük düşüş | Calmar | Kazanma % | PF | Karar |
+|---|---|---|---|---|---|---|---|---|
+| Al-tut | - | +122,6% | +100,9% | 47,8% | 2,11 | - | - | referans |
+| TrendEma | 217 | +31,4% | +26,8% | 14,1% | 1,90 | 33% | 1,62 | FAIL (Calmar) |
+
+### Yorum
+
+- **Kıl payı geçemedi:** Calmar 1,90 vs al-tut 2,11. Düşüş ve işlem sayısı şartları geçiyor.
+- **İyi işaret:** Profit factor (kazanılan / kaybedilen para) train'de 1,63, burada 1,62. Kural yeni dönemde de aynı "kalitede" çalışıyor; ezberlemiş gibi görünmüyor.
+- **Sorun:** Bu dönemde al-tut daha az acılı geçti (düşüş %48, train'de %92), bu yüzden bizim "az acı" avantajımız küçüldü.
+- Kural: train'de geçip validation'da geçemeyen strateji canlıya geçmez. TrendEma canlıda sahte parayla çalışmaya devam ediyor (zararı yok), ama "kazanan" ilan edilmedi.
+
+Deneme sayacı: train 5, validation 1, test 0.

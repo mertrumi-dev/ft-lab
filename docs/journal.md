@@ -22,3 +22,4 @@ Her faz sonunda: ne yaptık, ne öğrendik, ne işe yaramadı. Deneme sayıları
 - 4 deneme stratejisi yazıldı (ATR stop, takip eden stop çıkışı, 4h, kırılım girişi), her biri tek değişiklik. ft.py birden fazla stratejiyi yan yana backtest ediyor. 49 test.
 - 2026-10-31 gece: geçmiş veri Kaan'ın Mac'inde indirildi (5 pair, 1h 53.307 mum, 4h 13.331 mum, 2020-10'dan). ft.py: stratejiler timeframe'e göre gruplanıyor (Freqtrade tek run'da tek timeframe), `--strategy all`, `benchmark` ve `report` Docker içinde (Mac'te Python kurulumu gerekmez). report.py: başarı kuralına göre PASS/FAIL. 56 test.
 - 2026-10-31 23:43 UTC: İLK SONUÇ (train, 5 strateji): TrendEma PASS (Calmar 2,99 vs al-tut 1,69, DD %14,8, 638 işlem). ATR/4h/kırılım FAIL. Ayrıntı: docs/results.md. Sıradaki: TrendEma validation.
+- Validation #1: TrendEma FAIL kıl payı (Calmar 1,90 vs al-tut 2,11), PF train ile aynı (1,62 vs 1,63). Sıradaki: yeni iyileştirmeler sadece train'de, sonra validation #2.
