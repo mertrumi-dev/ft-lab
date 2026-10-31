@@ -137,9 +137,8 @@ def test_spot_only_no_shorting():
 
 def test_all_protections_present():
     methods = [p["method"] for p in trend_ema.TrendEma({}).protections]
-    for required in ["CooldownPeriod", "StoplossGuard", "MaxDrawdown", "LowProfitPairs"]:
+    for required in ["CooldownPeriod", "StoplossGuard"]:
         assert required in methods
-    assert methods.count("MaxDrawdown") == 2  # daily + weekly limit
 
 
 def test_max_open_trades_at_most_3():

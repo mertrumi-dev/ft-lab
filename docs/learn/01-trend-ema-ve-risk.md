@@ -122,9 +122,8 @@ Freqtrade'in hazır koruma sistemi; biz hangi frenlerin hangi ayarla çalışaca
 
 - **CooldownPeriod:** Bir coinde işlem kapandıktan sonra 2 saat o coine girme. "Kaybettim, hemen geri alayım" (intikam işlemi) engeli.
 - **StoplossGuard:** 24 saatte 3 stoploss olduysa piyasa bize ters, 12 saat hiç işlem açma.
-- **MaxDrawdown (24 mum, %3):** Günlük kayıp limiti. Son 24 saatte kapanan işlemlerden %3 düşüş varsa 24 saat dur.
-- **MaxDrawdown (168 mum, %10):** Haftalık kayıp limiti. 7 günde %10 düşüş → 48 saat dur.
-- **LowProfitPairs:** Bir coin son 3 günde 2+ işlemde toplam %5'ten fazla kaybettirdiyse sadece o coini 24 saat kapat.
+
+İlk sürümde günlük/haftalık kayıp limiti ve "kötü coin" freni de vardı; çıkardık. Neden: aynı anda en fazla %3 risk açık olduğu için günlük %3 freni pratikte hiç devreye girmiyordu (StoplossGuard aynı durumu zaten yakalıyor). Her fren tahminle seçilmiş bir sayı daha demek; az kural = az ayar = daha dürüst sonuç. Ayrıntı: `docs/risk-rules.md`.
 
 Önemli: frenler **yeni** işlemi engeller, açık işlemi kapatmaz. Açık işlemi stoploss korur.
 
@@ -152,7 +151,7 @@ Gerçek veri olmadan stratejiyi nasıl test ettim? **Sahte fiyat serileri** üre
 | `test_exit_when_trend_turns_down` | Yükseliş, sonra düşüş | En az 1 satış sinyali |
 | `test_risk_based_stake_*` | 1000, %1, -%8 | 125; çok dar stop'ta tavan 250 |
 | `test_drawdown_from_peak` | 1000 → 1200 → 900 | %25 |
-| Kilit testleri | Kod sabitleri | stoploss ≥ -%8, risk ≤ %1, kill switch ≤ %20, short yok, 5 koruma yerinde, max 3 işlem |
+| Kilit testleri | Kod sabitleri | stoploss ≥ -%8, risk ≤ %1, kill switch ≤ %20, short yok, korumalar yerinde, max 3 işlem |
 
 **Testleri test ettim:** Testin işe yaradığından emin olmak için kodu bilerek bozdum:
 - EMA200 filtresini sildim → `test_no_entry_in_downtrend` kırmızı.

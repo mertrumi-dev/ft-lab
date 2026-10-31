@@ -117,31 +117,6 @@ class TrendEma(IStrategy):
                 "stop_duration_candles": 12,
                 "only_per_pair": False,
             },
-            {
-                # Daily loss limit: >3% drawdown over the last 24h -> pause 24h.
-                "method": "MaxDrawdown",
-                "lookback_period_candles": 24,
-                "trade_limit": 1,
-                "max_allowed_drawdown": 0.03,
-                "stop_duration_candles": 24,
-            },
-            {
-                # Weekly loss limit: >10% drawdown over 7 days -> pause 48h.
-                "method": "MaxDrawdown",
-                "lookback_period_candles": 168,
-                "trade_limit": 1,
-                "max_allowed_drawdown": 0.10,
-                "stop_duration_candles": 48,
-            },
-            {
-                # A pair that lost >5% over its last 2+ trades in 3 days -> lock it 24h.
-                "method": "LowProfitPairs",
-                "lookback_period_candles": 72,
-                "trade_limit": 2,
-                "required_profit": -0.05,
-                "stop_duration_candles": 24,
-                "only_per_pair": True,
-            },
         ]
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:

@@ -17,7 +17,7 @@ Kıyas noktamız hep **al-tut**: "Başta coinleri alıp hiç dokunmasaydık ne o
 
 - Kendi ilk stratejimiz **TrendEma** çalışıyor (trend takibi, 1 saatlik mumlar). Kuralları ve risk frenleri: `docs/learn/01-trend-ema-ve-risk.md`.
 - 1000 USDT **sahte parayla**, 5 coinde (BTC, ETH, SOL, BNB, XRP) bakıyor.
-- Kural: genel trend yukarıyken (fiyat EMA200 üstünde) EMA20, EMA50'yi yukarı keserse al; aşağı keserse sat. İşlem başına en fazla %1 risk, -%8 stoploss, günlük/haftalık kayıp frenleri, %20'de kill switch.
+- Kural: genel trend yukarıyken (fiyat EMA200 üstünde) EMA20, EMA50'yi yukarı keserse al; aşağı keserse sat. İşlem başına en fazla %1 risk, -%8 stoploss, art arda kayıp freni, %20'de kill switch.
 - Amaç para kazanmak değil: **sistemin 24 saat hatasız çalıştığını görmek.** Borsa bağlantısı, veri, kayıt, arayüz, hepsi sağlam mı?
 - Günlerce işlem açmayabilir. Trend takibi seyrek işlem yapar; sorun değil.
 

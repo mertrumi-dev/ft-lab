@@ -17,6 +17,7 @@ Freqtrade tabanlı kişisel kripto trading botu. Sahibi Kaan (bilgisayar mühend
 - Veri bölme: train / validation / test. **Son %20 test dilimi hyperopt'ta ve strateji geliştirirken asla kullanılmaz.** Test dilimine bakıp strateji değiştirmek yasak; her seferinde Kaan'a hatırlat.
 - Kayma (slippage) için komisyon yüksek tutulur: `--fee 0.0015` (%0.1 komisyon + %0.05 kayma payı).
 - 50'den az işlem = istatistiksel olarak anlamsız, uyar.
+- Başarı ölçütü (risk-ayarlı): Calmar oranı al-tut'tan yüksek + max drawdown al-tut'un yarısından az + en az 50 işlem. Ham getiride al-tut'u geçmek beklenmez (sermayenin çoğu nakitte).
 - Sayı verirken komutu ve tam `--timerange`'i yaz. Sayıları süsleme; kötü strateji kötüdür.
 - Kaç deneme/hyperopt yapıldığını `docs/journal.md`'de say (validation dilimi de zamanla ezberlenir).
 
