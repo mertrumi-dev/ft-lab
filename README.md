@@ -33,7 +33,7 @@ Bir kere yapılır.
    .venv/bin/pip install -r requirements-dev.txt
    .venv/bin/python -m pytest
    ```
-   Sonuç `25 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
+   Sonuç `38 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
 
 ## Botu çalıştırma
 
@@ -46,3 +46,13 @@ docker compose logs -f       # logları izle; Ctrl+C sadece izlemeyi bırakır
 Tarayıcıda **http://127.0.0.1:8080** aç → `.env`'deki kullanıcı adı ve şifreyle giriş yap (FreqUI).
 
 Durdurmak için: `docker compose down`.
+
+## Ölçme (Faz 1)
+
+```bash
+.venv/bin/python scripts/splits.py                      # veri dilimlerini göster
+.venv/bin/python scripts/ft.py download                 # geçmiş fiyatları indir (bir kere)
+.venv/bin/python scripts/benchmark.py --slice train     # al-tut sonucu
+.venv/bin/python scripts/ft.py backtest --slice train   # bizim kuralın sonucu
+```
+Test dilimi (`--slice test`) her strateji için sadece bir kere, en sonda. Açıklama: [docs/learn/02-olcme-araclari.md](docs/learn/02-olcme-araclari.md).
