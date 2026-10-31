@@ -16,3 +16,4 @@ Her faz sonunda: ne yaptık, ne öğrendik, ne işe yaramadı. Deneme sayıları
 - 24 saatlik dry-run sayacı TrendEma ile yeniden başlıyor.
 - Deneme sayacı: backtest 0, hyperopt 0 (henüz veri yok).
 - Risk kitabı v1.1: günlük/haftalık kayıp limiti ve LowProfitPairs çıkarıldı (R9 ve kill switch ile örtüşüyordu, fazla ayar). Başarı ölçütü risk-ayarlı oldu (Calmar).
+- Araştırma 01: profesyonel trend takipçilerinden denenecekler listesi (docs/research/01-...). Bota henüz eklenmedi; Faz 2'de tek tek ölçülecek.
