@@ -15,7 +15,7 @@ Kıyas noktamız hep **al-tut**: "Başta coinleri alıp hiç dokunmasaydık ne o
 
 ## Şu an ne yapıyor? (Faz 0)
 
-- Freqtrade'in hazır **örnek stratejisi** (SampleStrategy) çalışıyor. Bizim değil, ayarlamayacağız.
+- Kendi ilk stratejimiz **TrendEma** çalışıyor (trend takibi, 1 saatlik mumlar). Kuralları ve risk frenleri: `docs/learn/01-trend-ema-ve-risk.md`.
 - 1000 USDT **sahte parayla**, 5 coinde (BTC, ETH, SOL, BNB, XRP), 5 dakikalık mumlarla bakıyor.
 - Kuralı kabaca: RSI 30'un üstüne çıkınca al, 70'in üstüne çıkınca sat; %10 zarara düşerse zararına sat.
 - Amaç para kazanmak değil: **sistemin 24 saat hatasız çalıştığını görmek.** Borsa bağlantısı, veri, kayıt, arayüz, hepsi sağlam mı?

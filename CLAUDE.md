@@ -39,6 +39,8 @@ Freqtrade tabanlı kişisel kripto trading botu. Sahibi Kaan (bilgisayar mühend
 - Bot Docker Compose ile çalışır. Image sabit sürüm: `freqtradeorg/freqtrade:2026.10`.
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır.
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
+- Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
+- Risk kuralları: `docs/risk-rules.md`. Bir risk sayısını değiştirmek = Kaan'a sor + tabloyu ve testi güncelle. Testi gevşeterek kural gevşetmek yasak.
 - Demo borsa (Faz 5): Binance. Telegram: Faz 5'te.
 
 ## Komutlar
@@ -49,7 +51,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-python3 -m pytest                   # güvenlik testleri
+.venv/bin/python -m pytest          # güvenlik + strateji testleri (25)
 ```
 
 FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).
