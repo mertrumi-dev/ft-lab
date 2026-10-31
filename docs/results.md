@@ -53,3 +53,28 @@ Komut: `python3 scripts/ft.py backtest --slice validation --strategy TrendEma` +
 - Kural: train'de geçip validation'da geçemeyen strateji canlıya geçmez. TrendEma canlıda sahte parayla çalışmaya devam ediyor (zararı yok), ama "kazanan" ilan edilmedi.
 
 Deneme sayacı: train 5, validation 1, test 0.
+
+## 2026-10-31 · Train dilimi · Tur 2 (deneme #6-9)
+
+Komut: `python3 scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtrWide TrendEmaSlow TrendEmaMulti TrendEmaBtc` + `report --slice train`
+`--timerange 20210101-20240613`, `--fee 0.0015`, `--enable-protections`. (TrendEma tekrar çalıştı, sonuç aynı: 2,99.)
+
+| Strateji | İşlem | Getiri | Yıllık | En büyük düşüş | Calmar | Kazanma % | PF | Karar |
+|---|---|---|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | +155,4% | 92,1% | 1,69 | - | - | referans |
+| TrendEma | 638 | +254,3% | +44,3% | 14,8% | 2,99 | 31% | 1,63 | PASS |
+| TrendEmaSlow | 215 | +227,6% | +41,1% | 14,5% | 2,83 | 30% | 2,08 | PASS |
+| TrendEmaBtc | 523 | +104,2% | +23,0% | 13,0% | 1,76 | 31% | 1,52 | PASS (kıl payı) |
+| TrendEmaMulti | 165 | +167,0% | +32,9% | 20,3% | 1,62 | 22% | 1,87 | FAIL (Calmar) |
+| TrendEmaAtrWide | 502 | +119,3% | +25,6% | 20,1% | 1,27 | 31% | 1,33 | FAIL (Calmar) |
+
+### Yorum
+
+- **Hiçbiri ana kuralı (TrendEma) geçemedi.**
+- **TrendEmaSlow en yakın aday:** Calmar 2,83 (ana kural 2,99). İşlem sayısı 3'te 1'e indi (215 vs 638). Profit factor (kazanılan para / kaybedilen para) çok daha yüksek: 2,08 vs 1,63. Yani daha az ama daha kaliteli işlem yapıyor, daha az komisyon ödüyor.
+- **BTC filtresi** düşüşü azalttı (%13,0) ama kazancın yarısını da kesti. Al-tut'u kıl payı geçiyor, zayıf.
+- **ATR stop'u genişletmek** (2,5× → 5×) Calmar'ı 0,63'ten 1,27'ye çıkardı ama yetmedi. 1 saatlik grafikte ATR stop fikri şimdilik bırakıldı.
+
+Karar: validation'a sadece TrendEmaSlow girecek (validation bakışı #2). Diğerleri elendi.
+
+Deneme sayacı: train 9, validation 1, test 0.
