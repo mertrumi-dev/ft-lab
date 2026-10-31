@@ -7,6 +7,9 @@ every run to docs/experiments.md so we can count how many times we tried.
     .venv/bin/python scripts/ft.py download
     .venv/bin/python scripts/ft.py backtest --slice train
     .venv/bin/python scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr
+    .venv/bin/python scripts/ft.py backtest --slice train --strategy all
+    .venv/bin/python scripts/ft.py benchmark --slice train
+    .venv/bin/python scripts/ft.py report --slice train      # short comparison table
     .venv/bin/python scripts/ft.py backtest --slice validation
     .venv/bin/python scripts/ft.py backtest --slice test --final-test   # once per strategy!
     .venv/bin/python scripts/ft.py hyperopt --epochs 200 --spaces buy sell
@@ -28,19 +31,28 @@ FEE = "0.0015"
 DEFAULT_STRATEGY = "TrendEma"
 # Extra months before DATA_START so EMA200 has warm-up candles.
 DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
+# Freqtrade backtests one timeframe per run, so strategies are grouped by it.
+# Default is 1h; list every strategy that uses something else here.
+STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h"}
+ALL_STRATEGIES = ["TrendEma", "TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 
 
 def docker_cmd(*args: str) -> list[str]:
     return ["docker", "compose", "run", "--rm", "freqtrade", *args]
 
 
-def build_command(args: argparse.Namespace) -> list[str]:
+def timeframe_of(strategy: str) -> str:
+    return STRATEGY_TIMEFRAMES.get(strategy, "1h")
+
+
+def build_commands(args: argparse.Namespace) -> list[list[str]]:
+    """One or more docker commands to run, in order."""
     if args.command == "download":
-        return docker_cmd(
+        return [docker_cmd(
             "download-data", "--config", CONFIG,
             "--timerange", f"{DOWNLOAD_FROM}-",
             "--timeframes", "1h", "4h",
-        )  # fmt: skip
+        )]  # fmt: skip
 
     if args.command == "backtest":
         if args.slice == "test" and not args.final_test:
@@ -48,33 +60,54 @@ def build_command(args: argparse.Namespace) -> list[str]:
                 "Refusing: the test slice is the final exam. Use it ONCE per strategy, "
                 "after train and validation are done, and add --final-test."
             )
-        return docker_cmd(
-            "backtesting", "--config", CONFIG,
-            "--strategy-list", *args.strategy,
-            "--timerange", SLICES[args.slice].timerange,
-            "--fee", FEE,
-            "--enable-protections",  # include our risk brakes in the simulation
-            "--export", "trades",
-        )  # fmt: skip
+        strategies_wanted = ALL_STRATEGIES if args.strategy == ["all"] else args.strategy
+        groups: dict[str, list[str]] = {}
+        for strategy in strategies_wanted:
+            groups.setdefault(timeframe_of(strategy), []).append(strategy)
+        return [
+            docker_cmd(
+                "backtesting", "--config", CONFIG,
+                "--strategy-list", *strategies,
+                "--timeframe", timeframe,
+                "--timerange", SLICES[args.slice].timerange,
+                "--fee", FEE,
+                "--enable-protections",  # include our risk brakes in the simulation
+                "--export", "trades",
+            )
+            for timeframe, strategies in groups.items()
+        ]  # fmt: skip
+
+    if args.command in ("benchmark", "report"):
+        # Runs our script inside the Freqtrade container, which already has
+        # pandas and freqtrade, so no local Python setup is needed.
+        extra = ["--timeframe", "1h"] if args.command == "benchmark" else []
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", f"/freqtrade/scripts/{args.command}.py",
+            "--slice", args.slice, *extra,
+        ]]  # fmt: skip
 
     if args.command == "hyperopt":
         # Hyperopt only ever sees the train slice. There is no option to change it.
-        return docker_cmd(
+        return [docker_cmd(
             "hyperopt", "--config", CONFIG,
             "--strategy", args.strategy,
+            "--timeframe", timeframe_of(args.strategy),
             "--timerange", SLICES["train"].timerange,
             "--fee", FEE,
             "--enable-protections",
             "--hyperopt-loss", "CalmarHyperOptLoss",
             "--epochs", str(args.epochs),
             "--spaces", *args.spaces,
-        )  # fmt: skip
+        )]  # fmt: skip
 
     raise SystemExit(f"unknown command {args.command}")
 
 
-def log_run(args: argparse.Namespace, cmd: list[str]) -> None:
-    if args.command == "download":
+def log_run(args: argparse.Namespace) -> None:
+    if args.command in ("download", "benchmark", "report"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -85,6 +118,8 @@ def log_run(args: argparse.Namespace, cmd: list[str]) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
     with EXPERIMENTS_LOG.open("a") as f:
         strategies = args.strategy if isinstance(args.strategy, list) else [args.strategy]
+        if strategies == ["all"]:
+            strategies = ALL_STRATEGIES
         for strategy in strategies:
             f.write(f"| {now} | {args.command} | {strategy} | {slice_name} | |\n")
 
@@ -101,6 +136,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
 
+    bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
+    bm.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+
+    rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
+    rp.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)
     ho.add_argument("--epochs", type=int, default=200)
@@ -112,12 +153,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    cmd = build_command(args)
-    print("$", " ".join(cmd))
+    commands = build_commands(args)
+    for cmd in commands:
+        print("$", " ".join(cmd))
     if args.dry:
         return 0
-    log_run(args, cmd)
-    return subprocess.call(cmd, cwd=ROOT)
+    log_run(args)
+    for cmd in commands:
+        code = subprocess.call(cmd, cwd=ROOT)
+        if code != 0:
+            return code
+    return 0
 
 
 if __name__ == "__main__":

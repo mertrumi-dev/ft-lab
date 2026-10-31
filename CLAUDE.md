@@ -46,7 +46,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 
 - Kaan: macOS, Apple M2, 16 GB RAM. Ayrıca bir sunucusu var (7/24 için, ileride).
 - Bot Docker Compose ile çalışır. Image sabit sürüm: `freqtradeorg/freqtrade:2026.10`.
-- Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır.
+- Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır. Geçmiş veri Kaan'ın Mac'inde indirildi (2026-10-31, 2020-10'dan beri 1h + 4h).
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
 - Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
 - Deneme stratejileri: `user_data/strategies/trend_variants.py` (TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout). Canlıya sadece train + validation'da kazanan geçer.
@@ -61,9 +61,9 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (49)
+.venv/bin/python -m pytest          # tüm testler (56)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
-.venv/bin/python scripts/benchmark.py --slice train          # al-tut
+.venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 ```
 
 FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).

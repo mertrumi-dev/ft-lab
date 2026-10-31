@@ -33,7 +33,7 @@ Bir kere yapılır.
    .venv/bin/pip install -r requirements-dev.txt
    .venv/bin/python -m pytest
    ```
-   Sonuç `49 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
+   Sonuç `56 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
 
 ## Botu çalıştırma
 
@@ -53,6 +53,7 @@ Durdurmak için: `docker compose down`.
 .venv/bin/python scripts/splits.py                      # veri dilimlerini göster
 .venv/bin/python scripts/ft.py download                 # geçmiş fiyatları indir (bir kere)
 .venv/bin/python scripts/benchmark.py --slice train     # al-tut sonucu
-.venv/bin/python scripts/ft.py backtest --slice train   # bizim kuralın sonucu
+.venv/bin/python scripts/ft.py backtest --slice train --strategy all   # tüm stratejiler
+.venv/bin/python scripts/ft.py report --slice train     # kısa tablo: stratejiler vs al-tut
 ```
 Test dilimi (`--slice test`) her strateji için sadece bir kere, en sonda. Açıklama: [docs/learn/02-olcme-araclari.md](docs/learn/02-olcme-araclari.md).

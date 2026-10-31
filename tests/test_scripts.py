@@ -93,8 +93,14 @@ def test_benchmark_reads_feather_and_respects_slice(tmp_path):
 # --- safe wrapper ---------------------------------------------------------------
 
 
+def cmds(*argv):
+    return ft.build_commands(ft.parse_args(list(argv)))
+
+
 def cmd(*argv):
-    return ft.build_command(ft.parse_args(list(argv)))
+    commands = cmds(*argv)
+    assert len(commands) == 1
+    return commands[0]
 
 
 def test_backtest_uses_slice_dates_and_fee():
@@ -127,3 +133,65 @@ def test_backtest_compares_several_strategies():
     c = cmd("backtest", "--slice", "train", "--strategy", "TrendEma", "TrendEmaAtr")
     i = c.index("--strategy-list")
     assert c[i + 1 : i + 3] == ["TrendEma", "TrendEmaAtr"]
+
+
+def test_strategies_grouped_by_timeframe():
+    commands = cmds("backtest", "--slice", "train", "--strategy", "TrendEma", "TrendEma4h", "TrendBreakout")
+    by_tf = {c[c.index("--timeframe") + 1]: c for c in commands}
+    assert set(by_tf) == {"1h", "4h"}
+    assert "TrendEma4h" in by_tf["4h"] and "TrendEma4h" not in by_tf["1h"]
+    assert "TrendBreakout" in by_tf["1h"]
+
+
+def test_timeframe_map_matches_strategies():
+    pytest.importorskip("freqtrade")
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))
+    import trend_variants
+
+    for name, tf in ft.STRATEGY_TIMEFRAMES.items():
+        assert getattr(trend_variants, name).timeframe == tf
+    assert trend_variants.TrendEmaAtr.timeframe == "1h"
+
+
+def test_all_expands_to_every_strategy():
+    commands = cmds("backtest", "--slice", "train", "--strategy", "all")
+    named = [x for c in commands for x in c if x in ft.ALL_STRATEGIES]
+    assert sorted(named) == sorted(ft.ALL_STRATEGIES)
+
+
+def test_benchmark_runs_in_docker_with_slice():
+    c = cmd("benchmark", "--slice", "validation")
+    assert c[:3] == ["docker", "compose", "run"]
+    assert c[c.index("--slice") + 1] == "validation"
+
+
+# --- report ---------------------------------------------------------------------
+
+import report  # noqa: E402
+
+BH = {"total_return": 2.0, "cagr": 0.5, "max_drawdown": 0.6, "calmar": 0.5 / 0.6}
+
+
+def fake_stats(trades=80, cagr=0.2, mdd=0.1, wins=40):
+    return {"total_trades": trades, "profit_total": 0.7, "cagr": cagr,
+            "max_drawdown_account": mdd, "wins": wins, "profit_factor": 1.4}
+
+
+def test_report_row_calmar_is_cagr_over_drawdown():
+    row = report.strategy_row("X", fake_stats(cagr=0.2, mdd=0.1))
+    assert row["calmar"] == pytest.approx(2.0)
+    assert row["win_rate"] == pytest.approx(0.5)
+
+
+def test_verdict_pass_and_each_failure():
+    assert report.verdict(report.strategy_row("X", fake_stats()), BH) == "PASS"
+    assert "trades" in report.verdict(report.strategy_row("X", fake_stats(trades=10)), BH)
+    assert "Calmar" in report.verdict(report.strategy_row("X", fake_stats(cagr=0.05, mdd=0.1)), BH)
+    assert "DD" in report.verdict(report.strategy_row("X", fake_stats(cagr=0.5, mdd=0.35)), BH)
+
+
+def test_table_has_benchmark_and_strategies():
+    rows = [report.strategy_row("A", fake_stats()), report.strategy_row("B", fake_stats(cagr=0.1))]
+    text = report.format_table(rows, BH)
+    names = [line.split()[0] for line in text.splitlines()[2:]]
+    assert names == ["BUY", "A", "B"]  # benchmark first, then best Calmar first
