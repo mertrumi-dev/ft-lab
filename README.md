@@ -1,7 +1,7 @@
 # ft-lab
 
 Freqtrade tabanlı kişisel kripto trading botu. **Sadece sahte parayla** (dry-run / demo) çalışır.
-Proje kuralları: [CLAUDE.md](CLAUDE.md). Öğretici notlar: [docs/learn/](docs/learn/).
+Proje kuralları: [CLAUDE.md](CLAUDE.md). Öğretici notlar: [docs/learn/](docs/learn/). Yol haritası: [docs/roadmap.md](docs/roadmap.md).
 
 ## Kurulum (macOS, Apple Silicon)
 
