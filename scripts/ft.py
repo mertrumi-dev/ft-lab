@@ -52,6 +52,7 @@ def build_command(args: argparse.Namespace) -> list[str]:
             "--strategy", args.strategy,
             "--timerange", SLICES[args.slice].timerange,
             "--fee", FEE,
+            "--enable-protections",  # include our risk brakes in the simulation
             "--export", "trades",
         )  # fmt: skip
 
@@ -62,6 +63,7 @@ def build_command(args: argparse.Namespace) -> list[str]:
             "--strategy", args.strategy,
             "--timerange", SLICES["train"].timerange,
             "--fee", FEE,
+            "--enable-protections",
             "--hyperopt-loss", "CalmarHyperOptLoss",
             "--epochs", str(args.epochs),
             "--spaces", *args.spaces,

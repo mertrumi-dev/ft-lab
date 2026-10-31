@@ -116,3 +116,8 @@ def test_test_slice_allowed_with_flag():
 def test_hyperopt_always_train():
     c = cmd("hyperopt")
     assert c[c.index("--timerange") + 1] == SLICES["train"].timerange
+
+
+def test_protections_always_simulated():
+    assert "--enable-protections" in cmd("backtest", "--slice", "train")
+    assert "--enable-protections" in cmd("hyperopt")

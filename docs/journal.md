@@ -18,3 +18,4 @@ Her faz sonunda: ne yaptık, ne öğrendik, ne işe yaramadı. Deneme sayıları
 - Risk kitabı v1.1: günlük/haftalık kayıp limiti ve LowProfitPairs çıkarıldı (R9 ve kill switch ile örtüşüyordu, fazla ayar). Başarı ölçütü risk-ayarlı oldu (Calmar).
 - Araştırma 01: profesyonel trend takipçilerinden denenecekler listesi (docs/research/01-...). Bota henüz eklenmedi; Faz 2'de tek tek ölçülecek.
 - Faz 1 araçları önceden yazıldı (bota dokunmadan): splits.py (train 2021-01-01..2024-06-13, validation ..2025-08-07, test ..2026-10-01), benchmark.py, ft.py (test dilimi kilidi, hyperopt sadece train, deneme kaydı). 38 test.
+- Araştırma 02: açık kaynak botlar ve kazananlar (docs/research/02-...). NFI gibi hazır stratejiler kurallarımıza uymuyor; tek gerçekçi yol risk kontrollü trend takibi. Backtest'e --enable-protections eklendi.

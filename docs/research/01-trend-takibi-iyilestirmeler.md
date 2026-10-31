@@ -72,7 +72,7 @@ Denenecek (Faz 3): "aynı anda en fazla 3 işlem" yerine "birbirine bağlı coin
 ## Sıra (Faz 2'de)
 
 1. Mevcut TrendEma'yı ölç (temel çizgi).
-2. Tek tek değiştir ve her seferinde yalnızca bir şeyi değiştir: ATR stop (1) → takip eden stop çıkışı (3) → 4h mum (5) → kırılım girişi (4).
+2. Tek tek değiştir ve her seferinde yalnızca bir şeyi değiştir: ATR stop (1) → takip eden stop çıkışı (3) → 4h mum (5) → kırılım girişi (4) → daha yavaş ortalamalar ve birkaç uzunluğun birleşimi (Araştırma 02).
 3. Her değişiklik: ayarlama diliminde daha iyi mi, kontrol diliminde de tutuyor mu? Test dilimine dokunulmaz.
 4. Deneme sayısı `docs/journal.md`'de sayılır.
 

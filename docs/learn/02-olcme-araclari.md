@@ -69,7 +69,7 @@ Freqtrade komutları uzun ve hata yapmaya açık. Yanlış `--timerange` yazmak 
 | Komut | Ne yapar | Kilit |
 |---|---|---|
 | `ft.py download` | 2020 Ekim'den bugüne 1h ve 4h mumları indirir | Ekim 2020: EMA200'ün ısınması için 3 ay fazladan veri |
-| `ft.py backtest --slice train` | Train diliminde backtest | Tarihler sadece `splits.py`'dan; komisyon hep %0,15 |
+| `ft.py backtest --slice train` | Train diliminde backtest | Tarihler sadece `splits.py`'dan; komisyon hep %0,15; risk frenleri simülasyona dahil (`--enable-protections`) |
 | `ft.py backtest --slice test` | **Reddeder** | `--final-test` eklemeden test dilimi açılmaz |
 | `ft.py hyperopt` | Otomatik parametre arama | **Sadece train**; başka dilim seçeneği hiç yok |
 
@@ -86,7 +86,7 @@ Her backtest/hyperopt çalıştırması `docs/experiments.md` dosyasına otomati
 - Sahte fiyat dosyaları üretip `benchmark.py`'nin dosyayı doğru okuduğunu ve sadece dilim tarihlerini aldığını kontrol.
 - `ft.py`: test dilimi bayraksız reddediliyor mu? Hyperopt hep train mi?
 
-Toplam: 38 test.
+Toplam: 39 test.
 
 ---
 
