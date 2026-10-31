@@ -2,6 +2,14 @@
 
 Freqtrade tabanlı kişisel kripto trading botu. Sahibi Kaan (bilgisayar mühendisliği 1. sınıf, trading bilgisi sıfıra yakın). Amaç: doğru çalışan, al-tut'u (buy-and-hold) ölçülebilir şekilde geçmeye çalışan, overfitting'e (aşırı uydurma) karşı korunmuş bir bot yazmak ve bu işi öğrenmek.
 
+## Kaan'ın altın kuralları (2026-10-31)
+
+1. **Her işlemi sıfırdan anlat.** Kaan hiç kripto alıp satmadı. Hazır terim/kod verip geçme; ne olduğunu, neden yapıldığını günlük dille açıkla.
+2. **Temel en sağlam şekilde, araştırarak.** Her değişikliği Kaan'a söyle; onay bekleme, uygula, ama açıkla. (Güvenlik çizgileri ve gerçek para bu kuralın dışında: onlar için her zaman önce sor.)
+3. **Hız: bekleme minimum, çalışma maksimum.** Erteleme yok; Kaan'dan bir şey beklerken yapılabilecek her işi paralel yap. Ama sağlamlıktan ödün yok.
+
+Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
+
 ## Güvenlik çizgileri (asla esnemez)
 
 - **Gerçek para yok.** `dry_run: false`, gerçek borsa anahtarı veya withdraw (para çekme) izinli anahtar için tek satır kod/konfig yazma, önerme. Kaan istese bile önce uyar.
