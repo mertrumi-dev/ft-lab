@@ -674,3 +674,19 @@ Kural gereği bu sonuca bakarak hiçbir şey ayarlanmayacak. Test dilimi bu iki 
 - Düşen piyasada aktif botların hepsi para kaybetti; sadece haftalık DCA hafif kârda.
 - Bizim kurallarımızın düşüşü en küçük olanlar (kill switch sayesinde).
 - Ama bizim kurallar paranın ortalama sadece %6'sını coinde tutmasına rağmen al-tut'a yakın kaybetti: çok sayıda başarısız kırılım işlemi (kazanma oranı %8-19).
+
+## 2026-11-01 · Train + Validation · Tur 10: TrendSmaDaily (günlük SMA200)
+
+Komut: `ft.py backtest --slice train|validation --no-kill-switch [--universe wide] --strategy TrendSmaDaily`, `report`, `bots`, `analyze` (main 41e91cd)
+
+| | İşlem | Getiri | Saatlik DD | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|
+| Train, 5 coin | 61 | +430,3% | 53,7% | 1,16 | 6,42 | FAIL |
+| Train, 14 coin | 158 | -5,5% | 74,1% | -0,02 | 0,96 | FAIL |
+| Validation, 5 coin (ilk bakış) | 65 | -18,0% | 26,6% | -0,60 | 0,41 | FAIL |
+
+Neden kaldı:
+- -%8 stop, 61 işlemin 26'sında devreye girdi. Günlük grafikteki normal dalgalanma, "SMA200'ün altında kapanış" çıkışından önce stop'u tetikliyor.
+- Train kârının çoğu, dönem sonunda hâlâ açık olan 3 işlemden geliyor (+2765 USDT).
+
+Faber'in kuralı sıkı bir stop olmadan tasarlanmış. Bizim %1 risk / -%8 stop kurallarımızla birleşince başka ve daha kötü bir kurala dönüşüyor. Elendi.
