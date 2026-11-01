@@ -25,17 +25,27 @@ Adres kontrolü iki kez yapılıyor: borsa nesnesi oluşturulunca ve `DemoBroker
 ## Nasıl çalışıyor?
 
 1. `demo_exchange()`: Anahtarları ortamdan okur, ccxt'nin Binance nesnesini kurar, `enable_demo_trading(True)` çağırır, adresleri kontrol eder. Hiçbir özel istek (bakiye, emir) yapmaz.
-2. `bot.step(..., broker=DemoBroker)`: Kararı yine **kağıt hesap** verir; aynı sinyal, aynı VolTarget boyutu (kart 31). Kağıt hesap bir alım ya da satım yaptığında `DemoBroker` aynı miktarı ve fiyatı LIMIT emir olarak demo borsasına gönderir.
-3. `DemoBroker` miktarı ve fiyatı borsanın kabul ettiği hassasiyete yuvarlar (`amount_to_precision`, `price_to_precision`). Her emri `state.demo.json`'daki `orders` listesine yazar.
+2. `demo.step(...)`: Kağıt botla **aynı sinyal ve aynı VolTarget boyutu** (kart 31). Fark şu: her karar demo borsasına LIMIT emir olarak gider ve hesap defterine (**ledger**) sadece borsanın **gerçekten doldurduğu** miktar yazılır.
+3. `DemoBroker` emri gönderdikten sonra borsaya her 10 saniyede bir sorar (`fetch_order`): doldu mu, iptal mi? **10 dakika** (Freqtrade ayarındaki dolmayan emir süresiyle aynı) içinde dolmazsa emri iptal eder (`cancel_order`) ve son durumu okur.
+4. Defter (`paper.open_from_fill` / `close_from_fill`) gerçek dolan miktar, gerçek ortalama fiyat ve gerçek komisyonla güncellenir:
+   - **Kısmi dolum:** 1 coin istenip 0,4 dolduysa pozisyon 0,4'tür; harcanmayan nakit defterde kalır. Satışta kısmi dolumda kalan kısım açık kalır.
+   - **Komisyon coinden kesildiyse** (Binance alımda komisyonu aldığın coinden keser): elde daha az coin vardır; defter bunu düşer. USDT komisyonu doğrudan maliyettir. BNB ile ödenen komisyon kaydedilir ama USDT'ye çevrilmez.
+5. Her emir `state.demo.json`'daki `orders` listesine yazılır: istenen fiyat, dolan miktar, ortalama fiyat, komisyon, zaman aşımı. `ft.py execution` bu dosyayı da okur; emir kalitesi raporu (kart 25) demo dolumlarını da kapsar.
 
 `ft.py minibot --demo` Docker'a `--env-file .env` verir. Anahtarları **Docker** okur, ft.py ve Claude okumaz.
 
-## Henüz eksik olan (ilk demo çalıştırmasından önce yapılacak)
+## Risk neden demo bakiyesinden hesaplanmıyor?
 
-- **Dolumları geri okumak:** emir gerçekten doldu mu, ne kadarı doldu (`fetch_order`)? Şimdilik sadece gönderilen emir kaydediliyor. Kağıt hesap, emrin dolduğunu varsayıyor.
-- **Bakiye:** kağıt hesap 1000 USDT ile hesaplıyor; demo hesabın bakiyesi farklı olabilir.
+Demo hesapta 10.000 ya da 100.000 sahte USDT olabilir. Pozisyon o bakiyeden hesaplansaydı her işlem çok büyür ve sonuçlar bizim 1000 USDT'lik planımızla karşılaştırılamazdı.
 
-Bu ikisi eklenmeden demo sonuçları yorumlanmamalı.
+- Defter **1000 USDT** ile başlar (`RESEARCH_EQUITY`) ve sadece gerçek dolumlarla değişir.
+- Pozisyon = defter sermayesi × %1 / %8 (en fazla %25) × VolTarget katsayısı, **ve** demo hesaptaki serbest USDT'yi geçemez. Büyük bakiye pozisyonu büyütemez, küçük bakiye ise sınırlar.
+- Kill switch defterin gerçekleşmiş kârına/zararına bakar. Yani demo emirlerinin gerçek sonuçlarını ölçer.
+
+## Hâlâ bilinenler (ilk demo çalıştırmasından önce bilinmeli)
+
+- Emir beklerken (en fazla 10 dakika) bot diğer coinlere geçmez. Saatte bir çalışan bot için sorun değil, ama 5 coin üst üste beklerse tur uzar.
+- BNB ile ödenen komisyon USDT'ye çevrilmiyor; demo hesapta "BNB ile komisyon öde" kapalı tutulmalı.
 
 ## Testler (`tests/test_minibot_demo.py`, sahte borsa, ağ yok, gerçek anahtar yok)
 
@@ -43,7 +53,12 @@ Bu ikisi eklenmeden demo sonuçları yorumlanmamalı.
 - Canlı adres, tek bir canlı adres, benzer görünen adres, testnet adresi, boş adres → başlamaz.
 - Spot olmayan ayar → başlamaz.
 - Emir: tip `limit`, yön, yuvarlanmış miktar/fiyat, `GTC`; vadeli işlem sembolü reddedilir.
-- `bot.step` demo'ya kağıt hesabın VolTarget boyutunun aynısını gönderiyor.
+- `demo.step` VolTarget boyutunu gönderiyor ve dolumu deftere yazıyor.
+- Kısmi dolum + zaman aşımı → iptal, deftere sadece dolan kısım; hiç dolmayan emir → iptal, defter değişmiyor.
+- Komisyon coinden kesilince pozisyon küçülüyor.
+- Büyük demo bakiyesi pozisyonu büyütmüyor; küçük bakiye sınırlıyor.
+- Kısmi satışta kalan pozisyon açık kalıyor; kill switch defterden ölçüyor.
+- `execution.py` demo kayıtlarını okuyor.
 - Gerçek ccxt nesnesi de (ağsız) kontrolü geçiyor.
 - `preflight.py`: anahtarlar sadece ortamdan mı, adres kontrolü var mı, demo kaydı git'e girmiyor mu.
 

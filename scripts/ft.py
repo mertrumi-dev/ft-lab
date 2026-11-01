@@ -239,6 +239,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "-v", f"{ROOT / 'minibot'}:/freqtrade/minibot:ro",  # demo fills: minibot/state.demo.json
             "--entrypoint", "python",
             "freqtrade", "/freqtrade/scripts/execution.py",
         ]]  # fmt: skip

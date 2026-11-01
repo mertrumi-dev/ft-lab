@@ -29,6 +29,9 @@ ROOT = Path(__file__).resolve().parent.parent
 USER_DATA = ROOT / "user_data"
 DATA_DIR = USER_DATA / "data" / "binance"
 DB_GLOB = "*.dryrun.sqlite"
+# The mini bot's Binance Demo Mode orders (minibot/demo.py). Inside Docker minibot/ is mounted
+# next to scripts/ (ft.py execution), on the host it is ROOT/minibot.
+DEMO_STATE = ROOT / "minibot" / "state.demo.json"
 
 
 @dataclass
@@ -69,6 +72,20 @@ def read_orders(db: Path) -> tuple[list[Order], float]:
         for pair, side, kind, status, ft_price, avg, price, filled, od, fd in rows
     ]  # fmt: skip
     return orders, float(fees or 0)
+
+
+def read_demo_state(path: Path) -> tuple[list[Order], float]:
+    """Orders and fees recorded by the mini bot in Binance Demo Mode (same Order rows as the DBs)."""
+    import json
+
+    state = json.loads(path.read_text())
+    orders = [
+        Order(o["pair"], o["side"], o.get("kind", ""), o.get("status") or "", float(o.get("requested") or 0),
+              float(o["average"]) if o.get("filled") else None, float(o.get("filled") or 0),
+              _ts(o.get("created")), _ts(o.get("filled_at")))
+        for o in state.get("orders", [])
+    ]  # fmt: skip
+    return orders, float(sum(o.get("fee_usdt") or 0 for o in state.get("orders", [])))
 
 
 def signal_candle(created: datetime) -> datetime:
@@ -149,13 +166,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--db", type=Path, action="append", help="sqlite file; default: every user_data/*.dryrun.sqlite")
     a = p.parse_args(argv)
     dbs = a.db or sorted(USER_DATA.glob(DB_GLOB))
-    if not dbs:
+    demo = DEMO_STATE if DEMO_STATE.exists() and not a.db else None
+    if not dbs and not demo:
         print("no dry-run database found in user_data/")
         return 0
     price_at = candle_lookup()
     for db in dbs:
         orders, fees = read_orders(db)
         print(render(db.name, summarize(orders, fees, price_at)))
+    if demo:
+        orders, fees = read_demo_state(demo)
+        print(render("minibot demo (Binance Demo Mode)", summarize(orders, fees, price_at)))
     print("Read-only report. Use it with docs/research/05-maliyet-onerisi.md (post-only decision).")
     return 0
 

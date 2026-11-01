@@ -68,3 +68,37 @@ def stop_hit(acc: dict, pair: str, low: float) -> bool:
     """Did the candle's lowest price touch the -8% stop?"""
     pos = acc["positions"].get(pair)
     return pos is not None and low <= pos["entry"] * (1 + STOPLOSS)
+
+
+# --- Demo mode (minibot/demo.py): the account follows what the exchange REALLY filled ---------
+
+
+def open_from_fill(acc: dict, pair: str, filled: float, price: float, fee_usdt: float, time: str) -> str | None:
+    """Book a (possibly partial) buy fill: `filled` coins at average `price`, plus the fee in USDT."""
+    if filled <= 0:
+        return None
+    cost = filled * price + fee_usdt
+    acc["cash"] -= cost
+    acc["positions"][pair] = {"amount": filled, "entry": price, "stake": cost, "time": time}
+    return f"BUY {pair} {filled:.6f} @ {price:.4f} (filled, cost {cost:.2f})"
+
+
+def close_from_fill(acc: dict, pair: str, filled: float, price: float, fee_usdt: float, time: str, reason: str) -> str | None:
+    """Book a (possibly partial) sell fill. A partial fill keeps the rest of the position open."""
+    pos = acc["positions"].get(pair)
+    if pos is None or filled <= 0:
+        return None
+    part = min(filled / pos["amount"], 1.0)
+    proceeds = filled * price - fee_usdt
+    stake_part = pos["stake"] * part
+    profit = proceeds - stake_part
+    acc["cash"] += proceeds
+    acc["realized"] += profit
+    acc["peak"] = max(acc["peak"], acc["realized"])
+    if part >= 0.999:  # (almost) all sold: the position is closed
+        acc["positions"].pop(pair)
+        acc["closed"].append({"pair": pair, "open": pos["time"], "close": time, "profit": profit, "reason": reason})
+    else:
+        pos["amount"] -= filled
+        pos["stake"] -= stake_part
+    return f"SELL {pair} {filled:.6f} @ {price:.4f} ({reason}{', partial' if part < 0.999 else ''}) profit {profit:+.2f}"
