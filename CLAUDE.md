@@ -52,7 +52,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Bot Docker Compose ile çalışır. Image sabit sürüm: `freqtradeorg/freqtrade:2026.10`.
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır. Geçmiş veri Kaan'ın Mac'inde indirildi (2026-10-31, 2020-10'dan beri 1h + 4h).
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
-- Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Çalışan dry-run botu: `TrendEma` (`user_data/strategies/trend_ema.py`, DB `tradesv3.dryrun.sqlite`).
+- Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. **Çalışan dry-run botu (2026-11-01 akşamından itibaren): `TrendEmaVolTarget`** (`user_data/strategies/sizing.py`, DB `tradesv3.voltarget.dryrun.sqlite`). Eski TrendEma DB'si (`tradesv3.dryrun.sqlite`) analiz için duruyor.
 - **Aday: `TrendEmaVolTarget`** (`user_data/strategies/sizing.py`; pozisyon = %12,5 × min(1, %60 / coinin 30 günlük oynaklığı)). Formel train ölçütünü geçemedi ama validation 4/4 grup + early'de en iyi; DSR < 0,95 (üstünlük kanıtlı değil). FİNAL TEST (bir kez, 2026-11-01): -%19,9, kill switch tetiklendi → FAIL; kural değişmedi, risk beklentisi araştırma 09'da (stres satırı). 2026-11-01 akşamı Faz 0 kontrolünden sonra dry-run'da TrendEma'nın yerine geçiyor (dal `switch-voltarget-rebased`, yeni DB `tradesv3.voltarget.dryrun.sqlite`). Mini bot da aynı kuralı oynuyor (`--rule voltarget`).
 - 2026-11-01 FAIL'ler (ön kayıtlı, journal.md): final test (TrendEma, PyramidBtc), BtcRising/Gap kapıları, VolTargetBtc, Portfolio, Pool v1/v2, +TSMOM karışımı, Pullback, core_gold, 2h, Derisk, 1h+2h (kıl payı), AtrStop, Breadth, TSMOM, BullVol; plato: EMA uzunlukları hızlı yönde kırılgan.
 - İzleme satırları (taze veride sadece yargı, asla ayar; `daily.py`): VolTarget2h, VolTarget@core_gold, VolTarget 1h+2h 50/50.
@@ -93,7 +93,7 @@ FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).
 
 ## Faz durumu
 
-- [ ] Faz 0: kurulum, TrendEma ile 24 saat temiz dry-run
+- [ ] Faz 0: kurulum, 24 saat temiz dry-run. TrendEma koşusu 2026-11-01'de Docker durdurulunca kesildi (sayılmadı); sayaç TrendEmaVolTarget ile yeniden başladı
 - [x] Faz 1: benchmark + veri bölme (2026-11-01: benchmark, splits, ft.py kilitleri, report, saatlik düşüş, yıl yıl, Monte Carlo)
 - [ ] Faz 2: 3 strateji (EMA cross, RSI+ATR, DCA)
 - [ ] Faz 3: robustluk (walk-forward, hassasiyet, Monte Carlo, kill switch)
