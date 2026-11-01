@@ -274,3 +274,9 @@ def test_no_kill_switch_uses_research_config_and_own_folder():
 def test_no_kill_switch_still_refuses_test_slice():
     with pytest.raises(SystemExit):
         cmds("backtest", "--slice", "test", "--no-kill-switch")
+
+
+def test_no_kill_switch_report_says_live_bot_would_stop():
+    row = report.strategy_row("X", fake_stats(cagr=0.6, mdd=0.23))
+    assert "would have stopped" in report.verdict(row, BH, kill_switch_on=False)
+    assert "stopped buying" in report.verdict(row, BH, kill_switch_on=True)

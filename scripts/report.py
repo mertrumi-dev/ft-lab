@@ -71,7 +71,7 @@ def strategy_row(name: str, s: dict) -> dict:
     }
 
 
-def verdict(row: dict, bh: dict) -> str:
+def verdict(row: dict, bh: dict, kill_switch_on: bool = True) -> str:
     """Our success rule from docs/risk-rules.md."""
     problems = []
     if row["trades"] < MIN_TRADES:
@@ -82,11 +82,15 @@ def verdict(row: dict, bh: dict) -> str:
         problems.append("DD >= half of B&H")
     result = "PASS" if not problems else "FAIL: " + ", ".join(problems)
     if row["max_drawdown"] >= KILL_SWITCH_DRAWDOWN:
-        result += " [kill switch hit: stopped buying]"
+        result += (
+            " [kill switch hit: stopped buying]"
+            if kill_switch_on
+            else " [DD >= 20%: a live bot would have stopped here]"
+        )
     return result
 
 
-def format_table(rows: list[dict], bh: dict) -> str:
+def format_table(rows: list[dict], bh: dict, kill_switch_on: bool = True) -> str:
     head = f"{'Strategy':<18}{'Trades':>7}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}{'Win%':>7}{'PF':>6}{'Last trade':>12}  Verdict"
     lines = [head, "-" * len(head)]
     lines.append(
@@ -97,7 +101,7 @@ def format_table(rows: list[dict], bh: dict) -> str:
         lines.append(
             f"{r['name']:<18}{r['trades']:>7}{r['total_return']:>+9.1%}{r['cagr']:>+8.1%}"
             f"{r['max_drawdown']:>8.1%}{r['calmar']:>8.2f}{r['win_rate']:>7.0%}"
-            f"{r['profit_factor']:>6.2f}{r['last_trade']:>12}  {verdict(r, bh)}"
+            f"{r['profit_factor']:>6.2f}{r['last_trade']:>12}  {verdict(r, bh, kill_switch_on)}"
         )
     return "\n".join(lines)
 
@@ -129,7 +133,7 @@ def main() -> None:
         print(f"Results from {args.results_dir.name} (research run, kill switch OFF)")
     if bh["skipped"]:
         print(f"No data (skipped): {', '.join(bh['skipped'])}")
-    print(format_table(rows, bh))
+    print(format_table(rows, bh, kill_switch_on=args.results_dir == RESULTS_DIR))
 
 
 if __name__ == "__main__":

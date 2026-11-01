@@ -166,3 +166,40 @@ Deneme sayacı (sağlamlık çalıştırmaları seçim için kullanılmadı): tr
 Sonuç: bu satırlar "kural 3,5 yılda nasıl" değil "ilk %20 düşüşe kadar nasıl" ölçüyor. 14 coin PASS'i ve bu FAIL'ler **kesin değil**. TrendEma, TrendEmaSlow ve sayı komşularının çoğu (5 coin) dönem sonuna kadar işlem yaptı; onların sonuçları geçerli.
 
 Çözüm: araştırma backtest'i için `--no-kill-switch` (bkz. risk-rules.md). Yeniden ölçülecek.
+
+## 2026-11-01 · Train · Kill switch KAPALI yeniden ölçüm (araştırma)
+
+Komut: `python3 scripts/ft.py backtest --slice train --no-kill-switch --strategy all` ve `... --universe wide --strategy TrendEma TrendEmaSlow`, sonra `report --slice train --no-kill-switch [--universe wide]`
+`--timerange 20210101-20240613`, `--fee 0.0015`, `--enable-protections`, `research-no-kill-switch.json`.
+
+### A) Ana 5 coin
+
+| Strateji | İşlem | Getiri | Düşüş | Calmar | PF | Karar | (kill switch açıkken) |
+|---|---|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | 92,1% | 1,69 | - | referans | |
+| TrendEma | 638 | +254,3% | 14,8% | 2,99 | 1,63 | PASS | aynı |
+| TrendEmaSlow | 215 | +227,6% | 14,5% | 2,83 | 2,08 | PASS | aynı |
+| TrendEmaMulti | 410 | +339,4% | 23,2% | 2,31 | 1,87 | PASS | 1,62 FAIL |
+| TrendEmaAtrWide | 662 | +195,1% | 20,5% | 1,79 | 1,40 | PASS | 1,27 FAIL |
+| TrendEmaBtc | 523 | +104,2% | 13,0% | 1,76 | 1,52 | PASS | aynı |
+| TrendEma4h | 162 | +204,3% | 23,6% | 1,61 | 2,24 | FAIL | 1,13 |
+| TrendBreakout | 753 | +163,3% | 21,9% | 1,48 | 1,37 | FAIL | 1,03 |
+| TrendEmaAtr / AtrTrail | ~750 | +43% | ~17% | 0,63 | 1,15 | FAIL | aynı |
+
+### B) 2021'in 14 coini (wide)
+
+| Strateji | İşlem | Getiri | Düşüş | Calmar | PF | Karar | (kill switch açıkken) |
+|---|---|---|---|---|---|---|---|
+| Al-tut | - | +256,3% | 90,6% | 0,49 | - | referans | |
+| TrendEma | 949 | +156,5% | 37,7% | 0,83 | 1,20 | PASS (zayıf) | 1,75 (Temmuz 2021'de durmuştu) |
+| TrendEmaSlow | 322 | +72,3% | 41,8% | 0,41 | 1,23 | **FAIL** | 1,21 (Şubat 2022'de durmuştu) |
+
+### Yorum (dürüst)
+
+- **Ana 5 coinde TrendEma ve Slow hiç kill switch'e çarpmamış; sonuçları geçerli.**
+- **Multi, kill switch olmadan güçlü** (Calmar 2,31) ama düşüşü %23: canlıda kill switch onu durdururdu.
+- **Başka coinlerde tablo kötüleşiyor:** iki kuralın da düşüşü ~%40, PF ~1,2. Slow al-tut'u bile geçemiyor. Kill switch açıkken görünen "PASS", botun 2022 çöküşünü tesadüfen nakitte geçirmesinden geliyordu.
+- **Anlamı:** Slow'un üstünlüğü büyük ölçüde ana 5 coine özgü olabilir. Hiçbir kural henüz "her yerde sağlam" değil. Altcoinlerde 2022 düşüşü EMA200 filtresine rağmen kuralı çok yaralıyor.
+- **Karar:** Dry-run'da TrendEmaSlow'a geçiş **ertelendi**; TrendEma (zaten çalışıyor) kalıyor. Kanıt iki taraflı: Slow validation'da daha iyi, TrendEma başka coinlerde daha iyi.
+
+Deneme sayacı: train 15 (+ 4 sağlamlık + 11 kill-switch'siz yeniden ölçüm), validation 2, test 0. Wide dilimi artık "görüldü": buna bakıp yeni kural yazarsak wide da ezberlenmeye başlar.
