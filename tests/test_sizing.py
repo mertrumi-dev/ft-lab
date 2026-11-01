@@ -246,3 +246,17 @@ def test_breadth_count_and_gate():
     assert sizing.BREADTH_MIN_UP == 3 and sizing.BREADTH_SET_SIZE == 5
     assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
     assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+
+
+def test_vt_neighbours_change_one_thing_and_lens_matches_base():
+    base = sizing.TrendEmaVolTarget
+    close = np.linspace(100, 200, 1500)
+    df = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=1500, freq="1h", tz="UTC"),
+                       "open": close, "high": close, "low": close, "close": close, "volume": 100.0})
+    a = base({}).populate_indicators(df.copy(), {"pair": "X"})
+    b = sizing._VolTargetLens({}).populate_indicators(df.copy(), {"pair": "X"})
+    for col in ("ema_fast", "ema_slow", "ema_trend", "rvol"):
+        assert np.allclose(a[col].fillna(0), b[col].fillna(0))
+    assert len(sizing.VT_NEIGHBOURS) == 10
+    assert sizing.VTStop6.stoploss == -0.06 and sizing.VTVol480.vol_window == 480
+    assert base.stoploss == trend_ema.STOPLOSS  # the live rule is untouched

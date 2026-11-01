@@ -470,3 +470,66 @@ class TrendEmaVolTargetBreadth(TrendEmaVolTarget):
         if "enter_long" in dataframe:
             dataframe.loc[~dataframe["breadth_ok"], ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# --- VolTarget plateau check (train only, research; NOT candidates, never in the bot) --
+# Each neighbour moves ONE number. -10% stop is outside R1 on purpose: it only measures
+# how sensitive the result is to the stop; the live rule stays -8%.
+
+
+class _VolTargetLens(TrendEmaVolTarget):
+    fast_len, slow_len, trend_len = 20, 50, 200
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import ema
+
+        dataframe["ema_fast"] = ema(dataframe["close"], self.fast_len)
+        dataframe["ema_slow"] = ema(dataframe["close"], self.slow_len)
+        dataframe["ema_trend"] = ema(dataframe["close"], self.trend_len)
+        dataframe["rvol"] = realized_vol(dataframe["close"], self.vol_window, self.periods_per_year)
+        return dataframe
+
+
+class VTFast15(_VolTargetLens):
+    fast_len = 15
+
+
+class VTFast25(_VolTargetLens):
+    fast_len = 25
+
+
+class VTSlow40(_VolTargetLens):
+    slow_len = 40
+
+
+class VTSlow60(_VolTargetLens):
+    slow_len = 60
+
+
+class VTTrend150(_VolTargetLens):
+    trend_len = 150
+
+
+class VTTrend250(_VolTargetLens):
+    trend_len = 250
+    startup_candle_count = 2 * 250 + VOL_WINDOW
+
+
+class VTStop6(TrendEmaVolTarget):
+    stoploss = -0.06
+
+
+class VTStop10(TrendEmaVolTarget):
+    stoploss = -0.10
+
+
+class VTVol480(TrendEmaVolTarget):
+    vol_window = 480
+
+
+class VTVol960(TrendEmaVolTarget):
+    vol_window = 960
+    startup_candle_count = 2 * 200 + 960
+
+
+VT_NEIGHBOURS = [VTFast15, VTFast25, VTSlow40, VTSlow60, VTTrend150, VTTrend250, VTStop6, VTStop10, VTVol480, VTVol960]
