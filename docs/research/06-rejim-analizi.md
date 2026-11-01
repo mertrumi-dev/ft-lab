@@ -81,7 +81,7 @@ Not: Early'de 2018'in ilk ~7 ayı etiketsiz kaldı (SMA200 ve eğimi için yeter
 Bunlar bu analizden çıkan fikirler, **kanıt değil**. Her biri denenmeden önce docs/journal.md'ye kriteriyle yazılmalı ve sadece train'de türetilmeli.
 
 - [ ] Testere rejiminde (BTC SMA200 eğimi yatay) yeni girişleri durdurmak. Dikkat: testere hâlâ artı, yani filtre muhtemelen getiriyi düşürür. Ancak düşüşü belirgin azaltırsa anlamlı. Ön-kayıt şart.
-- [ ] Boğa rejiminde hedef oynaklığı yükseltmek (%60 → %80). VTVol80 komşusu zaten var; rejime bağlı hali denenmedi. Ön-kayıt şart.
+- [x] Boğa rejiminde hedef oynaklığı yükseltmek (%60 → %80): ön-kayıtla denendi (TrendEmaVolTargetBullVol), **FAIL**. Validation'da Calmar 0/5 grupta daha iyi; düşüş 5 grubun hepsinde büyüdü. Train'de iyileşti (2,08 vs 1,86), yeni döneme taşınmadı. Ayrıntı: journal.md.
 - [ ] Testerede kazanma oranı düşük: girişte 20/50 kesişmesinin "net" olmasını istemek (ör. EMA20, EMA50'nin %0,5 üstünde). Gap denemesi (EMA200 için) başarısız olmuştu; bu farklı bir yer. Ön-kayıt şart.
 - [ ] Grid botu sadece testere rejiminde çalıştırmak: train'de lehine (+%20), early'de aleyhine (-%18). Tutarsız, düşük öncelik.
 
