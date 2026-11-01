@@ -457,3 +457,17 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 17:03 | backtest | TrendEmaVolTargetDerisk72h | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 17:03 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 17:03 | backtest | TrendEmaVolTargetDerisk72h | early | universe early, no kill switch (research) |
+| 2026-11-01 17:07 | backtest | VTDerisk48h | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 17:07 | backtest | VTDerisk96h | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 17:07 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 17:07 | backtest | TrendEmaVolTargetDerisk72h | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 17:08 | backtest | VTDerisk48h | early | universe early, no kill switch (research) |
+| 2026-11-01 17:08 | backtest | VTDerisk96h | early | universe early, no kill switch (research) |
+| 2026-11-01 17:09 | backtest | TrendEmaVolTarget | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-01 17:09 | backtest | TrendEmaVolTargetDerisk72h | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-01 17:09 | backtest | TrendEmaVolTargetDerisk72h | train | no kill switch (research) |
+| 2026-11-01 17:11 | backtest | TrendEmaVolTargetDerisk72h | validation | no kill switch (research) |
+| 2026-11-01 17:11 | backtest | TrendEmaVolTargetDerisk72h | validation | universe wide, no kill switch (research) |
+| 2026-11-01 17:12 | backtest | TrendEmaVolTargetDerisk72h | validation | universe alt2022, no kill switch (research) |
+| 2026-11-01 17:12 | backtest | TrendEmaVolTargetDerisk72h | validation | universe alt2023, no kill switch (research) |
+| 2026-11-01 17:13 | backtest | TrendEmaVolTargetDerisk72h | validation | universe alt2024, no kill switch (research) |
