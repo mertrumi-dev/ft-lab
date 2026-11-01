@@ -657,3 +657,10 @@ def test_vote9_counts_pairs_and_uses_hysteresis():
     assert (out.loc[ext, "votes"] <= 3).all() and (out["votes"].shift(1)[ext] > 3).all()
     assert not (out["votes"] == 4)[ent | ext].any()  # 4 votes: neither enter nor exit
     assert not ent.iloc[0] and not ext.iloc[0]  # no history on the first candle: never an event
+
+
+def test_vote9_neighbours_only_move_thresholds():
+    assert (sizing.TrendEmaVolTargetVote9.vote_enter, sizing.TrendEmaVolTargetVote9.vote_exit) == (5, 3)
+    assert (sizing.VTVote4x2.vote_enter, sizing.VTVote4x2.vote_exit) == (4, 2)
+    assert (sizing.VTVote6x4.vote_enter, sizing.VTVote6x4.vote_exit) == (6, 4)
+    assert sizing.VTVote4x2.populate_entry_trend is sizing.TrendEmaVolTargetVote9.populate_entry_trend

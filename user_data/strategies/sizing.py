@@ -1084,13 +1084,16 @@ def ema_votes(close: pd.Series, pairs: list[tuple[int, int]] = VOTE_PAIRS) -> pd
 class TrendEmaVolTargetVote9(TrendEmaVolTarget):
     """VolTarget whose entry/exit signal is a 9-pair EMA vote with hysteresis (T132)."""
 
+    vote_enter = VOTE_ENTER
+    vote_exit = VOTE_EXIT
+
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
         dataframe["votes"] = ema_votes(dataframe["close"])
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        up = dataframe["votes"] >= VOTE_ENTER
+        up = dataframe["votes"] >= self.vote_enter
         dataframe.loc[
             up & ~up.shift(1, fill_value=True) & (dataframe["close"] > dataframe["ema_trend"]) & (dataframe["volume"] > 0),
             ["enter_long", "enter_tag"],
@@ -1098,9 +1101,18 @@ class TrendEmaVolTargetVote9(TrendEmaVolTarget):
         return dataframe
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        down = dataframe["votes"] <= VOTE_EXIT
+        down = dataframe["votes"] <= self.vote_exit
         dataframe.loc[
             down & ~down.shift(1, fill_value=True) & (dataframe["volume"] > 0),
             ["exit_long", "exit_tag"],
         ] = (1, "votes_down")
         return dataframe
+
+
+# T132 robustness neighbours (NOT candidates): only the vote thresholds move, the gap stays 2.
+class VTVote4x2(TrendEmaVolTargetVote9):
+    vote_enter, vote_exit = 4, 2
+
+
+class VTVote6x4(TrendEmaVolTargetVote9):
+    vote_enter, vote_exit = 6, 4
