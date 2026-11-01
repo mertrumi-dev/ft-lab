@@ -890,3 +890,39 @@ class TrendEmaVolTargetMomHalf(TrendEmaVolTargetTopVol):
         if key not in self._flags_cache:
             type(self)._flags_cache = {key: momentum_half_flags(frames)}
         return self._flags_cache[key]
+
+
+# --- Trend-strength gate (pre-registered 2026-11-01, T108) ---------------------------------
+# The final-test post-mortem: whipsaw/chop kills the hourly rule. Enter only when ADX(14) on the
+# signal candle is above 20 (textbook "a real trend"). Same ADX as trend_variants.TrendEmaAdx,
+# which FAILED on TrendEma on 2026-10-31; this re-tests it on VolTarget and new data.
+
+ADX_GATE = 20
+
+
+class TrendEmaVolTargetAdx(TrendEmaVolTarget):
+    """VolTarget that only enters when ADX(14) says the market is trending."""
+
+    adx_min = ADX_GATE
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_variants import adx
+
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["adx"] = adx(dataframe)
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[~(dataframe["adx"] > self.adx_min), ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+# T108 plateau neighbours (NOT candidates, only run if T108 passes): only the threshold moves.
+class VTAdx15(TrendEmaVolTargetAdx):
+    adx_min = 15
+
+
+class VTAdx25(TrendEmaVolTargetAdx):
+    adx_min = 25

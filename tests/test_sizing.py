@@ -504,3 +504,22 @@ def test_momentum_half_flags_rank_top_half_and_positive_only():
     frames2 = {"A": frames["C"], "B": frames["D"]}
     assert not sizing.momentum_half_flags(frames2, window=2).iloc[-1].any()  # top half but falling/flat -> no
     assert sizing.TrendEmaVolTargetMomHalf.populate_entry_trend is sizing.TrendEmaVolTargetTopVol.populate_entry_trend
+
+
+def test_adx_gate_only_removes_entries_below_the_threshold():
+    from trend_variants import adx
+
+    cls = sizing.TrendEmaVolTargetAdx
+    assert cls.adx_min == 20 and sizing.VTAdx15.adx_min == 15 and sizing.VTAdx25.adx_min == 25
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    rng = np.random.default_rng(9)
+    close = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, 3000)))
+    df = pd.DataFrame({"close": close, "high": close * 1.004, "low": close * 0.996, "volume": 1.0})
+    base = sizing.TrendEmaVolTarget({})
+    b = base.populate_entry_trend(base.populate_indicators(df.copy(), {}), {})
+    s = cls({})
+    f = s.populate_entry_trend(s.populate_indicators(df.copy(), {}), {})
+    kept, removed = f["enter_long"].fillna(0) == 1, (b["enter_long"].fillna(0) == 1) & (f["enter_long"].fillna(0) != 1)
+    assert (b["enter_long"].fillna(0)[kept] == 1).all() and (f.loc[kept, "adx"] > 20).all()
+    assert (f.loc[removed, "adx"] <= 20).all() and kept.any() and removed.any()
+    assert np.allclose(f["adx"].dropna(), adx(df).loc[f["adx"].dropna().index])
