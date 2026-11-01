@@ -542,3 +542,37 @@ def test_take_half_2r_sells_half_once_at_plus_16_percent():
     assert call(0.30) is None  # only once
     trade.nr_of_successful_exits, trade.has_open_orders = 0, True
     assert call(0.30) is None  # not while an order is still open
+
+
+def test_lowcorr_refuses_a_coin_too_correlated_with_an_open_one(monkeypatch):
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    rng = np.random.default_rng(1)
+    dates = pd.date_range("2030-01-01", periods=800, freq="1h", tz="UTC")
+    base = rng.normal(0, 0.01, 800)
+    mk = lambda r: pd.DataFrame({"date": dates, "close": 100 * np.exp(np.cumsum(r))})  # noqa: E731
+    frames = {"A/USDT": mk(base), "TWIN/USDT": mk(base + rng.normal(0, 0.002, 800)), "OTHER/USDT": mk(rng.normal(0, 0.01, 800))}
+    assert sizing.return_correlation(frames["A/USDT"], frames["TWIN/USDT"]) > 0.95
+    assert abs(sizing.return_correlation(frames["A/USDT"], frames["OTHER/USDT"])) < 0.2
+
+    class Dp:
+        runmode = SimpleNamespace(value="backtest")
+
+        def get_analyzed_dataframe(self, pair, tf):
+            return frames[pair], None
+
+    s = sizing.TrendEmaVolTargetLowCorr({})
+    s.dp = Dp()
+    s.wallets = SimpleNamespace(get_starting_balance=lambda: 1000.0)
+    now = datetime(2030, 2, 3, tzinfo=timezone.utc)
+    # sizing.Trade and trend_ema.Trade are the same class: one fake answers both questions
+    closed = []
+    open_ = [SimpleNamespace(pair="A/USDT")]
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda is_open=False: open_ if is_open else closed))
+    args = ("limit", 1.0, 100.0, "GTC", now, None, "long")
+    assert s.confirm_trade_entry("TWIN/USDT", *args) is False
+    assert s.confirm_trade_entry("OTHER/USDT", *args) is True
+    # the kill switch still comes first: a 21% realized fall refuses even an uncorrelated coin
+    closed.append(SimpleNamespace(close_profit_abs=-210.0, close_date_utc=datetime(2030, 1, 1, tzinfo=timezone.utc)))
+    assert s.confirm_trade_entry("OTHER/USDT", *args) is False

@@ -951,3 +951,51 @@ class TrendEmaVolTargetTakeHalf2R(TrendEmaVolTarget):
         if current_profit >= TAKE_PROFIT_R * abs(self.stoploss):
             return -(trade.stake_amount / 2), "take_half_2r"
         return None
+
+
+# --- Measured correlation gate (pre-registered 2026-11-01, T110) ----------------------------
+# Three open trades on coins that move together are one big bet, not three small ones. The
+# Portfolio trial only ASSUMED correlation 1; this measures it: a new entry is refused if its
+# coin's 30-day hourly log-return correlation with ANY coin we already hold is >= 0.8
+# (the usual "high correlation" mark; not tuned). The parent checks (kill switch, stale data)
+# run first and are never skipped.
+
+import logging  # noqa: E402
+
+CORR_WINDOW = 24 * 30
+CORR_MAX = 0.8
+_corr_log = logging.getLogger(__name__)
+
+
+def return_correlation(a: DataFrame, b: DataFrame, window: int = CORR_WINDOW) -> float:
+    """Correlation of the last `window` hourly log returns of two analyzed dataframes (aligned on date)."""
+    ra = np.log(a.set_index("date")["close"]).diff()
+    rb = np.log(b.set_index("date")["close"]).diff()
+    both = pd.concat([ra, rb], axis=1, join="inner").dropna().tail(window)
+    if len(both) < window // 2:
+        return float("nan")  # not enough shared history: no verdict
+    return float(both.iloc[:, 0].corr(both.iloc[:, 1]))
+
+
+class TrendEmaVolTargetLowCorr(TrendEmaVolTarget):
+    """VolTarget that skips a new coin that moves too much like one already held."""
+
+    corr_max = CORR_MAX
+
+    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float, time_in_force: str,
+                            current_time: datetime, entry_tag: str | None, side: str, **kwargs) -> bool:  # fmt: skip
+        if not super().confirm_trade_entry(pair, order_type, amount, rate, time_in_force, current_time, entry_tag, side, **kwargs):
+            return False  # kill switch / stale data: never skipped
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return True
+        new, _ = dp.get_analyzed_dataframe(pair, self.timeframe)  # trimmed to now in backtests: no lookahead
+        for trade in Trade.get_trades_proxy(is_open=True):
+            if trade.pair == pair:
+                continue
+            held, _ = dp.get_analyzed_dataframe(trade.pair, self.timeframe)
+            c = return_correlation(new, held)
+            if np.isfinite(c) and c >= self.corr_max:
+                _corr_log.warning("LOWCORR: %s refused, correlation %.2f with open %s", pair, c, trade.pair)
+                return False
+        return True
