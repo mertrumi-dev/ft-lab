@@ -34,9 +34,13 @@ STATE_FILE = Path(__file__).resolve().parent / "state.demo.json"
 RESEARCH_EQUITY = 1000.0  # the ledger's start; risk is never measured on the (bigger) demo balance
 UNFILLED_TIMEOUT_S = 10 * 60  # same as config.json unfilledtimeout (10 minutes)
 POLL_S = 10
-# A stop must really get out. A limit AT the stop price may never fill when the price falls
-# through it (seen in the replay: an ETH stop filled 2 days late). So the stop is a limit
-# 1% below the last close: it fills at once like a market order, but never at any price.
+# The stop lives ON the exchange: right after an entry fill a Binance spot STOP_LOSS_LIMIT
+# order is placed (stopPrice = entry x 0.92, limit 1% below it), so it triggers within the
+# hour like the backtest instead of up to 1h late. ccxt builds it from
+# create_order(pair, "limit", "sell", amount, limit, {"stopLossPrice": stopPrice}).
+# Fallback, if the stop order cannot be placed: the hourly check sends a limit 1% below the
+# last close (a limit AT the stop price may never fill in a fall: the replay saw an ETH stop
+# fill 2 days late).
 STOP_LIMIT_BELOW = 0.01
 DONE = ("closed", "canceled", "cancelled", "expired", "rejected")
 
@@ -128,6 +132,47 @@ class DemoBroker:
     def buy(self, pair: str, amount: float, price: float) -> dict:
         return self._order(pair, "buy", "entry", amount, price)
 
+    # --- stop-loss order on the exchange -----------------------------------------------------
+
+    def place_stop(self, pair: str, amount: float, stop_price: float) -> str | None:
+        """STOP_LOSS_LIMIT sell: triggers at stop_price, then sells with a limit 1% below. None if refused."""
+        amount = float(self.exchange.amount_to_precision(pair, amount))
+        stop = float(self.exchange.price_to_precision(pair, stop_price))
+        limit = float(self.exchange.price_to_precision(pair, stop_price * (1 - STOP_LIMIT_BELOW)))
+        try:
+            order = self.exchange.create_order(pair, "limit", "sell", amount, limit, {"stopLossPrice": stop, "timeInForce": "GTC"})
+        except Exception as e:  # e.g. the order type not allowed: fall back to the hourly stop check
+            self.state.setdefault("errors", []).append(f"{self.at} stop order refused for {pair}: {e}")
+            return None
+        self.state["orders"].append({
+            "pair": pair, "side": "sell", "kind": "stoploss", "type": "stop_loss_limit", "requested": stop,
+            "limit": limit, "amount": amount, "id": order.get("id"), "status": order.get("status"), "timed_out": False,
+            "filled": 0.0, "average": None, "fee_usdt": 0.0, "candle": None, "created": self.at, "filled_at": None,
+        })  # fmt: skip
+        return order.get("id")
+
+    def _stop_result(self, order: dict, pair: str) -> dict:
+        fill = fill_result(order, pair, "sell")
+        ts = order.get("lastTradeTimestamp")
+        when = datetime.fromtimestamp(ts / 1000, timezone.utc).isoformat() if ts else self.at
+        for rec in self.state["orders"]:
+            if rec.get("id") == order.get("id") and rec.get("type") == "stop_loss_limit":
+                rec.update(status=order.get("status"), filled=fill["filled"], average=fill["price"] if fill["filled"] else None,
+                           fee_usdt=fill["fee_usdt"], candle=when if fill["filled"] else None,
+                           filled_at=when if fill["filled"] else None)  # fmt: skip
+        return {**fill, "done": order.get("status") in DONE, "ts": ts}
+
+    def check_stop(self, pair: str, order_id: str) -> dict:
+        return self._stop_result(self.exchange.fetch_order(order_id, pair), pair)
+
+    def cancel_stop(self, pair: str, order_id: str) -> dict:
+        """Cancel before a signal exit; whatever filled before the cancel is returned (and booked by the caller)."""
+        try:
+            self.exchange.cancel_order(order_id, pair)
+        except Exception as e:  # already filled/cancelled: the fetch below tells what happened
+            self.state.setdefault("errors", []).append(f"{self.at} cancel stop {pair}: {e}")
+        return self._stop_result(self.exchange.fetch_order(order_id, pair), pair)
+
     def sell(self, pair: str, amount: float, price: float, kind: str = "exit") -> dict:
         return self._order(pair, "sell", kind, amount, price)
 
@@ -167,13 +212,31 @@ def step(acc: dict, broker: DemoBroker, exchange, now_ms: int, pairs: list[str] 
         pos = acc["positions"].get(pair)
         closes = [r[4] for r in rows]
         sig = signals.signal(closes)
-        if pos is not None and paper.stop_hit(acc, pair, low):
+        stop_id = pos.get("stop_order") if pos else None
+        if stop_id:  # the stop order on the exchange: did it fill?
+            f = broker.check_stop(pair, stop_id)
+            if f["filled"] > 0:
+                log.append(_book_stop(acc, pair, f, stamp, now_ms))
+                if pair not in acc["positions"]:
+                    continue
+                pos = acc["positions"][pair]
+            elif f["done"]:  # cancelled/expired by the exchange: fall back to the hourly check
+                pos["stop_order"] = stop_id = None
+        if pos is not None and not stop_id and paper.stop_hit(acc, pair, low):  # fallback only
             f = broker.sell(pair, pos["amount"], close * (1 - STOP_LIMIT_BELOW), kind="stoploss")
             note = paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "stoploss")
             if note and pair not in acc["positions"]:
                 paper.after_close(acc, pair, now_ms, "stoploss")
             log.append(note or f"STOP {pair}: sell order not filled")
         elif sig == "sell" and pos is not None:
+            if stop_id:  # cancel the exchange stop first, book anything it already sold
+                f = broker.cancel_stop(pair, stop_id)
+                pos["stop_order"] = None
+                if f["filled"] > 0:
+                    log.append(_book_stop(acc, pair, f, stamp, now_ms))
+                    if pair not in acc["positions"]:
+                        continue
+                    pos = acc["positions"][pair]
             f = broker.sell(pair, pos["amount"], close)
             note = paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "ema_cross_down")
             if note and pair not in acc["positions"]:
@@ -193,9 +256,20 @@ def step(acc: dict, broker: DemoBroker, exchange, now_ms: int, pairs: list[str] 
         if stake < 10:
             continue
         f = broker.buy(pair, stake / close, close)
-        log.append(paper.open_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp)
-                   or f"BUY {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")  # fmt: skip
+        note = paper.open_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp)
+        if note:
+            stop_price = f["price"] * (1 + paper.STOPLOSS)
+            acc["positions"][pair]["stop_order"] = broker.place_stop(pair, f["filled"], stop_price)
+        log.append(note or f"BUY {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")
     return log
+
+
+def _book_stop(acc: dict, pair: str, f: dict, stamp: str, now_ms: int) -> str:
+    """Book an exchange stop fill; cooldown and stop guard start at the real fill time."""
+    note = paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "stoploss")
+    if pair not in acc["positions"]:
+        paper.after_close(acc, pair, int(f["ts"]) if f.get("ts") else now_ms, "stoploss")
+    return f"{note} (stop order on the exchange)"
 
 
 def load_state(path: Path = STATE_FILE) -> dict:

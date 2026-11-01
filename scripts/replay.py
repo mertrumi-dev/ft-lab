@@ -54,6 +54,12 @@ class ReplayExchange:
     def create_order(self, symbol, type, side, amount, price, params):
         assert type == "limit"
         oid = str(len(self.orders) + 1)
+        if "stopLossPrice" in params:  # STOP_LOSS_LIMIT: waits for the trigger, checked candle by candle
+            assert side == "sell"
+            self.orders[oid] = {"id": oid, "status": "open", "filled": 0.0, "amount": amount, "price": price,
+                                "average": None, "stop": params["stopLossPrice"], "placed": self.now_ms,
+                                "symbol": symbol}  # fmt: skip
+            return dict(self.orders[oid])
         order = {"id": oid, "status": "open", "filled": 0.0, "amount": amount, "price": price, "average": None}
         i = self.index[symbol].get(self.now_ms)
         if i is not None:
@@ -69,11 +75,39 @@ class ReplayExchange:
         self.orders[oid] = order
         return dict(order)
 
+    def _check_stop(self, order: dict) -> None:
+        """Trigger inside every candle from the placement hour up to (not incl.) now: low <= stop.
+
+        Fill: the stop price if the candle opened above it, the open if it opened between stop and
+        limit (gap), else only when the price climbs back to the limit (at the limit).
+        """
+        if order.get("stop") is None or order["status"] != "open":
+            return
+        rows, i = self.candles[order["symbol"]], self.index[order["symbol"]].get(order["placed"])
+        triggered = order.get("triggered", False)
+        while i is not None and i < len(rows) and rows[i][0] < self.now_ms:
+            ts, o, h, lo, _c, _v = rows[i]
+            fill = None
+            if not triggered and lo <= order["stop"]:
+                triggered = True
+                fill = order["stop"] if o >= order["stop"] else (o if o >= order["price"] else None)
+            if triggered and fill is None and h >= order["price"]:
+                fill = max(order["price"], min(o, order["stop"]))
+            if fill is not None:
+                order.update(status="closed", filled=order["amount"], average=fill, lastTradeTimestamp=ts,
+                             fee={"cost": order["amount"] * fill * self.fee, "currency": "USDT"})  # fmt: skip
+                return
+            i += 1
+        order["triggered"], order["placed"] = triggered, self.now_ms  # resume from here next time
+
     def fetch_order(self, oid, symbol):
+        self._check_stop(self.orders[oid])
         return dict(self.orders[oid])
 
     def cancel_order(self, oid, symbol):
-        self.orders[oid]["status"] = "canceled"
+        self._check_stop(self.orders[oid])  # it may have filled before the cancel arrives
+        if self.orders[oid]["status"] == "open":
+            self.orders[oid]["status"] = "canceled"
 
 
 def run_replay(candles, start_ms: int, end_ms: int, fee: float, pairs=CORE):

@@ -10,12 +10,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from minibot import bot, demo, paper, signals  # noqa: E402
+import replay  # noqa: E402
 
 ENV = {demo.KEY_ENV: "fake-demo-key", demo.SECRET_ENV: "fake-demo-secret"}  # test values, not real keys
 DEMO_API = {"public": "https://demo-api.binance.com/api/v3", "private": "https://demo-api.binance.com/api/v3",
             "fapiPublic": "https://demo-fapi.binance.com/fapi/v1"}  # fmt: skip
 LIVE_API = {"public": "https://api.binance.com/api/v3", "private": "https://api.binance.com/api/v3"}
-HOUR = 3_600_000
+HOUR = H = 3_600_000
 
 
 class FakeExchange:
@@ -42,6 +43,9 @@ class FakeExchange:
     canceled: list = []
 
     def create_order(self, symbol, type, side, amount, price, params):
+        if "stopLossPrice" in params:  # like Binance: a stop order waits untriggered
+            self.stop_orders = getattr(self, "stop_orders", 0) + 1
+            return {"id": f"stop{self.stop_orders}", "status": "open", "filled": 0.0}
         self.orders.append({"symbol": symbol, "type": type, "side": side, "amount": amount, "price": price, **params})
         oid = str(len(self.orders))
         plan = self.plans.pop(0) if self.plans else [{"status": "closed", "filled": amount, "average": price}]
@@ -52,6 +56,8 @@ class FakeExchange:
         return dict(self._last)
 
     def fetch_order(self, oid, symbol):
+        if str(oid).startswith("stop"):  # untriggered stop order
+            return {"id": oid, "status": "open", "filled": 0.0}
         script = self._script.get(oid, [])
         if script:
             self._last = {**self._last, **script.pop(0)}
@@ -215,9 +221,11 @@ def test_execution_report_reads_demo_fills(tmp_path):
     path = tmp_path / "state.demo.json"
     path.write_text(json.dumps(state))
     orders, fees = execution.read_demo_state(path)
-    assert len(orders) == 1 and orders[0].kind == "entry" and orders[0].fill and orders[0].filled > 0
+    entry, stop = orders  # the entry fill + the stop order waiting on the exchange
+    assert entry.kind == "entry" and entry.fill and entry.filled > 0
+    assert stop.kind == "stoploss" and stop.fill is None and stop.status == "open"
     s = execution.summarize(orders, fees, lambda pair, when: None)
-    assert s["orders"] == 1 and s["filled"] == 1 and s["fill_rate_entries"] == 1.0
+    assert s["orders"] == 2 and s["filled"] == 1 and s["fill_rate_entries"] == 1.0
 
 
 def test_demo_state_is_separate_and_ignored_by_git():
@@ -246,3 +254,125 @@ def test_real_ccxt_binance_passes_the_guard_offline():
     ex = demo.demo_exchange(ENV)  # builds the object only; no request is sent
     assert all(".binance.com" in u and "//demo-" in u for u in ex.urls["api"].values())
     assert ex.options["defaultType"] == "spot"
+
+
+
+# --- stop-loss order on the exchange ------------------------------------------------------------
+
+
+class StopFake(FakeExchange):
+    """Records every call in order; stop orders stay open until a test fills them."""
+
+    def __init__(self, config, demo_urls=DEMO_API):
+        super().__init__(config, demo_urls)
+        self.calls, self.stops, self.refuse_stop = [], {}, False
+
+    def create_order(self, symbol, type, side, amount, price, params):
+        if "stopLossPrice" in params:
+            if self.refuse_stop:
+                raise RuntimeError("binance triggerPrice parameter is not allowed")
+            oid = f"S{len(self.stops) + 1}"
+            self.stops[oid] = {"id": oid, "status": "open", "filled": 0.0, "amount": amount, "price": price,
+                               "stop": params["stopLossPrice"]}  # fmt: skip
+            self.calls.append(("stop", symbol, amount, price, params["stopLossPrice"]))
+            return dict(self.stops[oid])
+        self.calls.append((side, symbol, amount, price))
+        return super().create_order(symbol, type, side, amount, price, params)
+
+    def fetch_order(self, oid, symbol):
+        return dict(self.stops[oid]) if oid in self.stops else super().fetch_order(oid, symbol)
+
+    def cancel_order(self, oid, symbol):
+        self.calls.append(("cancel", oid))
+        if oid in self.stops:
+            if self.stops[oid]["status"] == "open":
+                self.stops[oid]["status"] = "canceled"
+            return
+        super().cancel_order(oid, symbol)
+
+
+def stop_setup():
+    close = buy_window()
+    ex = demo.demo_exchange(ENV, factory=StopFake)
+    ex.rows = [[i * HOUR, c, c, c, c, 1.0] for i, c in enumerate(close)]
+    ex.amount_to_precision = lambda pair, a: f"{a:.5f}"
+    ex.price_to_precision = lambda pair, p: f"{p:.4f}"
+    state = {"ledger": paper.new_account(demo.RESEARCH_EQUITY)}
+    broker = demo.DemoBroker(ex, state, sleep=lambda s: None, clock=iter(range(0, 10**6, demo.POLL_S)).__next__)
+    return close, ex, state, broker
+
+
+def test_entry_fill_places_a_stop_loss_limit_on_the_exchange():
+    close, ex, state, broker = stop_setup()
+    demo.step(state["ledger"], broker, ex, ex.rows[-1][0] + HOUR, pairs=["BTC/USDT"])
+    kind, pair, amount, limit, stop = ex.calls[1]
+    pos = state["ledger"]["positions"]["BTC/USDT"]
+    assert ex.calls[0][0] == "buy" and kind == "stop" and pair == "BTC/USDT"
+    assert amount == pytest.approx(pos["amount"], abs=1e-5)
+    assert stop == pytest.approx(pos["entry"] * 0.92, abs=1e-4) and limit == pytest.approx(stop * 0.99, abs=1e-3)
+    assert pos["stop_order"] == "S1"
+    rec = state["orders"][-1]
+    assert rec["type"] == "stop_loss_limit" and rec["kind"] == "stoploss" and rec["status"] == "open"
+
+
+def test_triggered_stop_is_booked_with_its_real_fill_time():
+    close, ex, state, broker = stop_setup()
+    now = ex.rows[-1][0] + HOUR
+    demo.step(state["ledger"], broker, ex, now, pairs=["BTC/USDT"])
+    pos = state["ledger"]["positions"]["BTC/USDT"]
+    fill_ts = now + 3 * HOUR
+    ex.stops["S1"].update(status="closed", filled=pos["amount"], average=pos["entry"] * 0.92, lastTradeTimestamp=fill_ts)
+    ex.rows.append([now, close[-1], close[-1], close[-1], close[-1], 1.0])  # one more closed candle, no signal
+    log = demo.step(state["ledger"], broker, ex, now + 5 * HOUR, pairs=["BTC/USDT"])
+    acc = state["ledger"]
+    assert "BTC/USDT" not in acc["positions"] and acc["closed"][-1]["reason"] == "stoploss"
+    assert "stop order on the exchange" in log[0]
+    assert acc["cooldown"]["BTC/USDT"] == fill_ts + 2 * HOUR and acc["stop_times"] == [fill_ts]
+    assert acc["realized"] == pytest.approx(1000 - pos["stake"] * 0.08, rel=0.01)
+
+
+def test_signal_exit_cancels_the_stop_first_then_sells():
+    close, ex, state, broker = stop_setup()
+    now = ex.rows[-1][0] + HOUR
+    demo.step(state["ledger"], broker, ex, now, pairs=["BTC/USDT"])
+    # a falling path: EMA20 crosses below EMA50 -> sell signal (price stays above the stop)
+    start = close[-1]
+    path = [start * (1 - 0.0005 * k) for k in range(1, 200)]
+    for k, p in enumerate(path):
+        ex.rows.append([now + k * HOUR, p, p, p, p, 1.0])
+        if signals.signal([r[4] for r in ex.rows]) == "sell":
+            break
+    assert signals.signal([r[4] for r in ex.rows]) == "sell" and min(path[: k + 1]) > start * 0.92
+    demo.step(state["ledger"], broker, ex, ex.rows[-1][0] + HOUR, pairs=["BTC/USDT"])
+    tail = ex.calls[2:]
+    assert tail[0] == ("cancel", "S1") and tail[1][0] == "sell"  # cancel BEFORE the exit order
+    assert ex.stops["S1"]["status"] == "canceled" and "BTC/USDT" not in state["ledger"]["positions"]
+    assert state["ledger"]["closed"][-1]["reason"] == "ema_cross_down"
+
+
+def test_refused_stop_order_falls_back_to_the_hourly_check():
+    close, ex, state, broker = stop_setup()
+    ex.refuse_stop = True
+    demo.step(state["ledger"], broker, ex, ex.rows[-1][0] + HOUR, pairs=["BTC/USDT"])
+    assert state["ledger"]["positions"]["BTC/USDT"]["stop_order"] is None
+    assert "stop order refused" in state["errors"][0]
+
+
+def test_replay_stop_triggers_inside_the_candle():
+    ex = replay.ReplayExchange({"X/USDT": [[0, 100, 100, 100, 100, 1], [H, 100, 101, 91, 95, 1], [2 * H, 90, 93, 88, 92, 1],
+                                           [3 * H, 85, 86, 80, 81, 1], [4 * H, 82, 92, 82, 90, 1], [5 * H, 90, 90, 90, 90, 1]]},
+                               fee=0.001)  # fmt: skip
+    ex.now_ms = H
+    o = ex.create_order("X/USDT", "limit", "sell", 1, 91.08, {"stopLossPrice": 92.0})
+    ex.now_ms = 2 * H
+    f = ex.fetch_order(o["id"], "X/USDT")  # candle H: opened 100 > stop, low 91 <= 92 -> filled AT the stop
+    assert f["status"] == "closed" and f["average"] == 92.0 and f["lastTradeTimestamp"] == H
+    o = ex.create_order("X/USDT", "limit", "sell", 1, 89.1, {"stopLossPrice": 90.0})  # placed in candle 2H
+    ex.now_ms = 3 * H
+    assert ex.fetch_order(o["id"], "X/USDT")["average"] == 90.0  # opened 90 = stop -> at the stop
+    o = ex.create_order("X/USDT", "limit", "sell", 1, 86.13, {"stopLossPrice": 87.0})  # placed in candle 3H
+    ex.now_ms = 4 * H
+    assert ex.fetch_order(o["id"], "X/USDT")["status"] == "open"  # gapped below the limit: waits
+    ex.now_ms = 5 * H
+    g = ex.fetch_order(o["id"], "X/USDT")  # candle 4H climbs back to the limit -> filled at the limit
+    assert g["status"] == "closed" and g["average"] == 86.13 and g["lastTradeTimestamp"] == 4 * H

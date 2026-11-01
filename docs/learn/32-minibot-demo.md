@@ -54,7 +54,7 @@ Demo hesapta 10.000 ya da 100.000 sahte USDT olabilir. Pozisyon o bakiyeden hesa
 | 2 saat bekleme (CooldownPeriod) yoktu | 3 fazla işlem | `paper.after_close` → `cooldown`; kilit bitiş saatini de kapsar |
 | 3 stop / 24 saat → 12 saat ara (StoplossGuard) yoktu | kural eşitliği | `guard_until` |
 | Aynı saatte satış ve alış varsa Freqtrade önce satar | 2025-07-22: ETH satıldı, BTC girdi | her saatte önce çıkışlar, sonra girişler |
-| Stop, stop fiyatında LIMIT idi; fiyat altına düşünce dolmuyordu | bir ETH stop'u 2 gün geç doldu | stop = son kapanışın %1 altında LIMIT (hemen dolar, ama sınırsız fiyata değil) |
+| Stop, stop fiyatında LIMIT idi; fiyat altına düşünce dolmuyordu | bir ETH stop'u 2 gün geç doldu | önce: son kapanışın %1 altında LIMIT; şimdi: borsada STOP_LOSS_LIMIT (aşağıda), saatlik kontrol sadece yedek |
 
 Sonuç (2026-11-01):
 - **fresh:** 17/17 işlem aynı saatte girip aynı saatte çıktı.
@@ -64,9 +64,25 @@ Sonuç (2026-11-01):
 
 Yavaş test: `FTLAB_SLOW=1 python3 scripts/ft.py test tests/test_replay.py` (normalde atlanır).
 
+## Stop artık borsada bekliyor (STOP_LOSS_LIMIT)
+
+**Freqtrade'in dry-run botu stop'u nasıl yapıyor?** `stoploss_on_exchange: false` (bizim ayar). Bot her döngüde (`process_throttle_secs` = 5 saniye) güncel fiyatı çeker (`get_rate(refresh=True)`), stop'u geçtiyse **piyasa emriyle** çıkar (`freqtradebot.py`: `exit_positions` → `handle_trade` → `should_exit`). Yani gecikme ~5 saniye. Mini bot saatte bir çalıştığı için stop 1 saate kadar gecikiyordu (replay'de 5 stop).
+
+**Çözüm:** Alım dolar dolmaz borsaya bir **STOP_LOSS_LIMIT** satış emri konuyor:
+- tetik fiyatı (`stopPrice`) = giriş × 0,92 (-%8);
+- tetiklenince satış, tetik fiyatının %1 altında LIMIT ile (dolması için pay; ama sınırsız fiyata satmaz).
+
+ccxt ile: `create_order(pair, "limit", "sell", miktar, limit, {"stopLossPrice": stopPrice})`. ccxt bunu Binance'e `type: STOP_LOSS_LIMIT, stopPrice, price, timeInForce: GTC` olarak çeviriyor. Ağsız denendi: istek gönderilmeden oluşturuldu. ccxt emir tipini borsanın kendi listesinden (`exchangeInfo.orderTypes`) kontrol eder. Demo borsası bu tipi desteklemezse ccxt emri **göndermeden** reddeder; o zaman bot saatlik kontrole geri döner (`errors` kaydı). Binance belgesine göre Demo Mode canlı borsayla aynı özelliklere sahip.
+
+Akış:
+1. Her saat, stop emrinin durumu okunur (`check_stop`). Dolduysa deftere yazılır. Bekleme süresi (cooldown) ve stop sayacı (StoplossGuard), botun fark ettiği saatten değil, **borsadaki gerçek dolum zamanından** başlar.
+2. Sinyalle satıştan **önce** stop emri iptal edilir (`cancel_stop`). İptal gelmeden dolduysa o kısım stop olarak yazılır, kalan satılır. Aynı coin iki kez satılmaz.
+
+Replay'de: 5 "stop 1 saat sonra" farkı **0**'a indi. Validation'da 217 işlemin 215'i aynı saatte çıkıyor; kalan 2'si dönem sonunda açık (backtest zorla kapatır). Kâr/zarar farkı +11,65'ten +5,63 USDT'ye indi; kalan fark pozisyon boyutundaki ~%2'den.
+
 ## Hâlâ bilinenler (ilk demo çalıştırmasından önce bilinmeli)
 
-- Stop, saatlik turda kontrol ediliyor: düşük fiyat ancak mum kapanınca görülüyor, yani stop en fazla ~1 saat gecikebilir. Backtest'te bu gecikme yok.
+- Stop emri dolduktan sonra defter bunu bir sonraki saatlik turda öğrenir. Borsadaki pozisyon zaten kapanmıştır; sadece kayıt gecikir.
 
 - Emir beklerken (en fazla 10 dakika) bot diğer coinlere geçmez. Saatte bir çalışan bot için sorun değil, ama 5 coin üst üste beklerse tur uzar.
 - BNB ile ödenen komisyon USDT'ye çevrilmiyor; demo hesapta "BNB ile komisyon öde" kapalı tutulmalı.
