@@ -74,3 +74,14 @@ def test_budget_never_above_one_percent_risk():
     s = de.TrendDonchianEnsemble({})
     s.wallets = type("W", (), {"get_total_stake_amount": lambda self: 1000.0})()
     assert s._budget() == pytest.approx(125.0)
+
+
+def test_full_variant_sizes_by_votes_only():
+    n = 900
+    close = np.concatenate([np.linspace(100, 60, 450), np.linspace(60, 200, 450)])
+    df = pd.DataFrame({"date": pd.date_range("2019-01-01", periods=n, freq="1D", tz="UTC"),
+                       "open": close, "high": close * 1.001, "low": close * 0.999,
+                       "close": close, "volume": 1.0})
+    out = de.TrendDonchianEnsembleFull({}).populate_indicators(df, {"pair": "BTC/USDT"})
+    assert (out["target"] == out["ensemble"]).all()
+    assert de.TrendDonchianEnsembleFull.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry

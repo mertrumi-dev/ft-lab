@@ -310,3 +310,17 @@ Kaynak: https://concretumgroup.com/catching-crypto-trends-a-tactical-approach-fo
 - Coin seçimi: her ay hacme göre ilk 20 (1 yıldan eski, stablecoin değil), hayatta kalan yanılgısından arındırılmış veri.
 - Sonuç (makale, Tablo 4, %0,1 komisyon): ilk 20 coin portföyü yıllık %18, Sharpe 1,57, en büyük düşüş %11 (2015-2025). Backtest; bağımsız doğrulama yok.
 - Bizim için çıkarım: (1) tek pencere yerine çok pencereli topluluk, (2) günlük mum, (3) oynaklığa göre pozisyon, (4) hacme göre aylık coin seçimi. Sıradaki deneme bunlardan.
+
+## 2026-11-01 · Train · Tur 4: TrendDonchianEnsemble (günlük, 9 süre oylaması, oynaklık hedefleme)
+
+Komut (RC): `ft.py backtest --slice train [--no-kill-switch] [--universe wide] --strategy TrendDonchianEnsemble` + `report`. `--timerange 20210101-20240613`, `--fee 0.0015`, `--timeframe 1d`.
+
+| | İşlem | Getiri | Yıllık | Düşüş | Calmar | PF | Coinde | Karar |
+|---|---|---|---|---|---|---|---|---|
+| 5 coin | 104 | +31,5% | +8,3% | 14,1%* | 0,59 | **4,99** | %3 | FAIL |
+| 14 coin (kill kapalı) | 160 | +3,8% | +1,1% | 7,9%* | 0,14 | 1,38 | %2 | FAIL |
+
+\* Bu düşüş eski saatlik yöntemle hesaplandı. Eski yöntem pozisyon büyütme/küçültme olan işlemlerde yanlış (son adedi tüm süreye uyguluyor). Düzeltildi: `equity.build_curve` artık her emirden (order) hesaplıyor. Yeniden raporlanacak.
+
+- **Kalite çok yüksek (PF 4,99) ama paranın sadece %3'ü coinde.** Sebep: %1 risk bütçesi (%12,5) × oy oranı × oynaklık ölçeği (~0,3) → coin başına ~%2-3. Bizim -%8 sabit stop zaten riski sınırladığı için oynaklık ölçeği pozisyonu ikinci kez küçültüyor.
+- Sıradaki deneme (tek değişiklik): `TrendDonchianEnsembleFull` = oynaklık ölçeği yok, büyüklük = bütçe × oy oranı.

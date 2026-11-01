@@ -47,11 +47,15 @@ DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
 DAILY_FROM = f"{DATA_START.year - 2}0101"
 # Freqtrade backtests one timeframe per run, so strategies are grouped by it.
 # Default is 1h; list every strategy that uses something else here.
-STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h", "TrendDonchianEnsemble": "1d"}
+STRATEGY_TIMEFRAMES = {
+    "TrendEma4h": "4h",
+    "TrendDonchianEnsemble": "1d",
+    "TrendDonchianEnsembleFull": "1d",
+}
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
 ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
-ROUND4 = ["TrendDonchianEnsemble"]
+ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4]
 

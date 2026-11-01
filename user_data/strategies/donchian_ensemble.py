@@ -69,6 +69,7 @@ class TrendDonchianEnsemble(TrendEma):
     timeframe = "1d"
     startup_candle_count = 400  # longest channel 360 days + volatility window
     position_adjustment_enable = True
+    use_vol_scaling = True
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         h, lo, c = (dataframe[k].to_numpy(dtype=float) for k in ("high", "low", "close"))
@@ -76,9 +77,13 @@ class TrendDonchianEnsemble(TrendEma):
         dataframe["ensemble"] = np.mean(states, axis=0)
         returns = dataframe["close"].pct_change()
         dataframe["vol_yearly"] = returns.rolling(VOL_WINDOW).std() * math.sqrt(365)
-        dataframe["target"] = [
-            target_fraction(e, v) for e, v in zip(dataframe["ensemble"], dataframe["vol_yearly"])
-        ]
+        if self.use_vol_scaling:
+            dataframe["target"] = [
+                target_fraction(e, v)
+                for e, v in zip(dataframe["ensemble"], dataframe["vol_yearly"])
+            ]
+        else:
+            dataframe["target"] = dataframe["ensemble"]
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -131,3 +136,14 @@ class TrendDonchianEnsemble(TrendEma):
         if min_stake is not None and -diff < min_stake:
             return None
         return max(diff, -held)  # partial sell, never more than we hold
+
+
+class TrendDonchianEnsembleFull(TrendDonchianEnsemble):
+    """Same votes, no volatility scaling.
+
+    Round-4 result: with vol scaling only ~3% of the money was in coins. Our -8%
+    hard stop already caps the loss per position (1% of capital), so scaling
+    down again for volatility shrinks positions twice. Size = budget x votes.
+    """
+
+    use_vol_scaling = False

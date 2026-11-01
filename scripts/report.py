@@ -184,7 +184,7 @@ def main() -> None:
         stats = {name: st for name, st in stats.items() if name in args.strategy}
     rows = []
     for name, st in stats.items():
-        curve = equity.hourly_equity(
+        curve = equity.build_curve(
             st.get("trades", []), bh["closes"], st.get("starting_balance", 1000.0), bh["index"]
         )
         rows.append(strategy_row(name, st, equity.summary(curve)))

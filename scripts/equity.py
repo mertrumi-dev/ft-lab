@@ -45,6 +45,52 @@ def hourly_equity(
     return pd.DataFrame({"equity": equity, "invested": invested})
 
 
+def hourly_equity_from_orders(
+    trades: list[dict], closes: dict[str, pd.Series], start_balance: float, index: pd.DatetimeIndex
+) -> pd.DataFrame:
+    """Exact version, built from every filled order (needed when a trade buys or
+    sells in several steps, e.g. position adjustment).
+
+    cash: start balance - every buy (cost + fee) + every sell (cost - fee)
+    coins: running amount held per pair, valued at each hour's close
+    """
+    cash = pd.Series(0.0, index=index)
+    held_value = pd.Series(0.0, index=index)
+    invested = pd.Series(0.0, index=index)
+    for t in trades:
+        prices = closes.get(t["pair"])
+        steps = []  # (time, change in coins)
+        for o in sorted(t["orders"], key=lambda o: o["order_filled_timestamp"] or 0):
+            if not o.get("order_filled_timestamp"):
+                continue
+            when = pd.Timestamp(o["order_filled_timestamp"], unit="ms", tz="UTC")
+            buy = o["ft_is_entry"]
+            fee = t.get("fee_open" if buy else "fee_close", 0.0) or 0.0
+            flow = -o["cost"] * (1 + fee) if buy else o["cost"] * (1 - fee)
+            cash.loc[cash.index >= when] += flow
+            steps.append((when, o["amount"] if buy else -o["amount"]))
+        if prices is None or not steps:
+            continue
+        coins = pd.Series(0.0, index=index)
+        for when, change in steps:
+            coins.loc[coins.index >= when] += change
+        coins = coins.clip(lower=0)
+        price_now = prices.reindex(index).ffill().fillna(0.0)
+        held_value += coins * price_now
+        invested += coins * price_now
+    equity = start_balance + cash + held_value
+    return pd.DataFrame({"equity": equity, "invested": invested})
+
+
+def build_curve(
+    trades: list[dict], closes: dict[str, pd.Series], start_balance: float, index: pd.DatetimeIndex
+) -> pd.DataFrame:
+    """Use exact order-based curve when every trade carries its orders, else the simple one."""
+    if trades and all(t.get("orders") for t in trades):
+        return hourly_equity_from_orders(trades, closes, start_balance, index)
+    return hourly_equity(trades, closes, start_balance, index)
+
+
 def max_drawdown(equity: pd.Series) -> float:
     return float((1 - equity / equity.cummax()).max())
 
