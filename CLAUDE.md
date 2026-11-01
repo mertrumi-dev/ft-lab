@@ -63,8 +63,9 @@ docker compose pull                 # image'ı indir
 docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
+docker compose --profile forward up -d forward-pyramidbtc   # ileriye dönük test botu (TrendEmaPyramidBtc, sahte para, FreqUI :8081)
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (292)
+.venv/bin/python -m pytest          # tüm testler (304)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)
