@@ -1068,6 +1068,7 @@ class TrendEmaVolTargetVolConfirm(TrendEmaVolTarget):
 # rule should not hang on one pair: all 9 pairs of the 3x3 grid vote. Enter when the vote turns
 # into a majority (>= 5 of 9) with the close above EMA200; exit when the majority is clearly lost
 # (<= 3); at 4 the trade is held (hysteresis). Size, stop and protections = TrendEmaVolTarget.
+# The first candle has no previous vote, so it is never an event (shift fill_value=True).
 VOTE_PAIRS = [(f, s) for f in (15, 20, 25) for s in (40, 50, 60)]
 VOTE_ENTER = 5
 VOTE_EXIT = 3
@@ -1091,7 +1092,7 @@ class TrendEmaVolTargetVote9(TrendEmaVolTarget):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         up = dataframe["votes"] >= VOTE_ENTER
         dataframe.loc[
-            up & ~up.shift(1, fill_value=False) & (dataframe["close"] > dataframe["ema_trend"]) & (dataframe["volume"] > 0),
+            up & ~up.shift(1, fill_value=True) & (dataframe["close"] > dataframe["ema_trend"]) & (dataframe["volume"] > 0),
             ["enter_long", "enter_tag"],
         ] = (1, "votes_up")
         return dataframe
@@ -1099,7 +1100,7 @@ class TrendEmaVolTargetVote9(TrendEmaVolTarget):
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         down = dataframe["votes"] <= VOTE_EXIT
         dataframe.loc[
-            down & ~down.shift(1, fill_value=False) & (dataframe["volume"] > 0),
+            down & ~down.shift(1, fill_value=True) & (dataframe["volume"] > 0),
             ["exit_long", "exit_tag"],
         ] = (1, "votes_down")
         return dataframe

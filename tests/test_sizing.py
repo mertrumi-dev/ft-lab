@@ -656,3 +656,4 @@ def test_vote9_counts_pairs_and_uses_hysteresis():
     assert (out.loc[ent, "close"] > out.loc[ent, "ema_trend"]).all()
     assert (out.loc[ext, "votes"] <= 3).all() and (out["votes"].shift(1)[ext] > 3).all()
     assert not (out["votes"] == 4)[ent | ext].any()  # 4 votes: neither enter nor exit
+    assert not ent.iloc[0] and not ext.iloc[0]  # no history on the first candle: never an event
