@@ -551,3 +551,19 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:30 | backtest | TrendEmaVolTargetVote9 | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 23:31 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 23:31 | backtest | TrendEmaVolTargetVote9 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:35 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:35 | backtest | TrendEmaVolTargetVote9 | train | no kill switch (research) |
+| 2026-11-01 23:35 | backtest | VTVote4x2 | train | no kill switch (research) |
+| 2026-11-01 23:35 | backtest | VTVote6x4 | train | no kill switch (research) |
+| 2026-11-01 23:36 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | TrendEmaVolTargetVote9 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | VTVote4x2 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | VTVote6x4 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | TrendEmaVolTargetVote9 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | VTVote4x2 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:36 | backtest | VTVote6x4 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:37 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:37 | backtest | TrendEmaVolTargetVote9 | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:38 | backtest | TrendEmaVolTarget | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:38 | backtest | TrendEmaVolTargetVote9 | early | universe early, fee 0.003, no kill switch (research) |
