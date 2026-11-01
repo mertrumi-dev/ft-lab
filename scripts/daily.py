@@ -103,7 +103,8 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
     for universe, names in WATCH_UNIVERSES.items():
         steps.append((f"bots {universe} (watch)", ["bots", "--slice", "fresh", "--universe", universe, "--strategy", *names], True))
     steps.append(("expected", ["expected"], True))  # fresh result vs its expected range (judging only)
-    steps.append(("execution", ["execution"], True))  # order quality (read-only)
+    steps.append(("execution", ["execution"], True))
+    steps.append(("explain", ["explain"], True))  # every trade in plain Turkish -> trades-explained.md  # order quality (read-only)
     steps.append(("scan pool", ["scan", "--csv"], True))  # record only: market breadth per day
     return steps
 
@@ -135,10 +136,13 @@ def main(argv: list[str] | None = None) -> int:
     path = OUT_DIR / f"{today}.md"
     path.write_text("\n".join(report))
     print(f"report: {path.relative_to(ROOT)}")
+    explained = kaan_report.clean(captured.get("explain", ""))
+    if explained:
+        (OUT_DIR / "trades-explained.md").write_text(explained + "\n")
     short = kaan_report.write(OUT_DIR, today, kaan_report.render(
         today, health_summary(), captured.get("scan pool", ""), kaan_report.breadth_rows(BREADTH_CSV),
         captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
-        kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""),
+        kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""), explained,
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0

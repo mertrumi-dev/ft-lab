@@ -72,3 +72,8 @@ def test_expected_line_shown():
     text = kaan_report.render("d", {}, "", [], BOTS, "", "", (0, 0),
                               "x\nexpected_line: 31 gün, getiri -3.3% (beklenen aralık) -> beklenen aralıkta\n")
     assert "VolTarget beklenen aralıkta mı? 31 gün" in text
+
+
+def test_section_7_trades():
+    text = kaan_report.render("d", {}, "", [], BOTS, "", "", (0, 0), "", "# İşlem açıklamaları\n\nSahte para...\n\nHenüz işlem yok.\n- BTC: x\n")
+    assert "## 7. İşlemler (sade dille)" in text and "Henüz işlem yok." in text and "- BTC: x" in text

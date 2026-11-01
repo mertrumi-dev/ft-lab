@@ -185,6 +185,14 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             ],
         ]  # fmt: skip
 
+    if args.command == "explain":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/explain.py",
+        ]]  # fmt: skip
+
     if args.command == "expected":
         return [[
             "docker", "compose", "run", "--rm",
@@ -300,7 +308,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan", "execution", "expected"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan", "execution", "expected", "explain"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -336,6 +344,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
     ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")
 
+    sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
     sub.add_parser("expected", help="is VolTarget's fresh result inside its expected range? (judging only)")
     sub.add_parser("execution", help="read-only fill/slippage/fee report from the dry-run DB(s)")
 

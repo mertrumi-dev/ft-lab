@@ -22,6 +22,11 @@ BOT_ROWS = (
 )  # fmt: skip
 
 
+def clean(text: str) -> str:
+    """Drop docker noise lines from a captured ft.py output."""
+    return "\n".join(ln for ln in text.splitlines() if not ln.startswith(("$ docker", " Container"))).strip()
+
+
 def core_scan_rows(scan_text: str) -> list[dict]:
     """The bot's 5 coins (rows marked with *) from `ft.py scan` output."""
     rows = []
@@ -75,7 +80,7 @@ def ai_counts(path: Path) -> tuple[int, int]:
 
 
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
-           execution_text: str, ai: tuple[int, int], expected_text: str = "") -> str:  # fmt: skip
+           execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "") -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -119,6 +124,11 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     written, scored = ai
     lines.append(f"- Kaydedilen yorum: {written}, puanlanan: {scored}. Bota bağlanması için önce 50+ puanlanmış tahminde"
                  " yazı-tura ve 'hep yukarı'yı geçmesi gerekiyor.")  # fmt: skip
+    body = [ln for ln in explained.splitlines() if ln and not ln.startswith("# ") and not ln.startswith("Sahte para")]
+    lines += ["", "## 7. İşlemler (sade dille)", ""]
+    lines += body[:15] or ["- Açıklama yok."]
+    if len(body) > 15:
+        lines.append("- ... tamamı: docs/fresh/trades-explained.md")
     return "\n".join(lines) + "\n"
 
 
