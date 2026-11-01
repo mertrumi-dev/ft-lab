@@ -398,3 +398,31 @@ def test_cooldown_neighbours_only_move_the_length(cls, n):
     s.confirm_trade_exit("X/USDT", None, "limit", 1.0, 1.0, "GTC", "ema_cross_down", now)
     assert calls == [now + timedelta(hours=n)]
     assert cls.confirm_trade_exit is sizing.TrendEmaVolTargetCooldown24.confirm_trade_exit
+
+
+def test_derisk2x_sells_half_once_when_the_vol_scale_halves():
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    cls = sizing.TrendEmaVolTargetDerisk2x
+    assert cls.position_adjustment_enable and cls.max_entry_position_adjustment == 0
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    dates = pd.date_range("2030-01-01", periods=10, freq="1h", tz="UTC")
+    calm, wild = 0.5, 1.6  # scale 1.0 at entry; 0.6/1.6 = 0.375 < 0.5 -> derisk
+    df = pd.DataFrame({"date": dates, "rvol": [calm] * 5 + [wild] * 5})
+
+    class Dp:
+        def get_analyzed_dataframe(self, pair, tf):
+            return df, None
+
+    s = cls({})
+    s.dp = Dp()
+    trade = SimpleNamespace(pair="X/USDT", nr_of_successful_exits=0, has_open_orders=False, stake_amount=100.0,
+                            open_date_utc=datetime(2030, 1, 1, 3, tzinfo=timezone.utc))  # fmt: skip
+    args = (None, 1.0, 0.0, 5.0, 1000.0, 1.0, 1.0, 0.0, 0.0)
+    assert s.adjust_trade_position(trade, *args) == (-50.0, "derisk_vol_2x")
+    trade.nr_of_successful_exits = 1
+    assert s.adjust_trade_position(trade, *args) is None  # only once
+    trade.nr_of_successful_exits = 0
+    df.loc[5:, "rvol"] = 0.9  # 0.6/0.9 = 0.67 >= 0.5 x 1.0 -> keep
+    assert s.adjust_trade_position(trade, *args) is None
