@@ -46,6 +46,7 @@ class TrendEmaVolTarget(TrendEma):
     """TrendEma with a smaller position on coins wilder than 60% a year."""
 
     startup_candle_count = 2 * 200 + VOL_WINDOW
+    target_vol = TARGET_VOL
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
@@ -65,4 +66,18 @@ class TrendEmaVolTarget(TrendEma):
             dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
             if dataframe is not None and not dataframe.empty and "rvol" in dataframe:
                 vol = float(dataframe["rvol"].iloc[-1])
-        return min(stake * vol_scale(vol), max_stake)
+        return min(stake * vol_scale(vol, self.target_vol), max_stake)
+
+
+# Sensitivity neighbours (NOT candidates): only the target number moves.
+
+
+class VolTarget45(TrendEmaVolTarget):
+    target_vol = 0.45
+
+
+class VolTarget80(TrendEmaVolTarget):
+    target_vol = 0.80
+
+
+VOL_NEIGHBOURS = [VolTarget45, VolTarget80]

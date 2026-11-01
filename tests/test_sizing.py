@@ -61,3 +61,11 @@ def test_keeps_risk_rules_and_signals():
     assert cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
     assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
     assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+
+
+@pytest.mark.parametrize("cls,target", [(sizing.VolTarget45, 0.45), (sizing.VolTarget80, 0.80)])
+def test_neighbours_only_move_the_target(cls, target):
+    s = cls({})
+    s.wallets, s.dp = _Wallets(), _Dp(1.6)
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(125 * target / 1.6)
+    assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
