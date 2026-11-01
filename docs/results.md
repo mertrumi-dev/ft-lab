@@ -222,3 +222,32 @@ Komut: `python3 scripts/ft.py backtest --slice train --no-kill-switch --universe
 - Ana 5 coinde aynı filtre Calmar'ı 2,99'dan 1,76'ya düşürmüştü. Yani güçlü coinlerde filtre fazla temkinli, zayıf coinlerde işe yarıyor.
 - Hiçbir kural 14 coinde güçlü değil (Calmar < 1, PF ~1,2). Kuralın gerçek avantajı güçlü coinlerde.
 - Karar: canlı kural değişmiyor (TrendEma). Yeni kural denemesine ara; şimdi yıl yıl analiz (hangi piyasa havasında kazanıp kaybediyor).
+
+## 2026-11-01 · Train · Yıl yıl (eski sonuçların kırılımı, yeni deneme değil)
+
+Komut (Remote Control ile Kaan'ın Mac'inde): `python3 scripts/ft.py report --slice train --by-year --strategy TrendEma TrendEmaSlow TrendEmaBtc` ve aynısı `--no-kill-switch --universe wide`. `--timerange 20210101-20240613`, `--fee 0.0015`. Strateji düşüşü sadece kapanmış işlemlerden (iyimser).
+
+### Ana 5 coin
+
+| Yıl | Al-tut | TrendEma | TrendEmaSlow | TrendEmaBtc |
+|---|---|---|---|---|
+| 2021 | +2582,2% (DD 60,7%) | +177,1% (9,8%) | +151,3% (8,9%) | +70,8% (10,3%) |
+| 2022 | -87,7% (88,9%) | -1,5% (8,6%) | -3,6% (7,8%) | -7,9% (11,4%) |
+| 2023 | +386,4% (36,0%) | +23,5% (8,7%) | +21,4% (6,7%) | +21,8% (9,3%) |
+| 2024 (Haz'a kadar) | +54,4% (37,3%) | +5,1% (6,9%) | +11,4% (7,0%) | +6,6% (5,9%) |
+
+### 14 coin (kill switch kapalı)
+
+| Yıl | Al-tut | TrendEma | TrendEmaSlow | TrendEmaBtc |
+|---|---|---|---|---|
+| 2021 | +435,5% (73,9%) | +179,3% (22,4%) | +124,4% (16,8%) | +47,9% (13,1%) |
+| 2022 | -66,9% (72,9%) | -15,7% (22,6%) | -19,6% (26,3%) | -7,6% (16,5%) |
+| 2023 | +51,9% (36,8%) | +20,0% (13,6%) | -1,4% (14,4%) | +32,7% (8,8%) |
+| 2024 | +30,5% (40,2%) | -9,2% (15,9%) | -3,1% (6,0%) | +0,5% (12,3%) |
+
+### Yorum
+
+- **Botun değeri çöküş yılında:** 2022'de al-tut -%88, TrendEma -%1,5.
+- **Yükselişte al-tut'un çok gerisinde.** Kazancın büyük kısmı 2021'den. 2023-24'te al-tut'un küçük bir kesri.
+- Muhtemel neden: %1 risk kuralı yüzünden paranın çoğu nakitte. Ölçmek için "ortalama yatırım oranı" ve saatlik (açık işlem dahil) düşüş ekleniyor.
+- 14 coinde BTC filtresi 2022'yi -%7,6 ile en iyi geçiren kural.
