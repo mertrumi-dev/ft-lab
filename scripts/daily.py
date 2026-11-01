@@ -26,8 +26,8 @@ OUT_DIR = ROOT / "docs" / "fresh"
 
 # The strategy the dry-run bot runs + the current candidate(s). NFI runs on 5m
 # candles and takes much longer, so it is opt-in (--with-nfi).
-CANDIDATES = ["TrendEma", "TrendEmaBtcRising", "TrendEmaBtcRisingGap"]
-UNIVERSES = ["core", "wide"]
+CANDIDATES = ["TrendEma", "TrendEmaBtcRising", "TrendEmaBtcRisingGap", "TrendEmaVolTarget"]
+UNIVERSES = ["core", "wide", "alt2022", "alt2023", "alt2024"]
 
 
 def run(args: list[str], capture: bool = False) -> tuple[int, str]:
