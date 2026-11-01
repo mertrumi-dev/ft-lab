@@ -87,6 +87,29 @@ ALT_2024B = [
     "SAGA/USDT", "OMNI/USDT", "REZ/USDT", "BB/USDT", "NOT/USDT", "IO/USDT", "ZK/USDT", "ZRO/USDT",
 ]  # fmt: skip
 
+# RESERVED JUDGES (added 2026-11-01 21:30 UTC, BEFORE any price of these coins was downloaded).
+# Rule: one look per PRE-REGISTERED trial, every look logged in docs/journal.md; never used to
+# design or tune a rule. Honest limit: these are new COINS in already-seen TIME (2022-2025), so
+# the market regime overlaps with the judges we already used; independent coins, not independent years.
+#
+# judge_old: big coins listed before 2024 that were never in any of our groups (RENDER left out:
+# it is RNDR, already used). Expected first Binance spot candle in brackets (memory, to verify).
+JUDGE_OLD = [
+    "TON/USDT", "PEPE/USDT", "FET/USDT", "ENS/USDT", "KAVA/USDT", "ZIL/USDT", "1INCH/USDT", "COMP/USDT",
+    "SNX/USDT", "YFI/USDT", "BAT/USDT", "ROSE/USDT", "MINA/USDT", "GMT/USDT", "BLUR/USDT", "JASMY/USDT",
+    "WLD/USDT", "ORDI/USDT", "BONK/USDT", "FLOKI/USDT", "JTO/USDT", "PYTH/USDT", "TRB/USDT", "CFX/USDT",
+]  # fmt: skip
+# judge_2025a: coins first listed on Binance spot in 2025-01..2025-06 (expected dates, memory, to
+# verify): ONDO 01-17, SOLV 01-17, TRUMP 01-19, ANIME 01-23, BERA 02-06, LAYER 02-11, SHELL 02-13,
+# KAITO 02-20, BMT 03-18, NIL 03-24, PARTI 03-25, INIT 04-24, SXT 05-08, HUMA 05-26, SOPH 05-28,
+# HOME 06-12, NEWT 06-24. Judged only up to 2025-08-07 (never the test period). Late listings have
+# little data after the ~47-day strategy warm-up: counted, not assumed.
+JUDGE_2025A = [
+    "ONDO/USDT", "SOLV/USDT", "TRUMP/USDT", "ANIME/USDT", "BERA/USDT", "LAYER/USDT", "SHELL/USDT",
+    "KAITO/USDT", "BMT/USDT", "NIL/USDT", "PARTI/USDT", "INIT/USDT", "SXT/USDT", "HUMA/USDT",
+    "SOPH/USDT", "HOME/USDT", "NEWT/USDT",
+]  # fmt: skip
+
 POOL = list(dict.fromkeys(CORE_5 + WIDE_2021 + ALT_2022 + ALT_2023 + ALT_2024))
 
 # core_gold (2026-11-01, research): the 5 core coins + tokenized gold, a different asset
@@ -96,5 +119,5 @@ CORE_GOLD = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "PAXG/U
 UNIVERSES = {
     "pool": POOL,
     "early": EARLY_2018,
-    "core": None, "core_gold": CORE_GOLD, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024, "alt2024b": ALT_2024B,
+    "core": None, "core_gold": CORE_GOLD, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024, "alt2024b": ALT_2024B, "judge_old": JUDGE_OLD, "judge_2025a": JUDGE_2025A,
 }  # None = pairs from config.json

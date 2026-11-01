@@ -482,3 +482,17 @@ def test_ft_test_and_minibot_run_in_the_test_image():
     m = ft.build_commands(ft.parse_args(["minibot", "--once"]))[0]
     assert m[-3:] == ["--once", "--rule", "voltarget"] and "minibot.bot" in m
     assert (ft.ROOT / "tests" / "Dockerfile").read_text().count("freqtrade:2026.10") == 1
+
+
+def test_reserved_judges_never_overlap_used_groups():
+    from universe import CORE_5, JUDGE_2025A, JUDGE_OLD, UNIVERSES
+
+    used = {p.split("/")[0] for p in CORE_5}
+    for name, pairs in UNIVERSES.items():
+        if pairs and name not in ("judge_old", "judge_2025a"):
+            used |= {p.split("/")[0] for p in pairs}
+    used |= {"RENDER"}  # same asset as RNDR (already used)
+    for judge in (JUDGE_OLD, JUDGE_2025A):
+        coins = [p.split("/")[0] for p in judge]
+        assert not set(coins) & used and len(coins) == len(set(coins))
+    assert not set(JUDGE_OLD) & set(JUDGE_2025A)
