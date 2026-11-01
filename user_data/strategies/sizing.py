@@ -807,3 +807,47 @@ class VTDerisk48h(TrendEmaVolTargetDerisk72h):
 
 class VTDerisk96h(TrendEmaVolTargetDerisk72h):
     short_vol_window = 96
+
+
+# --- Minimum hold time (pre-registered 2026-11-01, "fee budget" family) -------------------
+# Fees were 66% of VolTarget's alt2024b loss; trades shorter than 3 days lost money as a group
+# (early trade breakdown). A signal exit is refused while the trade is younger than 24
+# candles (one day); after that, the trade exits as soon as EMA20 is below EMA50. The -8%
+# stop is never delayed (R1).
+
+MIN_HOLD_CANDLES = 24
+
+
+class TrendEmaVolTargetMinHold24(TrendEmaVolTarget):
+    """VolTarget whose signal exit waits until the trade is at least one day old."""
+
+    min_hold_candles = MIN_HOLD_CANDLES
+
+    def _old_enough(self, trade, current_time) -> bool:
+        from datetime import timedelta
+
+        from freqtrade.exchange import timeframe_to_minutes
+
+        return current_time - trade.open_date_utc >= timedelta(minutes=timeframe_to_minutes(self.timeframe) * self.min_hold_candles)
+
+    def confirm_trade_exit(
+        self, pair: str, trade, order_type: str, amount: float, rate: float, time_in_force: str,
+        exit_reason: str, current_time: datetime, **kwargs,
+    ) -> bool:  # fmt: skip
+        if exit_reason == "ema_cross_down" and not self._old_enough(trade, current_time):
+            return False  # too young: keep it (the stop still protects it)
+        return True
+
+    def custom_exit(self, pair: str, trade, current_time: datetime, current_rate: float, current_profit: float, **kwargs):
+        if not self._old_enough(trade, current_time):
+            return None
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+        if dataframe is None or dataframe.empty:
+            return None
+        last = dataframe.iloc[-1]
+        if last["ema_fast"] < last["ema_slow"]:
+            return "ema_below_after_minhold"
+        return None

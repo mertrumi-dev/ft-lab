@@ -461,3 +461,31 @@ def test_derisk_neighbours_only_move_the_short_window(cls, w):
     close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 1500))))
     ind = cls({}).populate_indicators(pd.DataFrame({"close": close, "volume": 1.0}), {})
     assert np.isclose(ind["rvol_short"].iloc[-1], np.log(close).diff().iloc[-w:].std() * np.sqrt(8760))
+
+
+def test_minhold24_refuses_young_signal_exits_and_exits_when_old_and_below():
+    from datetime import datetime, timedelta, timezone
+    from types import SimpleNamespace
+
+    cls = sizing.TrendEmaVolTargetMinHold24
+    assert sizing.MIN_HOLD_CANDLES == 24 and cls.stoploss == trend_ema.STOPLOSS
+    s = cls({})
+    opened = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    trade = SimpleNamespace(open_date_utc=opened)
+    young, old = opened + timedelta(hours=23), opened + timedelta(hours=24)
+    assert s.confirm_trade_exit("X/USDT", trade, "limit", 1, 1, "GTC", "ema_cross_down", young) is False
+    assert s.confirm_trade_exit("X/USDT", trade, "limit", 1, 1, "GTC", "ema_cross_down", old) is True
+    assert s.confirm_trade_exit("X/USDT", trade, "market", 1, 1, "GTC", "stop_loss", young) is True  # stop never delayed
+    frames = {"below": pd.DataFrame({"ema_fast": [1.0], "ema_slow": [2.0]}), "above": pd.DataFrame({"ema_fast": [3.0], "ema_slow": [2.0]})}
+
+    class Dp:
+        state = "below"
+
+        def get_analyzed_dataframe(self, pair, tf):
+            return frames[self.state], None
+
+    s.dp = Dp()
+    assert s.custom_exit("X/USDT", trade, young, 1.0, 0.0) is None  # too young even if below
+    assert s.custom_exit("X/USDT", trade, old, 1.0, 0.0) == "ema_below_after_minhold"
+    s.dp.state = "above"
+    assert s.custom_exit("X/USDT", trade, old, 1.0, 0.0) is None
