@@ -33,7 +33,7 @@ Bir kere yapılır.
    .venv/bin/pip install -r requirements-dev.txt
    .venv/bin/python -m pytest
    ```
-   Sonuç `116 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
+   Sonuç `121 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
 
 ## Botu çalıştırma
 
