@@ -501,3 +501,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 23:12 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | early | universe early, no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTargetVolConfirm | train | no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTargetVolConfirm | validation | no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:15 | backtest | TrendEmaVolTargetVolConfirm | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:16 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:16 | backtest | TrendEmaVolTargetVolConfirm | early | universe early, no kill switch (research) |
