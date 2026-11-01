@@ -19,14 +19,16 @@ services:
       --config /freqtrade/user_data/config/config.json
       --strategy TrendEmaVolTarget
 
-  # Forward test (2026-11-01): a second dry-run bot with the best backtest rule,
-  # judged on NEW prices only. Fake money, same risk rules. Not started by a plain
-  # `docker compose up -d`; start it with `docker compose --profile forward up -d`.
-  forward-pyramidbtc:
+  # Forward test (2026-11-01, replaced PyramidBtc after its final-test FAIL): a second dry-run
+  # bot with TrendEmaVolTargetAdx (T108; passed the reserved judge in T111), judged on NEW prices
+  # only, side by side with the main VolTarget bot. Fake money, same risk rules, own DB and port.
+  # Not started by a plain `docker compose up -d`; start it with
+  # `docker compose --profile forward up -d forward-adx20`.
+  forward-adx20:
     image: freqtradeorg/freqtrade:2026.10
     profiles: ["forward"]
     restart: unless-stopped
-    container_name: ft-lab-fwd-pyramidbtc
+    container_name: ft-lab-fwd-adx20
     env_file:
       - .env
     volumes:
@@ -35,8 +37,8 @@ services:
       - "127.0.0.1:8081:8080"
     command: >
       trade
-      --logfile /freqtrade/user_data/logs/forward-pyramidbtc.log
-      --db-url sqlite:////freqtrade/user_data/forward-pyramidbtc.dryrun.sqlite
+      --logfile /freqtrade/user_data/logs/forward-adx20.log
+      --db-url sqlite:////freqtrade/user_data/tradesv3.adx20.dryrun.sqlite
       --config /freqtrade/user_data/config/config.json
-      --config /freqtrade/user_data/config/forward-pyramidbtc.json
-      --strategy TrendEmaPyramidBtc
+      --config /freqtrade/user_data/config/forward-adx20.json
+      --strategy TrendEmaVolTargetAdx

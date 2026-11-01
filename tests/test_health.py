@@ -139,3 +139,11 @@ def test_latched_kill_switch_points_to_the_restart_checklist():
     assert "Uygulandı 2026-11-01" in doc and "asla düzenlenmez" in doc
     rules = (health.ROOT / "docs" / "risk-rules.md").read_text()
     assert "R13 eki" in rules and "En az 14 gün" in rules and "%20, %1, %8, %25" in rules
+
+
+def test_health_can_check_each_dry_run_bot_on_its_own_db():
+    assert health.SERVICES["freqtrade"].name == "tradesv3.voltarget.dryrun.sqlite"
+    assert health.SERVICES["forward-adx20"].name == "tradesv3.adx20.dryrun.sqlite"
+    compose = (health.ROOT / "docker-compose.yml").read_text()
+    for service, db in health.SERVICES.items():
+        assert f"\n  {service}:" in compose and db.name in compose

@@ -56,6 +56,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - **Aday: `TrendEmaVolTarget`** (`user_data/strategies/sizing.py`; pozisyon = %12,5 × min(1, %60 / coinin 30 günlük oynaklığı)). Formel train ölçütünü geçemedi ama validation 4/4 grup + early'de en iyi; DSR < 0,95 (üstünlük kanıtlı değil). FİNAL TEST (bir kez, 2026-11-01): -%19,9, kill switch tetiklendi → FAIL; kural değişmedi, risk beklentisi araştırma 09'da (stres satırı). 2026-11-01 akşamı Faz 0 kontrolünden sonra dry-run'da TrendEma'nın yerine geçiyor (dal `switch-voltarget-rebased`, yeni DB `tradesv3.voltarget.dryrun.sqlite`). Mini bot da aynı kuralı oynuyor (`--rule voltarget`).
 - 2026-11-01 FAIL'ler (ön kayıtlı, journal.md): final test (TrendEma, PyramidBtc), BtcRising/Gap kapıları, VolTargetBtc, Portfolio, Pool v1/v2, +TSMOM karışımı, Pullback, core_gold, 2h, Derisk, 1h+2h (kıl payı), AtrStop, Breadth, TSMOM, BullVol; plato: EMA uzunlukları hızlı yönde kırılgan.
 - İzleme satırları (taze veride sadece yargı, asla ayar; `daily.py`): VolTarget2h, VolTarget@core_gold, VolTarget 1h+2h 50/50.
+- **Paralel dry-run (2026-11-01 akşamından itibaren):** `forward-adx20` = TrendEmaVolTargetAdx (T108; ayrılmış hakem judge_old'da T111 PASS, train core'da FAIL, DSR 0,34). DB `tradesv3.adx20.dryrun.sqlite`, FreqUI :8081, profile `forward`. Sadece yargı: ana botla yan yana günlük rapor. PyramidBtc forward servisi kaldırıldı (final testte FAIL).
 - Eski denemeler: `trend_variants.py` (tur 1-3, 7), `sma_daily.py`, `dip_rsi.py`, `donchian_ensemble.py`, `regime.py` (BTC kapıları), `sizing.py` (VolTarget ailesi + komşular). Ayrıntı: `docs/journal.md`, `docs/results.md`. Canlıya sadece train + validation'da kazanan geçer.
 - Veri dilimleri (`scripts/splits.py`): train 2021-01→2024-06, validation →2025-08, test →2026-10 (kullanıldı), **fresh** = testten sonra bugüne (sadece yargı), **early** = 2018→2020 (sadece yargı).
 - Coin grupları (`scripts/universe.py`): core (botun 5 coini), wide (2021'in büyük 15'i), alt2022/alt2023/alt2024, early (2018 coinleri), pool (~71 coin, tarayıcı), core_gold (core + PAXG).
@@ -69,7 +70,8 @@ export PATH=$HOME/.docker/bin:$PATH  # Docker Desktop'ın docker'ı (Mac'te PATH
 docker compose up -d freqtrade      # botu arka planda başlat (servis adıyla: forward botuna dokunmaz)
 docker compose logs -f freqtrade    # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
-docker compose --profile forward up -d forward-pyramidbtc   # ileriye dönük test botu (sahte para, FreqUI :8081)
+docker compose --profile forward up -d forward-adx20   # ileriye dönük test botu: TrendEmaVolTargetAdx (sahte para, kendi DB'si, FreqUI :8081)
+python3 scripts/health.py --service forward-adx20   # ileriye dönük botun sağlığı
 python3 scripts/ft.py test          # tüm testler, Docker içinde (444+; ilk sefer --build). Mac python3'te pandas yok
 python3 scripts/ft.py download [--universe U] [--early] [--fine]   # veri (early: 2018'den, fine: 5m/15m NFI için)
 python3 scripts/ft.py backtest|report --slice S [--universe U] [--fee-stress] [--no-kill-switch] --strategy A B

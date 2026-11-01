@@ -31,6 +31,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "user_data" / "tradesv3.voltarget.dryrun.sqlite"  # main bot since 2026-11-01 (TrendEmaVolTarget)
+# Every dry-run bot health.py can check: compose service -> its own database.
+SERVICES = {
+    "freqtrade": DB,  # main bot (TrendEmaVolTarget)
+    "forward-adx20": ROOT / "user_data" / "tradesv3.adx20.dryrun.sqlite",  # forward test (TrendEmaVolTargetAdx)
+}
 STARTING_BALANCE = 1000.0  # config.json dry_run_wallet
 KILL_SWITCH_DRAWDOWN = 0.20  # same number as trend_ema.py
 RESTART_CHECKLIST = "docs/proposals/kill-switch-restart.md"  # what to do when latched (R13 addendum, applied 2026-11-01)
@@ -153,19 +158,19 @@ def trade_summary(db: Path) -> dict:
     }
 
 
-def read_log_lines() -> list[str]:
+def read_log_lines(service: str = "freqtrade") -> list[str]:
     """The bot's log as Docker keeps it (stdout of the container), without the name prefix."""
     out = subprocess.run(
-        ["docker", "compose", "logs", "--no-log-prefix", "--no-color", "freqtrade"],
+        ["docker", "compose", "--profile", "forward", "logs", "--no-log-prefix", "--no-color", service],
         cwd=ROOT, capture_output=True, text=True, timeout=120,
     )  # fmt: skip
     return out.stdout.splitlines()
 
 
-def container_status() -> str:
+def container_status(service: str = "freqtrade") -> str:
     try:
         out = subprocess.run(
-            ["docker", "compose", "ps", "--format", "{{.Name}} {{.Status}}"],
+            ["docker", "compose", "--profile", "forward", "ps", "--format", "{{.Name}} {{.Status}}", service],
             cwd=ROOT, capture_output=True, text=True, timeout=30,
         )  # fmt: skip
         return out.stdout.strip() or "not running"
@@ -220,15 +225,16 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="read-only health report for the dry-run bot")
     parser.add_argument("--hours", type=int, default=24)
+    parser.add_argument("--service", choices=sorted(SERVICES), default="freqtrade", help="which dry-run bot to check")
     args = parser.parse_args(argv)
     now = datetime.now(timezone.utc)
     try:
-        lines = read_log_lines()
+        lines = read_log_lines(args.service)
     except (OSError, subprocess.TimeoutExpired) as e:
         print(f"could not read docker logs ({e.__class__.__name__}): is docker on PATH?")
         return 1
     s = summarize_log(lines, now - timedelta(hours=args.hours))
-    print(render(s, trade_summary(DB), container_status(), now, args.hours))
+    print(render(s, trade_summary(SERVICES[args.service]), container_status(args.service), now, args.hours))
     return 0
 
 

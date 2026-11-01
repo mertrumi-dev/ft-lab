@@ -86,10 +86,10 @@ docker compose up -d
 
 `restart: unless-stopped` ayarı sayesinde sunucu yeniden başlasa bile bot kendiliğinden tekrar açılır.
 
-Bu komut **sadece ana botu** başlatır. İleri test botu (`forward-pyramidbtc`, yeni fiyatlarla deneme, yine sahte para) bilerek ayrı bir "profile" arkasında. Onu da istersen:
+Bu komut **sadece ana botu** başlatır. İleri test botu (`forward-adx20`, TrendEmaVolTargetAdx, yeni fiyatlarla deneme, yine sahte para) bilerek ayrı bir "profile" arkasında. Onu da istersen:
 
 ```bash
-docker compose --profile forward up -d forward-pyramidbtc
+docker compose --profile forward up -d forward-adx20
 ```
 
 FreqUI'si `127.0.0.1:8081` adresinde (tünel komutunda 8080 yerine 8081 kullan). `preflight.py` ekstra botların profile arkasında ve sadece 127.0.0.1'de kaldığını kontrol eder.
