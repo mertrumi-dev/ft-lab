@@ -147,3 +147,64 @@ def test_format_years_lists_every_bot_and_year():
     r = bots.with_years(pd.Series(np.linspace(1, 2, 48), index=idx), 3)
     text = bots.format_years([("A", r), ("B", {"years": {}})])
     assert "2021" in text and "2022" in text and text.count("\n") == 3
+
+
+# --- safer DCA bot (research row) ------------------------------------------------
+
+
+def _hourly(close, start="2024-01-01"):
+    close = np.asarray(close, dtype=float)
+    idx = pd.date_range(start, periods=len(close), freq="1h", tz="UTC")
+    return pd.DataFrame({"high": close, "low": close, "close": close}, index=idx)
+
+
+def test_safe_dca_closed_gate_never_trades():
+    c = _hourly(np.linspace(100, 120, 200))
+    eq, deals = dcabot.simulate_pair_safe(c, 1.0, fee=0.0, gate=np.zeros(200, dtype=bool))
+    assert deals == 0 and (eq == 1.0).all()
+
+
+def test_safe_dca_open_gate_matches_plain_bot_without_big_fall():
+    c = _hourly(100 + 3 * np.sin(np.arange(500) / 5))  # never falls 8% below what was spent
+    plain, n1 = dcabot.simulate_pair(c, 1.0, fee=0.001)
+    safe, n2 = dcabot.simulate_pair_safe(c, 1.0, fee=0.001)
+    assert n1 == n2 and np.allclose(plain.to_numpy(), safe.to_numpy())
+
+
+def test_safe_dca_stop_caps_a_deal_at_8_percent():
+    c = _hourly(np.concatenate([np.full(5, 100.0), np.linspace(100, 40, 200)]))  # long crash
+    plain, _ = dcabot.simulate_pair(c, 1.0, fee=0.0)
+    safe, deals = dcabot.simulate_pair_safe(c, 1.0, fee=0.0, gate=np.r_[True, np.zeros(204, dtype=bool)])
+    assert deals == 1  # stopped once, then the closed gate keeps it out
+    lost_fraction_of_spent = 1 - safe.iloc[-1]  # only part of the cash was ever spent
+    assert safe.iloc[-1] > plain.iloc[-1]
+    assert lost_fraction_of_spent < 0.08 + 1e-9
+
+
+def test_btc_gate_uses_only_completed_days():
+    days = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=160, freq="1D", tz="UTC"),
+                         "close": np.concatenate([np.linspace(100, 200, 100), np.linspace(200, 50, 60)])})
+    s = days["close"].rolling(50).mean()
+    flip = int(np.flatnonzero(~(s > s.shift(10)).to_numpy() & (np.arange(160) > 100))[0])
+    flip_day = days["date"].iloc[flip]
+    idx = pd.date_range(flip_day - pd.Timedelta(hours=2), periods=30, freq="1h", tz="UTC")
+    g = dcabot.btc_gate(idx, days)
+    assert g[idx < flip_day + pd.Timedelta(days=1)].all()
+    assert not g[idx >= flip_day + pd.Timedelta(days=1)].any()
+    # changing the future must not change today's gate
+    later = days.copy()
+    later.loc[flip + 1 :, "close"] = 1000.0
+    assert (dcabot.btc_gate(idx, later)[idx < flip_day + pd.Timedelta(days=1)] == g[idx < flip_day + pd.Timedelta(days=1)]).all()
+
+
+def test_btc_gate_same_semantics_as_regime_strategy():
+    pytest.importorskip("freqtrade")
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))
+    import regime
+
+    days = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=160, freq="1D", tz="UTC"),
+                         "close": np.concatenate([np.linspace(100, 200, 100), np.linspace(200, 50, 60)])})
+    hourly = pd.DataFrame({"date": pd.date_range("2024-02-01", periods=24 * 100, freq="1h", tz="UTC")})
+    a = dcabot.btc_gate(pd.DatetimeIndex(hourly["date"]), days)
+    b = regime.attach_btc_rising(hourly, days).to_numpy()
+    assert (a == b).all()

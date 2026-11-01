@@ -126,6 +126,11 @@ def main() -> None:
             ("DCA bot (3Commas-style)", simulate_bot(
                 dcabot.simulate_pair, args.slice, args.universe, args.fee)),
             ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee, start=bh["index"][0]))]  # fmt: skip
+    # Research row (ours, pre-registered): DCA bot + BTC start gate + 8% deal stop.
+    btc_daily = pd.read_feather(DATA_DIR / "BTC_USDT-1d.feather")
+    rows.append(("DCA bot + BTC gate + 8% stop (ours)", simulate_bot(
+        lambda c, cash, fee: dcabot.simulate_pair_safe(c, cash, fee=fee, gate=dcabot.btc_gate(c.index, btc_daily)),
+        args.slice, args.universe, args.fee)))  # fmt: skip
 
     stats = report.latest_stats_per_strategy(
         s.timerange, universe_pairs(args.universe), args.fee, args.results_dir)
