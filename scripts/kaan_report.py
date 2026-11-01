@@ -83,9 +83,19 @@ def ai_counts(path: Path) -> tuple[int, int]:
     return len([r for r in path.read_text().splitlines() if r.startswith("| 20")]), 0
 
 
+def chart_reading(text: str) -> list[str]:
+    """The reading lines of one `ft.py chart --tr` output (download logs and the closing line dropped)."""
+    lines = clean(text).splitlines()
+    start = next((i for i, ln in enumerate(lines) if "— günlük grafik" in ln), None)
+    if start is None:
+        return []
+    body = [ln for ln in lines[start:] if ln.strip() and not ln.startswith(("Geçmişin okunması", "$ "))]
+    return [f"**{body[0]}**", *body[1:]]
+
+
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
            execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "",
-           ai_score_text: str = "") -> str:  # fmt: skip
+           ai_score_text: str = "", charts: list[str] | None = None) -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -137,6 +147,12 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     lines += body[:15] or ["- Açıklama yok."]
     if len(body) > 15:
         lines.append("- ... tamamı: docs/fresh/trades-explained.md")
+    readings = [r for r in (chart_reading(c) for c in charts or []) if r]
+    if readings:
+        lines += ["", "## 8. Grafik okuma (günlük grafik, sade dille)", ""]
+        for r in readings:
+            lines += [*r, ""]
+        lines.append("Geçmişin okunması, tahmin değil, yatırım tavsiyesi değil.")
     return "\n".join(lines) + "\n"
 
 

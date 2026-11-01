@@ -40,6 +40,9 @@ WATCH = ["TrendEmaVolTarget2h"]
 WATCH_UNIVERSES = {"core_gold": ["TrendEmaVolTarget"]}
 
 
+CHART_COINS = ["BTC", "ETH", "SOL", "BNB", "XRP"]
+
+
 def run(args: list[str], capture: bool = False) -> tuple[int, str]:
     r = subprocess.run([*FT, *args], cwd=ROOT, capture_output=capture, text=True)
     return r.returncode, (r.stdout or "") if capture else ""
@@ -106,6 +109,8 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
     steps.append(("execution", ["execution"], True))
     steps.append(("ai-score", ["ai-score"], True))  # score AI views whose 7 days have passed
     steps.append(("explain", ["explain"], True))  # every trade in plain Turkish -> trades-explained.md  # order quality (read-only)
+    for coin in CHART_COINS:  # plain-Turkish chart reading of the bot's coins -> report section 8
+        steps.append((f"chart {coin}", ["chart", "--pair", coin, "--tr"], True))
     steps.append(("scan pool", ["scan", "--csv"], True))  # record only: market breadth per day
     return steps
 
@@ -144,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         today, health_summary(), captured.get("scan pool", ""), kaan_report.breadth_rows(BREADTH_CSV),
         captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
         kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""), explained,
-        captured.get("ai-score", ""),
+        captured.get("ai-score", ""), [captured.get(f"chart {c}", "") for c in CHART_COINS],
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0

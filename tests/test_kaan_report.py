@@ -86,3 +86,15 @@ def test_ai_score_line_in_section_6():
     text = kaan_report.render("d", {}, "", [], BOTS, "", "", (5, 0), "", "",
                               "ai_score: henüz puanlanacak tahmin yok (ilk: 2026-11-07), bekleyen 5\n")
     assert "- Puanlama: henüz puanlanacak tahmin yok" in text
+
+
+def test_chart_section_from_captured_outputs():
+    out = ("2026-11-01 INFO Downloaded data\nETH — günlük grafik, son kapanmış mum 2026-10-31, kapanış 2.255,66$\n"
+           "- Fiyat 50 günlük ortalamanın %7,1 altında: orta vadede zayıf.\n\nBotun gözüyle (1 saatlik grafik):\n"
+           "- Bot şu an almaz, çünkü x.\n\nGeçmişin okunması, tahmin değil, yatırım tavsiyesi değil.\n$ docker compose run x\n")
+    r = kaan_report.chart_reading(out)
+    assert r[0].startswith("**ETH — günlük grafik") and r[-1] == "- Bot şu an almaz, çünkü x."
+    assert kaan_report.chart_reading("download failed") == []
+    text = kaan_report.render("2026-11-01", {}, "", [], "", "", "", (0, 0), charts=[out, ""])
+    assert "## 8. Grafik okuma" in text and text.count("tahmin değil, yatırım tavsiyesi değil.") == 1  # one closing line for all coins
+    assert "## 8." not in kaan_report.render("2026-11-01", {}, "", [], "", "", "", (0, 0))
