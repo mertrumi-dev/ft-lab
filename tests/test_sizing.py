@@ -110,3 +110,25 @@ def test_portfolio_shrinks_or_blocks_never_grows(monkeypatch):
     monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: [_T("A", 125)]))
     assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(125)
     assert sizing.TrendEmaVolTargetPortfolio.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+
+
+def test_daily_above_sma_uses_completed_days_only():
+    days = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=260, freq="1D", tz="UTC"),
+                         "close": np.concatenate([np.full(220, 100.0), np.full(40, 200.0)])})
+    jump = days["date"].iloc[220]  # first day closing at 200 (> SMA200)
+    hours = pd.Series(pd.date_range(jump - pd.Timedelta(hours=3), periods=30, freq="1h", tz="UTC"))
+    flags = sizing.daily_above_sma(days, hours)
+    assert not flags[(hours < jump + pd.Timedelta(days=1)).to_numpy()].any()
+    assert flags[(hours >= jump + pd.Timedelta(days=1)).to_numpy()].all()
+
+
+def test_pool2_core_pairs_always_allowed_and_signals_unchanged():
+    cls = sizing.TrendEmaVolTargetPool2
+    assert cls.top_n == 20 and set(sizing.CORE_PAIRS) == {"BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"}
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    assert cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+    close = np.linspace(100, 200, 1500)
+    df = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=1500, freq="1h", tz="UTC"),
+                       "open": close, "high": close, "low": close, "close": close, "volume": 100.0})
+    out = cls({}).populate_indicators(df, {"pair": "BTC/USDT"})
+    assert out["in_top"].all()

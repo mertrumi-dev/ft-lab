@@ -209,3 +209,49 @@ class TrendEmaVolTargetPortfolio(TrendEmaVolTarget):
             loads.append(t.stake_amount / capital * (v if np.isfinite(v) else vol))
         room = portfolio_room(loads, self.vol_budget)
         return min(stake, capital * room / vol)
+
+
+# --- Coin selection v2 (pre-registered 2026-11-01) ----------------------------------
+# Core 5 always allowed. Other pool coins only while BOTH hold: among the top 20 by
+# 30-day USDT volume (up to the previous candle) AND the coin's own daily close is
+# above its 200-day SMA (completed days only, used from the next midnight).
+
+CORE_PAIRS = ("BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT")
+POOL2_TOP_N = 20
+DAILY_SMA = 200
+
+
+def daily_above_sma(daily: DataFrame, hourly_dates: pd.Series, length: int = DAILY_SMA) -> np.ndarray:
+    """For each hourly time: was the last COMPLETED daily close above its daily SMA?"""
+    sma = daily["close"].rolling(length).mean()
+    flags = pd.DataFrame({
+        "available_from": (daily["date"] + pd.Timedelta(days=1)).astype("datetime64[ns, UTC]"),
+        "above": (daily["close"] > sma).to_numpy(),
+    }).sort_values("available_from")  # fmt: skip
+    left = pd.DataFrame({"date": pd.DatetimeIndex(hourly_dates).astype("datetime64[ns, UTC]")})
+    merged = pd.merge_asof(left, flags, left_on="date", right_on="available_from", direction="backward")
+    return merged["above"].fillna(False).astype(bool).to_numpy()
+
+
+class TrendEmaVolTargetPool2(TrendEmaVolTargetTopVol):
+    """Core 5 always; other coins only if top-20 by volume AND above their daily SMA200."""
+
+    top_n = POOL2_TOP_N
+
+    def informative_pairs(self):
+        dp = getattr(self, "dp", None)
+        pairs = dp.current_whitelist() if dp is not None else []
+        return [(p, "1d") for p in pairs]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)  # sets in_top (top 20)
+        pair = metadata.get("pair")
+        if pair in CORE_PAIRS:
+            dataframe["in_top"] = True
+            return dataframe
+        dp = getattr(self, "dp", None)
+        if dp is not None:
+            daily = dp.get_pair_dataframe(pair, "1d")
+            above = daily_above_sma(daily, dataframe["date"]) if daily is not None and not daily.empty else False
+            dataframe["in_top"] = dataframe["in_top"] & above
+        return dataframe
