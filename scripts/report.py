@@ -18,6 +18,7 @@ from universe import UNIVERSES  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "user_data" / "backtest_results"
 MIN_TRADES = 50
+KILL_SWITCH_DRAWDOWN = 0.20  # same number as trend_ema.py; the bot stops buying at this drawdown
 
 
 def result_fee(stats: dict) -> float | None:
@@ -65,6 +66,8 @@ def strategy_row(name: str, s: dict) -> dict:
         "calmar": cagr / mdd if mdd > 0 else float("inf"),
         "win_rate": s["wins"] / s["total_trades"] if s["total_trades"] else 0.0,
         "profit_factor": s.get("profit_factor", 0.0),
+        # date of the last closed trade: if it is long before the slice end, the bot stopped
+        "last_trade": max((str(t["close_date"]) for t in s.get("trades", [])), default="")[:10],
     }
 
 
@@ -77,21 +80,24 @@ def verdict(row: dict, bh: dict) -> str:
         problems.append("Calmar <= B&H")
     if row["max_drawdown"] >= bh["max_drawdown"] / 2:
         problems.append("DD >= half of B&H")
-    return "PASS" if not problems else "FAIL: " + ", ".join(problems)
+    result = "PASS" if not problems else "FAIL: " + ", ".join(problems)
+    if row["max_drawdown"] >= KILL_SWITCH_DRAWDOWN:
+        result += " [kill switch hit: stopped buying]"
+    return result
 
 
 def format_table(rows: list[dict], bh: dict) -> str:
-    head = f"{'Strategy':<18}{'Trades':>7}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}{'Win%':>7}{'PF':>6}  Verdict"
+    head = f"{'Strategy':<18}{'Trades':>7}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}{'Win%':>7}{'PF':>6}{'Last trade':>12}  Verdict"
     lines = [head, "-" * len(head)]
     lines.append(
         f"{'BUY & HOLD':<18}{'-':>7}{bh['total_return']:>+9.1%}{bh['cagr']:>+8.1%}"
-        f"{bh['max_drawdown']:>8.1%}{bh['calmar']:>8.2f}{'-':>7}{'-':>6}  (reference)"
+        f"{bh['max_drawdown']:>8.1%}{bh['calmar']:>8.2f}{'-':>7}{'-':>6}{'-':>12}  (reference)"
     )
     for r in sorted(rows, key=lambda r: r["calmar"], reverse=True):
         lines.append(
             f"{r['name']:<18}{r['trades']:>7}{r['total_return']:>+9.1%}{r['cagr']:>+8.1%}"
             f"{r['max_drawdown']:>8.1%}{r['calmar']:>8.2f}{r['win_rate']:>7.0%}"
-            f"{r['profit_factor']:>6.2f}  {verdict(r, bh)}"
+            f"{r['profit_factor']:>6.2f}{r['last_trade']:>12}  {verdict(r, bh)}"
         )
     return "\n".join(lines)
 

@@ -249,3 +249,12 @@ def test_wide_benchmark_skips_coins_without_data(tmp_path):
     assert r["total_return"] == pytest.approx(-0.5, rel=1e-3)
     with pytest.raises(FileNotFoundError):
         benchmark.run("train", "1h", fee=0.0, data_dir=tmp_path, universe="core")
+
+
+def test_report_shows_last_trade_and_flags_kill_switch():
+    s = {**fake_stats(cagr=0.3, mdd=0.201), "trades": [
+        {"close_date": "2021-05-01 10:00:00+00:00"}, {"close_date": "2022-06-19 03:00:00+00:00"}]}
+    row = report.strategy_row("X", s)
+    assert row["last_trade"] == "2022-06-19"
+    assert "kill switch" in report.verdict(row, BH)
+    assert "kill switch" not in report.verdict(report.strategy_row("Y", fake_stats(mdd=0.19)), BH)

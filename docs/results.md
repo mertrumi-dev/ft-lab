@@ -125,3 +125,34 @@ Komut: `python3 scripts/ft.py backtest --slice train --strategy TrendEmaSlow Slo
 - **Seçim yapmıyoruz:** SlowTrend450 en iyisi ama ona geçmek ezberleme olur. TrendEmaSlow (50/200/600) kalıyor.
 
 Deneme sayacı: train 15, validation 2, test 0.
+
+## 2026-11-01 · Train · Sağlamlık: başka coinler + 2 kat komisyon
+
+### A) 2021'in büyük coinleri (`--universe wide`, 14 coin; EOS verisi yok, atlandı)
+
+Komut: `python3 scripts/ft.py backtest --slice train --universe wide --strategy TrendEma TrendEmaSlow` + `report --slice train --universe wide`
+`--timerange 20210101-20240613`, `--fee 0.0015`, `--enable-protections`.
+
+| Strateji | İşlem | Getiri | Yıllık | Düşüş | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|---|
+| Al-tut (14 coin) | - | +256,3% | +44,6% | 90,6% | 0,49 | - | referans |
+| TrendEma | 149 | +181,8% | +35,0% | 20,1% | 1,75 | 2,09 | PASS |
+| TrendEmaSlow | 98 | +115,2% | +24,9% | 20,6% | 1,21 | 1,86 | PASS |
+
+- İkisi de hiç görmedikleri coinlerde al-tut'u açık farkla geçti (Calmar 1,75 ve 1,21 vs 0,49). Kural, coin seçme şansına dayanmıyor gibi.
+- **Şüphe:** iki düşüş de %20'nin hemen üstünde ve işlem sayısı düşük. Bu, kill switch'in (%20 düşüşte alımı durdurma) tetiklendiğini ve botun dönemin bir kısmında hiç işlem yapmadığını gösterebilir. Kanıt için rapora "son işlem tarihi" sütunu eklendi. Kontrol edilecek.
+- Aynı şüphe tur 1-2'de düşüşü %20,1-20,6 çıkan FAIL'ler için de geçerli (TrendEma4h, TrendBreakout, TrendEmaAtrWide, TrendEmaMulti, SlowSlow150, SlowTrend750).
+
+### B) 2 kat komisyon (`--fee-stress`, her yön %0,3), ana 5 coin
+
+Komut: `python3 scripts/ft.py backtest --slice train --fee-stress --strategy TrendEma TrendEmaSlow` + `report --slice train --fee-stress`
+
+| Strateji | İşlem | Getiri | Yıllık | Düşüş | Calmar | PF | Karar | (normal komisyonda Calmar) |
+|---|---|---|---|---|---|---|---|---|
+| Al-tut | - | +2422,7% | +155,3% | 92,1% | 1,69 | - | referans | 1,69 |
+| TrendEmaSlow | 215 | +202,7% | +37,9% | 17,4% | 2,18 | 1,93 | PASS | 2,83 |
+| TrendEma | 638 | +179,9% | +34,8% | 17,6% | 1,97 | 1,45 | PASS | 2,99 |
+
+- İkisi de 2 kat komisyonda ayakta. Slow daha az etkilendi (az işlem yaptığı için): Calmar 2,83 → 2,18; TrendEma 2,99 → 1,97.
+
+Deneme sayacı (sağlamlık çalıştırmaları seçim için kullanılmadı): train 15 + 4 sağlamlık, validation 2, test 0.
