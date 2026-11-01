@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import health  # noqa: E402
 import kaan_report  # noqa: E402
+import prereg  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FT = [sys.executable, str(ROOT / "scripts" / "ft.py")]
@@ -80,6 +81,17 @@ def append_breadth(path: Path, line: str, header: str = BREADTH_HEADER) -> None:
     rows = [r for r in rows if not r.startswith(date + ",")] + [line]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join([header, *sorted(rows)]) + "\n")
+
+
+def prereg_lines() -> list[str]:
+    """Fresh-only pre-registered ideas and their progress (never judged before their judge date)."""
+    try:
+        rows = prereg.load()
+    except (OSError, ValueError) as e:
+        return [f"ön kayıt dosyası okunamadı: {e}"]
+    today = datetime.now(timezone.utc).date()
+    bad = prereg.problems(rows)
+    return [f"SORUN: {p}" for p in bad] + [f"{r['id']} {r['name']}: {prereg.progress(r, today)}" for r in rows]
 
 
 def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
@@ -151,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
         captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
         kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""), explained,
         captured.get("ai-score", ""), [captured.get(f"chart {c}", "") for c in CHART_COINS],
-        captured.get("forward-risk", ""),
+        captured.get("forward-risk", ""), prereg_lines(),
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0
