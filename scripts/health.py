@@ -192,7 +192,7 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
     for hour, n in sorted(s.network_by_hour.items()):
         out.append(f"  {hour}h  {n:4d} {'#' * min(n, 50)}")
     if s.longest_gap:
-        out.append(f"Longest gap:    {hours(s.longest_gap)} without a heartbeat, from {s.longest_gap_start:%Y-%m-%d %H:%M} UTC")
+        out.append(f"Longest gap:    {s.longest_gap.total_seconds() / 3600:.1f}h without a heartbeat, from {s.longest_gap_start:%Y-%m-%d %H:%M} UTC")
     out.append(f"Other errors:   {len(s.other_errors)}")
     out.extend(f"  {e}" for e in s.other_errors[-10:])
     out.append(f"Faz 0:          {phase0_verdict(s, now)}")

@@ -114,3 +114,10 @@ def test_longest_gap_is_recorded():
     s = health.summarize_log(lines, since=T0)
     assert s.longest_gap == health.timedelta(minutes=121)  # 29 -> 150
     assert s.longest_gap_start == T0 + health.timedelta(minutes=29)
+
+
+def test_render_with_a_gap_does_not_crash():
+    lines = [heartbeat(m) for m in range(0, 30)] + [heartbeat(m) for m in range(150, 160)]
+    s = health.summarize_log(lines, since=T0)
+    text = health.render(s, {"open": 0, "closed": 0, "profit": 0.0, "drawdown": 0.0}, "up", T0 + health.timedelta(minutes=160), 24)
+    assert "Longest gap:    2.0h" in text
