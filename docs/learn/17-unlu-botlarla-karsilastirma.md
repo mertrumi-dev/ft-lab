@@ -51,3 +51,12 @@ Grid ve DCA bot ayarları, sonuç görülmeden önce, bu botların tipik varsay�
 
 - **Grid ve DCA bot 1 saatlik mumla simüle ediliyor.** Bir mumun içinde fiyatın önce düşüp sonra mı yükseldiğini bilmiyoruz. Bu yüzden kötü olan durumu varsayıyoruz: aynı mumda hem alıp hem satmıyoruz.
 - **Kâr hesabında komisyon dahil.** DCA bot'un "%1,5 kâr" hedefi komisyonlar düşüldükten sonraki kâr olarak alındı. Bu, gerçek 3Commas'a göre bota biraz cömert davranıyor.
+
+## Ek: TrendEma %50 + Grid %50
+
+`bots` tablosunda TrendEma'nın altında bir satır daha var: paranın yarısı TrendEma'ya, yarısı grid bota verilmiş hali.
+
+- **Fikir:** TrendEma yükselen piyasada, grid bot yatay piyasada kazanıyor. Biri kazanmazken diğeri kazanırsa, toplam kâr eğrisi daha düzgün olur. Buna çeşitlendirme (diversification) denir.
+- **Kurulum:** İki ayrı hesap düşün, ikisinde de başlangıçta paranın yarısı var. Biri diğerine hiç para aktarmıyor (yeniden dengeleme yok). Her saat iki hesabın değeri toplanıyor (`half_and_half`).
+- **%50/%50 oranı sonucu görmeden seçildi.** Sonuca bakıp oranı %60/%40 gibi değiştirmek overfitting olur, bu yüzden yapılmayacak.
+- **Deneme sayacına +1 olarak yazılıyor.**

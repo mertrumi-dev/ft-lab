@@ -41,8 +41,18 @@ def simulate_bot(sim, slice_name: str, universe: str, fee: float, data_dir: Path
         curves[pair], count = curve, count + n
     equity = pd.DataFrame(curves).dropna().mean(axis=1)  # each coin started at 1.0
     out = summarize(equity)
-    out.update(trades=count, years=by_year(equity), exposure=None)
+    out.update(trades=count, years=by_year(equity), exposure=None, equity=equity)
     return out
+
+
+def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
+    """Two separate accounts with half the money each, never rebalanced.
+
+    Like running two bots side by side: each keeps its own profits and losses.
+    Both curves are scaled to start at 0.5, then added hour by hour.
+    """
+    frame = pd.concat([a, b], axis=1).sort_index().ffill().dropna()
+    return 0.5 * frame.iloc[:, 0] / frame.iloc[0, 0] + 0.5 * frame.iloc[:, 1] / frame.iloc[0, 1]
 
 
 def row(name: str, r: dict) -> str:
@@ -81,6 +91,13 @@ def main() -> None:
         r = summarize(curve["equity"])
         r["trades"] = st["total_trades"]
         rows.append((name, r))
+        if name == "TrendEma":
+            # Combination idea (decided before seeing it): trend rule + grid bot, 50/50.
+            # They earn in different markets (trends vs sideways), so together the
+            # curve may be smoother. Counted as one trial in docs/journal.md.
+            combo = summarize(half_and_half(curve["equity"], rows[2][1]["equity"]))
+            combo["trades"] = r["trades"] + rows[2][1]["trades"]
+            rows.append(("TrendEma 50% + Grid 50%", combo))
 
     print(f"Famous bot types vs our rule, --timerange {s.timerange}, universe {args.universe}, "
           f"fee {args.fee:.2%}/side, hourly drawdown")

@@ -112,3 +112,22 @@ def test_bots_table_simulates_every_coin_with_data(tmp_path):
     g = bots.simulate_bot(lambda c, cash, fee: grid.simulate_pair(c, cash, fee=fee),
                           "train", "core", 0.0015, data_dir=tmp_path)  # fmt: skip
     assert g["trades"] > 10
+
+
+def test_half_and_half_is_two_separate_accounts():
+    import bots
+
+    idx = pd.date_range("2021-01-01", periods=3, freq="1h", tz="UTC")
+    a = pd.Series([1000.0, 2000.0, 2000.0], index=idx)  # doubles
+    b = pd.Series([1.0, 1.0, 0.5], index=idx)  # halves
+    combo = bots.half_and_half(a, b)
+    assert list(combo) == pytest.approx([1.0, 1.5, 1.25])
+
+
+def test_half_and_half_fills_gaps_with_last_value():
+    import bots
+
+    idx = pd.date_range("2021-01-01", periods=4, freq="1h", tz="UTC")
+    a = pd.Series([1.0, 1.0, 1.0, 1.0], index=idx)
+    b = pd.Series([1.0, 2.0], index=idx[[0, 2]])
+    assert list(bots.half_and_half(a, b)) == pytest.approx([1.0, 1.0, 1.5, 1.5])
