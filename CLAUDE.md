@@ -77,7 +77,7 @@ FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).
 ## Faz durumu
 
 - [ ] Faz 0: kurulum, TrendEma ile 24 saat temiz dry-run
-- [ ] Faz 1: benchmark + veri bölme
+- [x] Faz 1: benchmark + veri bölme (2026-11-01: benchmark, splits, ft.py kilitleri, report, saatlik düşüş, yıl yıl, Monte Carlo)
 - [ ] Faz 2: 3 strateji (EMA cross, RSI+ATR, DCA)
 - [ ] Faz 3: robustluk (walk-forward, hassasiyet, Monte Carlo, kill switch)
 - [ ] Faz 4: ccxt ile sıfırdan mini bot (grid burada denenir)

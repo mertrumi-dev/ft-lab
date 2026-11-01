@@ -357,3 +357,34 @@ Komut (RC): `ft.py backtest --slice train --no-kill-switch [--universe wide] --s
 
 - Geç çıkmak biraz daha kazanç getiriyor ama 2022'de çok geri veriyor (-%13 vs -%1,5). Erken çıkmak trend kazancını öldürüyor. Mevcut çıkış (EMA20/50 kesişimi) ikisinin arasında, en iyi denge.
 - **24 train denemesinden sonra TrendEma (EMA20/50 + EMA200 filtresi) hâlâ en iyi.** Kural aramayı durdurup TrendEma'nın sağlamlığını ölçmeye geçiyoruz (sayı komşuları, Monte Carlo).
+
+## 2026-11-01 · Train · TrendEma sağlamlık: sayı komşuları + Monte Carlo
+
+Komut (RC): `ft.py backtest --slice train --no-kill-switch --strategy EmaFast15 EmaFast25 EmaSlow40 EmaSlow60 EmaTrend150 EmaTrend250`; `report ...`; `ft.py montecarlo --slice train --no-kill-switch [--universe wide] --strategy ...`. `--timerange 20210101-20240613`, `--fee 0.0015`.
+
+### Sayı komşuları (5 coin)
+
+| Komşu (hızlı/yavaş/trend) | Calmar | Düşüş | Karar |
+|---|---|---|---|
+| EmaSlow60 (20/**60**/200) | 2,83 | 14,1% | PASS |
+| EmaFast25 (**25**/50/200) | 2,78 | 15,2% | PASS |
+| **TrendEma (20/50/200)** | **2,70** | 16,4% | PASS |
+| EmaTrend250 (20/50/**250**) | 2,35 | 17,0% | PASS |
+| EmaTrend150 (20/50/**150**) | 1,65 | 23,6% | FAIL |
+| EmaSlow40 (20/**40**/200) | 1,42 | 17,5% | FAIL |
+| EmaFast15 (**15**/50/200) | 1,07 | 20,3% | FAIL |
+
+- 6 komşudan 4'ü PASS. **Daha yavaş yöne oynatınca sağlam, daha hızlı yöne oynatınca çöküyor** (TrendEmaSlow komşularıyla aynı desen). TrendEma "uçurumun kenarına" yakın ama düz bölgenin içinde. Kural değişmiyor (en iyi komşuya geçmek ezberleme olur); not: ileride ayar gerekirse yön "daha yavaş".
+
+### Monte Carlo (2000 tekrar, kapanmış işlem düşüşü)
+
+| Strateji / evren | Tipik düşüş | %95 kötü senaryo | En kötü | Kötü şansta yıllık | Zarar olasılığı | Kill switch olasılığı |
+|---|---|---|---|---|---|---|
+| TrendEma / 5 coin | 10,6% | 17,3% | 28,3% | +19,6% | 0,1% | **1,9%** |
+| TrendEmaLongTrend / 5 coin | 9,8% | 16,5% | 26,3% | +14,7% | 0,1% | 1,3% |
+| TrendEmaSlow / 5 coin | 11,1% | 19,3% | 33,4% | +11,6% | 0,3% | 3,9% |
+| TrendEma / 14 coin | 24,8% | 41,5% | 60,9% | +0,4% | 4,8% | **77,8%** |
+| TrendEmaLongTrend / 14 coin | 19,9% | 34,1% | 55,3% | +2,9% | 2,8% | 49,5% |
+
+- **5 ana coinde TrendEma sağlam:** işlem sırası şanssız gitse bile %95 ihtimalle düşüş %17'nin altında, zarar olasılığı %0,1.
+- **Zayıf coinlerde uygun değil:** kill switch %78 ihtimalle tetiklenir. Karar: bot sadece büyük, likit coinlerde çalışır; coin listesini genişletmek için ayrı kanıt gerekir.
