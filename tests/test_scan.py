@@ -57,7 +57,7 @@ def test_ft_scan_downloads_1h_for_the_group_then_scans():
 
 def test_scan_download_starts_120_days_back():
     from datetime import date
-    assert ft.scan_from(date(2026, 11, 1)) == "20260703"
+    assert ft.scan_from(date(2026, 11, 1)) == "20260704"
     cmds = ft.build_commands(ft.parse_args(["scan"]))
     assert f"{ft.scan_from()}-" in cmds[0]
 
