@@ -60,8 +60,9 @@ ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
 ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
 ROUND5 = ["TrendEmaHold"]
 ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
-ROUND7 = ["TrendEmaExitConfirm", "TrendEmaSlope"]  # whipsaw fixes from the trade analysis
+ROUND7 = ["TrendEmaExitConfirm", "TrendEmaSlope", "TrendEmaEntryConfirm"]  # whipsaw fixes from the trade analysis
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
+ENTRY_CONFIRM_SENSITIVITY = ["EntryConfirm2", "EntryConfirm4"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 # Famous third-party bots, run ONLY as research benchmarks next to our rule.
 # Their code lives in user_data/strategies/thirdparty (not loadable by the bot).

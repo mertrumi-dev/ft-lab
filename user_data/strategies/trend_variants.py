@@ -392,3 +392,39 @@ class TrendEmaSlope(TrendEma):
         falling = dataframe["ema_slow"] <= dataframe["ema_slow"].shift(SLOPE_LOOKBACK)
         dataframe.loc[falling, ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+ENTRY_CONFIRM_CANDLES = 3  # the cross-up must still hold after 3 hours
+
+
+class TrendEmaEntryConfirm(TrendEma):
+    """Same exit. Buy only when EMA20 has stayed above EMA50 for 3 candles in a row
+    (on that 3rd candle, once per streak), with the close above EMA200.
+
+    A cross-up that falls back within 3 hours is never bought, so fewer whipsaw trades."""
+
+    confirm_candles = ENTRY_CONFIRM_CANDLES
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        n = self.confirm_candles
+        above = (dataframe["ema_fast"] > dataframe["ema_slow"]).astype(int)
+        held = above.rolling(n).sum() == n
+        dataframe.loc[
+            held & ~held.shift(1, fill_value=False)
+            & (dataframe["close"] > dataframe["ema_trend"])
+            & (dataframe["volume"] > 0),
+            ["enter_long", "enter_tag"],
+        ] = (1, f"ema_cross_up_{n}h")
+        return dataframe
+
+
+class EntryConfirm2(TrendEmaEntryConfirm):
+    """Sensitivity neighbour: 2 candles (not a candidate)."""
+
+    confirm_candles = 2
+
+
+class EntryConfirm4(TrendEmaEntryConfirm):
+    """Sensitivity neighbour: 4 candles (not a candidate)."""
+
+    confirm_candles = 4

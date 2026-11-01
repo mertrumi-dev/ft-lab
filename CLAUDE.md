@@ -52,7 +52,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır. Geçmiş veri Kaan'ın Mac'inde indirildi (2026-10-31, 2020-10'dan beri 1h + 4h).
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
 - Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
-- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları; tur 3: TrendEmaAdx, TrendEmaLongTrend). Tur 7 (testere/whipsaw düzeltmeleri, işlem analizinden): TrendEmaExitConfirm (çıkış 3 mum onaylı), TrendEmaSlope (EMA50 1 günde yükseliyorsa al). Faz 2 düşüşte alım: `user_data/strategies/dip_rsi.py` (DipRsi 1h, DipRsi4h; Connors RSI(2) fikri + ATR stop). Tur 4: `user_data/strategies/donchian_ensemble.py` (TrendDonchianEnsemble, günlük, 9 pencere oylaması + oynaklık hedefleme). TrendEmaSlow saatlik düşüş ölçümüyle validation FAIL (1,62 < 2,11) ve 14 coinde FAIL; elendi. Şu an train+validation geçen strateji yok. Canlıya sadece train + validation'da kazanan geçer.
+- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları; tur 3: TrendEmaAdx, TrendEmaLongTrend). Tur 7 (testere/whipsaw düzeltmeleri, işlem analizinden): TrendEmaExitConfirm (çıkış 3 mum onaylı), TrendEmaSlope (EMA50 1 günde yükseliyorsa al), TrendEmaEntryConfirm (giriş 3 mum onaylı; komşular EntryConfirm2/4). Faz 2 düşüşte alım: `user_data/strategies/dip_rsi.py` (DipRsi 1h, DipRsi4h; Connors RSI(2) fikri + ATR stop). Tur 4: `user_data/strategies/donchian_ensemble.py` (TrendDonchianEnsemble, günlük, 9 pencere oylaması + oynaklık hedefleme). TrendEmaSlow saatlik düşüş ölçümüyle validation FAIL (1,62 < 2,11) ve 14 coinde FAIL; elendi. Şu an train+validation geçen strateji yok. Canlıya sadece train + validation'da kazanan geçer.
 - Risk kuralları: `docs/risk-rules.md`. Bir risk sayısını değiştirmek = Kaan'a sor + tabloyu ve testi güncelle. Testi gevşeterek kural gevşetmek yasak.
 - Demo borsa (Faz 5): Binance. Telegram: Faz 5'te.
 
@@ -64,7 +64,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (234)
+.venv/bin/python -m pytest          # tüm testler (241)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)

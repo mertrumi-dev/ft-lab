@@ -17,7 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
-    tv.TrendEmaExitConfirm, tv.TrendEmaSlope,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4,
 ]  # fmt: skip
 
 
@@ -239,3 +239,26 @@ def test_slope_blocks_cross_up_while_ema50_falls():
     up = s.populate_entry_trend(_cross_frame(fast, rising), {})
     assert down["enter_long"].fillna(0).iloc[-1] == 0
     assert up["enter_long"].fillna(0).iloc[-1] == 1
+
+
+def test_entry_confirm_buys_on_the_third_candle_above_only():
+    fast = [9, 11, 11, 11, 11, 11]
+    df = tv.TrendEmaEntryConfirm({}).populate_entry_trend(_cross_frame(fast, [10] * 6), {})
+    assert list(df["enter_long"].fillna(0)) == [0, 0, 0, 1, 0, 0]
+
+
+def test_entry_confirm_skips_a_short_cross_up():
+    fast = [9, 11, 11, 9, 9, 9]
+    df = tv.TrendEmaEntryConfirm({}).populate_entry_trend(_cross_frame(fast, [10] * 6), {})
+    assert df.get("enter_long", pd.Series(0, index=df.index)).fillna(0).sum() == 0
+
+
+def test_entry_confirm_needs_trend_filter():
+    df = _cross_frame([9, 11, 11, 11], [10] * 4)
+    df["ema_trend"] = 200.0  # close 100 below the trend line
+    df = tv.TrendEmaEntryConfirm({}).populate_entry_trend(df, {})
+    assert df.get("enter_long", pd.Series(0, index=df.index)).fillna(0).sum() == 0
+
+
+def test_entry_confirm_neighbours():
+    assert (tv.EntryConfirm2.confirm_candles, tv.EntryConfirm4.confirm_candles) == (2, 4)

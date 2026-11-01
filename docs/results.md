@@ -497,3 +497,22 @@ Yorum: Tipik trend takibi. Kârın tamamı birkaç uzun yükselişten geliyor. Z
 Tur 7 hipotezleri (Kaan devam deyince):
 1. Çıkış onayı: kesişme N mum sürerse sat.
 2. Giriş onayı: EMA50'nin eğimi pozitif olsun.
+
+## 2026-11-01 · Train · Tur 7: testere düzeltmeleri + NFI X8
+
+Komut: `ft.py backtest --slice train --no-kill-switch [--universe wide] --strategy ...` ve `report ... --by-year` (`--timerange 20210101-20240613`, main b568667; EntryConfirm ilk olarak Mac'teki yerel dalda koşuldu, main'e aynı kural olarak yazıldı)
+
+| 5 coin | İşlem | Getiri | Saatlik DD | Calmar | PF | 14 coin Calmar |
+|---|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | 92,1% | 1,69 | - | 0,49 |
+| TrendEma | 638 | +254,3% | 16,4% | 2,70 | 1,63 | 0,76 |
+| **TrendEmaEntryConfirm** (giriş 3 mum onaylı) | 625 | +272,2% | 15,3% | **3,03** | 1,67 | **0,92** |
+| TrendEmaExitConfirm (çıkış 3 mum onaylı) | 621 | +207,3% | 19,1% | 2,01 | 1,53 | 0,72 |
+| TrendEmaSlope (EMA50 yükseliyorsa) | 129 | +46,8% | 6,3% | 1,86 | 2,48 | -0,00 |
+| NFI X8 (ünlü bot, 5m, 5 açık işlem) | 116 | +64,8% | 10,3% | 1,52 | 9,68 | - |
+
+Yıl yıl, EntryConfirm vs TrendEma: 2021 +%180,8 / +%177,1; 2022 -%2,7 / -%1,5; 2023 +%27,8 / +%23,5; 2024 +%6,6 / +%5,1.
+
+NFI notu: Kazanma oranı %97. Bunun sebebi stop olmaması ve zarardaki işleme ek alım yapması; kaybeden işlemleri ortalama 35 gün tutuyor. Kârının 2/3'ü 2021'den geliyor; 2022-2024 arasında sadece 28 işlem yapmış (50'den az, istatistik olarak zayıf). Bize katılabilecek bir fikir bulunamadı: avantajı stop'suz ek alım mekanizmasına bağlı, bu da risk kurallarımıza (R1, R2) aykırı.
+
+Karar: EntryConfirm umut verici, ama fikir train analizinden çıktı. Validation'dan önce sayı sağlamlığına (2 ve 4 mum) ve 2 kat komisyon testine girecek.
