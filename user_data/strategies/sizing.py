@@ -767,3 +767,32 @@ class TrendEmaVolTargetDerisk2x(TrendEmaVolTarget):
         if np.isfinite(at_entry) and now < 0.5 * at_entry:
             return -(trade.stake_amount / 2), "derisk_vol_2x"
         return None
+
+
+SHORT_VOL_WINDOW = 72  # hours = 3 days (pre-registered 2026-11-01, not tuned)
+
+
+class TrendEmaVolTargetDerisk72h(TrendEmaVolTargetDerisk2x):
+    """Derisk2x with the CURRENT scale from a 72-hour volatility (entry scale stays 30-day)."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["rvol_short"] = realized_vol(dataframe["close"], SHORT_VOL_WINDOW, self.periods_per_year)
+        return dataframe
+
+    def adjust_trade_position(self, trade, current_time, current_rate, current_profit, min_stake, max_stake,
+                              current_entry_rate, current_exit_rate, current_entry_profit, current_exit_profit,
+                              **kwargs):  # fmt: skip
+        if trade.nr_of_successful_exits > 0 or getattr(trade, "has_open_orders", False):
+            return None
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        dataframe, _ = dp.get_analyzed_dataframe(trade.pair, self.timeframe)
+        if dataframe is None or dataframe.empty or "rvol_short" not in dataframe:
+            return None
+        at_entry = self._scale_at(dataframe, trade.open_date_utc)
+        now = vol_scale(float(dataframe["rvol_short"].iloc[-1]), self.target_vol)
+        if np.isfinite(at_entry) and now < 0.5 * at_entry:
+            return -(trade.stake_amount / 2), "derisk_vol_72h"
+        return None

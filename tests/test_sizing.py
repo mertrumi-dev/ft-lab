@@ -426,3 +426,28 @@ def test_derisk2x_sells_half_once_when_the_vol_scale_halves():
     trade.nr_of_successful_exits = 0
     df.loc[5:, "rvol"] = 0.9  # 0.6/0.9 = 0.67 >= 0.5 x 1.0 -> keep
     assert s.adjust_trade_position(trade, *args) is None
+
+
+def test_derisk72h_uses_the_short_vol_now_and_the_30d_vol_at_entry():
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    cls = sizing.TrendEmaVolTargetDerisk72h
+    assert sizing.SHORT_VOL_WINDOW == 72
+    dates = pd.date_range("2030-01-01", periods=10, freq="1h", tz="UTC")
+    df = pd.DataFrame({"date": dates, "rvol": [0.5] * 10, "rvol_short": [0.5] * 5 + [1.6] * 5})
+
+    class Dp:
+        def get_analyzed_dataframe(self, pair, tf):
+            return df, None
+
+    s = cls({})
+    s.dp = Dp()
+    trade = SimpleNamespace(pair="X/USDT", nr_of_successful_exits=0, has_open_orders=False, stake_amount=80.0,
+                            open_date_utc=datetime(2030, 1, 1, 3, tzinfo=timezone.utc))  # fmt: skip
+    args = (None, 1.0, 0.0, 5.0, 1000.0, 1.0, 1.0, 0.0, 0.0)
+    assert s.adjust_trade_position(trade, *args) == (-40.0, "derisk_vol_72h")  # 30d vol calm, 72h vol wild
+    rng = np.random.default_rng(2)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 1500))))
+    ind = s.populate_indicators(pd.DataFrame({"close": close, "volume": 1.0}), {})
+    assert np.isclose(ind["rvol_short"].iloc[-1], np.log(close).diff().iloc[-72:].std() * np.sqrt(8760))
