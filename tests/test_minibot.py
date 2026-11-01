@@ -46,15 +46,16 @@ def test_no_signal_before_warm_up():
 
 def test_stake_is_one_percent_risk_capped_at_25_percent():
     acc = paper.new_account(1000)
-    assert paper.stake_for(acc, {}) == pytest.approx(125.0)  # 1000 * 1% / 8%
+    assert paper.TRADABLE_BALANCE_RATIO == 0.99  # read from user_data/config/config.json
+    assert paper.stake_for(acc, {}) == pytest.approx(123.75)  # 1000 x 0.99 x 1% / 8%
 
 
 def test_buy_then_sell_pays_fee_twice():
     acc = paper.new_account(1000)
     paper.buy(acc, "BTC/USDT", 100.0, {}, "t0")
-    assert acc["cash"] == pytest.approx(875.0)
+    assert acc["cash"] == pytest.approx(1000 - 123.75)
     paper.sell(acc, "BTC/USDT", 100.0, "t1", "test")
-    assert acc["cash"] == pytest.approx(875 + 125 * (1 - paper.FEE) ** 2)
+    assert acc["cash"] == pytest.approx(1000 - 123.75 + 123.75 * (1 - paper.FEE) ** 2)
     assert acc["closed"][0]["profit"] < 0  # flat price still loses the fees
 
 
@@ -155,8 +156,8 @@ def test_voltarget_parity_with_the_freqtrade_strategy():
     df = strat.populate_exit_trend(strat.populate_entry_trend(df, {}), {})
 
     class Wallets:
-        def get_total_stake_amount(self):
-            return 1000.0
+        def get_total_stake_amount(self):  # Freqtrade: (tied + free) x tradable_balance_ratio
+            return 1000.0 * paper.TRADABLE_BALANCE_RATIO
 
     class Dp:
         i = 0
@@ -191,7 +192,7 @@ def test_step_voltarget_sizes_the_buy_and_trendema_mode_does_not():
     a, b = paper.new_account(1000), paper.new_account(1000)
     bot.step(a, FakeExchange(rows), now, pairs=["BTC/USDT"])
     bot.step(b, FakeExchange(rows), now, pairs=["BTC/USDT"], rule="trendema")
-    expected = 125.0 * signals.vol_scale(signals.realized_vol(close))
-    assert expected < 125.0  # a wild coin (sigma 1.2%/h ~ 110%/yr): smaller than the normal stake
+    expected = 123.75 * signals.vol_scale(signals.realized_vol(close))  # 1000 x 0.99 x 1% / 8% = 123.75
+    assert expected < 123.75  # a wild coin (sigma 1.2%/h ~ 110%/yr): smaller than the normal stake
     assert a["positions"]["BTC/USDT"]["stake"] == pytest.approx(expected)
-    assert b["positions"]["BTC/USDT"]["stake"] == pytest.approx(125.0)
+    assert b["positions"]["BTC/USDT"]["stake"] == pytest.approx(123.75)

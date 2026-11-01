@@ -147,8 +147,8 @@ def run(close, ex, state, broker):
 def test_step_sends_the_voltarget_size_and_books_the_fill():
     close, ex, state, broker = demo_setup()
     log = run(close, ex, state, broker)
-    expected_stake = 125.0 * signals.vol_scale(signals.realized_vol(close))
-    assert expected_stake < 125.0  # VolTarget shrank it (wild synthetic coin)
+    expected_stake = 123.75 * signals.vol_scale(signals.realized_vol(close))  # 1000 x 0.99 x 1% / 8%
+    assert expected_stake < 123.75  # VolTarget shrank it (wild synthetic coin)
     o = ex.orders[0]
     assert o["type"] == "limit" and o["side"] == "buy" and o["amount"] == pytest.approx(expected_stake / close[-1], abs=1e-5)
     pos = state["ledger"]["positions"]["BTC/USDT"]
@@ -191,7 +191,7 @@ def test_big_demo_balance_cannot_enlarge_risk_and_small_one_caps_the_stake():
     close, ex, state, broker = demo_setup(usdt_free=1_000_000.0)
     run(close, ex, state, broker)
     big = ex.orders[0]["amount"] * close[-1]
-    assert big <= 125.0 + 0.01  # never more than the 1000-USDT ledger allows
+    assert big <= 123.75 + 0.01  # never more than the 1000-USDT ledger allows
     close, ex, state, broker = demo_setup(usdt_free=40.0)
     run(close, ex, state, broker)
     assert ex.orders[0]["amount"] * close[-1] <= 40.0 + 0.01  # capped by the real free USDT

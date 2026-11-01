@@ -80,4 +80,6 @@ def test_demo_loop_equals_the_backtest_on_fresh():
     assert not c["only_ft"] and not c["only_mini"]  # same entries, hour by hour
     assert "other 0" in replay.exit_kinds(c["matched"])  # exit differences only: stop 1h later / open at end
     errs = sorted(abs(r["mini_stake"] / r["ft_stake"] - 1) for r in c["matched"])
-    assert errs[len(errs) // 2] < 0.05  # stake fraction within 5% (median)
+    assert errs[len(errs) // 2] < 0.01  # stake within 1% (median; 0.23% on 2026-11-01, was 5% before tradable_balance_ratio)
+    gap = sum(r["mini_profit"] - r["ft_profit"] for r in c["matched"] if r["mini_profit"] is not None)
+    assert abs(gap) < 1.0  # P/L of the same trades within 1 USDT (-0.03 on 2026-11-01)

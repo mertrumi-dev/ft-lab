@@ -78,7 +78,7 @@ Akış:
 1. Her saat, stop emrinin durumu okunur (`check_stop`). Dolduysa deftere yazılır. Bekleme süresi (cooldown) ve stop sayacı (StoplossGuard), botun fark ettiği saatten değil, **borsadaki gerçek dolum zamanından** başlar.
 2. Sinyalle satıştan **önce** stop emri iptal edilir (`cancel_stop`). İptal gelmeden dolduysa o kısım stop olarak yazılır, kalan satılır. Aynı coin iki kez satılmaz.
 
-Replay'de: 5 "stop 1 saat sonra" farkı **0**'a indi. Validation'da 217 işlemin 215'i aynı saatte çıkıyor; kalan 2'si dönem sonunda açık (backtest zorla kapatır). Kâr/zarar farkı +11,65'ten +5,63 USDT'ye indi; kalan fark pozisyon boyutundaki ~%2'den.
+Replay'de: 5 "stop 1 saat sonra" farkı **0**'a indi. Validation'da 217 işlemin 215'i aynı saatte çıkıyor; kalan 2'si dönem sonunda açık (backtest zorla kapatır). Kâr/zarar farkı +11,65'ten +5,63 USDT'ye indi. Sonra pozisyon boyutu da Freqtrade'in formülüne eşitlendi: (açık işlemlerin maliyeti + nakit) × `tradable_balance_ratio` (0,99, config.json'dan okunuyor; açık işlemler piyasa değeriyle değil maliyetle sayılır). Boyut farkı %2 → %0,3; kâr/zarar farkı fresh -0,03, validation +0,64 USDT (217 işlemde).
 
 ## Hâlâ bilinenler (ilk demo çalıştırmasından önce bilinmeli)
 

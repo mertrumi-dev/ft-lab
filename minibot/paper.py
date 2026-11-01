@@ -7,6 +7,13 @@ risk rules as the real strategy (docs/risk-rules.md):
 State is a plain dict so it can be saved to / loaded from JSON.
 """
 
+import json
+from pathlib import Path
+
+# Read from the bot's own config so the two can never drift apart.
+CONFIG = Path(__file__).resolve().parent.parent / "user_data" / "config" / "config.json"
+TRADABLE_BALANCE_RATIO = float(json.loads(CONFIG.read_text())["tradable_balance_ratio"])
+
 FEE = 0.0015  # 0.1% commission + 0.05% slippage, per side (same as backtests)
 STOPLOSS = -0.08
 RISK_PER_TRADE = 0.01
@@ -33,10 +40,18 @@ def kill_switch_hit(acc: dict) -> bool:
     return (acc["peak"] - acc["realized"]) / acc["peak"] >= KILL_SWITCH_DRAWDOWN
 
 
+def risk_capital(acc: dict) -> float:
+    """The capital the stake is sized on, exactly like Freqtrade's wallets.get_total_stake_amount():
+    (stakes tied up in open trades + free cash) x tradable_balance_ratio. Open trades count at
+    their cost, not their market value, so the stake does not move with unrealized profit."""
+    return (acc["cash"] + sum(p["stake"] for p in acc["positions"].values())) * TRADABLE_BALANCE_RATIO
+
+
 def stake_for(acc: dict, prices: dict[str, float], scale: float = 1.0) -> float:
     """How much cash to put in: losing 8% of it must cost at most 1% of capital (max 25%),
-    times the VolTarget `scale` (1 = TrendEma; it can only shrink the stake)."""
-    cap = capital(acc, prices)
+    times the VolTarget `scale` (1 = TrendEma; it can only shrink the stake).
+    `prices` is no longer needed (risk capital is valued at cost); kept for the callers."""
+    cap = risk_capital(acc)
     return min(min(cap * RISK_PER_TRADE / abs(STOPLOSS), cap * MAX_STAKE_RATIO) * min(scale, 1.0), acc["cash"])
 
 
