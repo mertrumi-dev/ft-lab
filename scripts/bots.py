@@ -71,14 +71,19 @@ def rotation_bot(
     return with_years(equity, orders)
 
 
-def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
-    """Two separate accounts with half the money each, never rebalanced.
+def equal_mix(*curves: pd.Series) -> pd.Series:
+    """N separate accounts with 1/N of the money each, never rebalanced.
 
-    Like running two bots side by side: each keeps its own profits and losses.
-    Both curves are scaled to start at 0.5, then added hour by hour.
+    Like running N bots side by side: each keeps its own profits and losses.
+    Every curve is scaled to start at 1/N, then they are added hour by hour.
     """
-    frame = pd.concat([a, b], axis=1).sort_index().ffill().dropna()
-    return 0.5 * frame.iloc[:, 0] / frame.iloc[0, 0] + 0.5 * frame.iloc[:, 1] / frame.iloc[0, 1]
+    frame = pd.concat(curves, axis=1).sort_index().ffill().dropna()
+    return (frame / frame.iloc[0]).mean(axis=1)
+
+
+def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
+    """Two separate accounts with half the money each (equal_mix of two)."""
+    return equal_mix(a, b)
 
 
 def with_years(equity: pd.Series, trades) -> dict:
@@ -149,6 +154,12 @@ def main() -> None:
             combo = with_years(half_and_half(curve["equity"], rows[2][1]["equity"]),
                                r["trades"] + rows[2][1]["trades"])  # fmt: skip
             rows.append(("TrendEma 50% + Grid 50%", combo))
+            # Regime-diversified portfolio (pre-registered 2026-11-01, no tuning):
+            # grid earns sideways, DCA bot in dips that recover, TrendEma in trends.
+            grid_r, dca_r = rows[2][1], rows[3][1]
+            mix3 = with_years(equal_mix(grid_r["equity"], dca_r["equity"], curve["equity"]),
+                              r["trades"] + grid_r["trades"] + dca_r["trades"])  # fmt: skip
+            rows.append(("Grid + DCA bot + TrendEma (1/3 each)", mix3))
         if name == "TrendEmaBtcRisingGap":
             # Portfolio idea (pre-registered 2026-11-01, research only, no tuning):
             # the DCA bot earns in up/sideways markets, the Gap rule protects in

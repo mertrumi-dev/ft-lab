@@ -208,3 +208,17 @@ def test_btc_gate_same_semantics_as_regime_strategy():
     a = dcabot.btc_gate(pd.DatetimeIndex(hourly["date"]), days)
     b = regime.attach_btc_rising(hourly, days).to_numpy()
     assert (a == b).all()
+
+
+def test_equal_mix_three_accounts_and_half_and_half_unchanged():
+    pytest.importorskip("freqtrade")
+    import bots
+
+    idx = pd.date_range("2024-01-01", periods=3, freq="1h", tz="UTC")
+    a = pd.Series([1.0, 2.0, 3.0], index=idx)   # triples
+    b = pd.Series([10.0, 10.0, 10.0], index=idx)  # flat
+    c = pd.Series([4.0, 2.0, 0.0], index=idx)    # goes to zero
+    mix = bots.equal_mix(a, b, c)
+    assert list(mix) == pytest.approx([1.0, (2 + 1 + 0.5) / 3, (3 + 1 + 0) / 3])
+    assert list(bots.half_and_half(a, b)) == pytest.approx(list(bots.equal_mix(a, b)))
+    assert list(bots.half_and_half(a, b)) == pytest.approx([1.0, 1.5, 2.0])
