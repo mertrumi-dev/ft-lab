@@ -552,3 +552,21 @@ Yıl yıl (5 coin), Pyramid / TrendEma: 2021 +%423,9 / +%177,1; 2022 -%8,2 / -%1
 - %2 risk denemesi (Risk2) 3,06 Calmar ve %30,6 düşüş vermişti. Piramit daha az düşüşle daha yüksek Calmar veriyor; yani "kazanana eklemek", "her işlemi büyütmek"ten daha iyi.
 
 Sıradaki: sağlamlık testleri. +%3 / +%6 komşuları, 2 kat komisyon, Monte Carlo, ve %25 tavan / %1 risk kurallarının gerçekten tutulup tutulmadığının kontrolü.
+
+### Pyramid sağlamlık (train)
+
+| Ekleme eşiği | Calmar | DD |
+|---|---|---|
+| +%3 (Pyramid3) | 3,21 | 22,9% |
+| **+%4** | **3,69** | 20,9% |
+| +%6 (Pyramid6) | 3,14 | 23,2% |
+| TrendEma (ekleme yok) | 2,70 | 16,4% |
+
+- **Komşular:** İkisi de TrendEma'yı açık farkla geçiyor. Sonuç sivri bir tepe değil, düz bir plato; yani tek bir sayıya bağlı şans değil.
+- **2 kat komisyon:** Pyramid 2,41, TrendEma 1,81.
+- **Monte Carlo:** DD için %95'lik sınır 28,1% (TrendEma 17,3%). **P(DD ≥ %20) = %30,5** (TrendEma %1,9). Yani canlıda kill switch'in tetiklenme ihtimali yaklaşık 3'te 1.
+- **Risk kuralı kontrolü (641 işlem):**
+  - Tek işlem/sermaye en fazla 0,2475 (≤ 0,25 ✔).
+  - En kötü işlem sermayenin -%1,14'ü. Bunun %1'i aşan kısmı, iki giriş ve bir çıkışın komisyonu. -%1,3'ü aşan işlem yok ✔.
+
+Karar: Validation sınavına giriyor. Bu 3. validation bakışı. Ayrıca kill switch açık sonuç da raporlanacak.
