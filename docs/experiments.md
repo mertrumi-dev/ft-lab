@@ -414,3 +414,10 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 14:57 | backtest | TrendEmaVolTargetBullVol | validation | universe alt2024, no kill switch (research) |
 | 2026-11-01 14:58 | backtest | TrendEmaVolTargetBullVol | train | no kill switch (research) |
 | 2026-11-01 14:58 | backtest | TrendEmaVolTargetBullVol | early | universe early |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | validation | no kill switch (research) |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | validation | universe wide, no kill switch (research) |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | validation | universe alt2022, no kill switch (research) |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | validation | universe alt2023, no kill switch (research) |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | validation | universe alt2024, no kill switch (research) |
+| 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | train | no kill switch (research) |
+| 2026-11-01 15:15 | backtest | TrendEmaVolTargetKama | early | universe early |
