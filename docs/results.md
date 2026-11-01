@@ -101,3 +101,27 @@ Komut: `python3 scripts/ft.py backtest --slice validation --strategy TrendEmaSlo
 Sıradaki: sayı sağlamlığı (sadece train'de), sonra TrendEmaSlow dry-run'a geçer. Final sınavı (test) Faz 3 bitince, bir kere.
 
 Deneme sayacı: train 9, validation 2, test 0.
+
+## 2026-11-01 · Train dilimi · TrendEmaSlow sayı sağlamlığı (deneme #10-15)
+
+Komut: `python3 scripts/ft.py backtest --slice train --strategy TrendEmaSlow SlowFast40 SlowFast60 SlowSlow150 SlowSlow250 SlowTrend450 SlowTrend750` + `report --slice train`
+`--timerange 20210101-20240613`, `--fee 0.0015`, `--enable-protections`. (TrendEmaSlow startup 1500 ile yeniden: sonuç aynı, 2,83.)
+
+| Strateji (hızlı/yavaş/trend) | İşlem | Getiri | Düşüş | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | 92,1% | 1,69 | - | referans |
+| SlowTrend450 (50/200/**450**) | 244 | +314,2% | 13,8% | 3,69 | 2,24 | PASS |
+| SlowSlow250 (50/**250**/600) | 189 | +265,3% | 15,1% | 3,02 | 2,31 | PASS |
+| SlowFast60 (**60**/200/600) | 200 | +240,9% | 14,4% | 2,96 | 2,11 | PASS |
+| **TrendEmaSlow (50/200/600)** | 215 | +227,6% | 14,5% | 2,83 | 2,08 | PASS |
+| SlowFast40 (**40**/200/600) | 249 | +199,8% | 16,6% | 2,25 | 1,95 | PASS |
+| SlowTrend750 (50/200/**750**) | 201 | +197,8% | 20,1% | 1,85 | 2,02 | PASS |
+| SlowSlow150 (50/**150**/600) | 160 | +119,0% | 20,4% | 1,25 | 1,76 | FAIL |
+
+### Yorum
+
+- **Büyük ölçüde sağlam:** 6 komşunun 5'i başarı kuralını geçti; hepsi kârlı, PF hepsinde 1,76 veya üstü. Asıl strateji ortada bir yerde, "tek şanslı nokta" değil.
+- **Zayıf taraf:** yavaş ortalamayı 150'ye indirmek Calmar'ı 1,25'e düşürdü. Yani kural "çok hızlı" tarafa kayınca bozuluyor; yavaş taraf daha güvenli. Trend 750 de zayıfladı (1,85).
+- **Seçim yapmıyoruz:** SlowTrend450 en iyisi ama ona geçmek ezberleme olur. TrendEmaSlow (50/200/600) kalıyor.
+
+Deneme sayacı: train 15, validation 2, test 0.
