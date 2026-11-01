@@ -17,8 +17,12 @@ Stdlib only: it only calls scripts/ft.py, like a human would.
 import argparse
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import health  # noqa: E402
+import kaan_report  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FT = [sys.executable, str(ROOT / "scripts" / "ft.py")]
@@ -45,6 +49,21 @@ def table_lines(text: str) -> str:
     """Keep the result lines, drop docker noise."""
     keep = [line for line in text.splitlines() if not line.startswith(("$ docker", " Container"))]
     return "\n".join(keep).strip()
+
+
+def health_summary() -> dict:
+    """Bot health numbers for the short report (read-only, same functions as health.py)."""
+    try:
+        now = datetime.now(timezone.utc)
+        s = health.summarize_log(health.read_log_lines(), now - timedelta(hours=24))
+        t = health.trade_summary(health.DB)
+        return {
+            "status": health.container_status(), "other_errors": len(s.other_errors),
+            "network_errors": sum(s.network_by_hour.values()), "open": t["open"], "closed": t["closed"],
+            "profit": t["profit"], "drawdown": t["drawdown"], "phase0": health.phase0_verdict(s, now),
+        }  # fmt: skip
+    except Exception as e:  # the report must still be written if docker is unreachable
+        return {"status": f"okunamadı ({e.__class__.__name__})"}
 
 
 def append_breadth(path: Path, line: str, header: str = BREADTH_HEADER) -> None:
@@ -79,6 +98,7 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
         steps.append((f"bots {universe}", ["bots", "--slice", "fresh", *extra, "--strategy", *names, *WATCH], True))
     for universe, names in WATCH_UNIVERSES.items():
         steps.append((f"bots {universe} (watch)", ["bots", "--slice", "fresh", "--universe", universe, "--strategy", *names], True))
+    steps.append(("execution", ["execution"], True))  # order quality (read-only)
     steps.append(("scan pool", ["scan", "--csv"], True))  # record only: market breadth per day
     return steps
 
@@ -92,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     report = [f"# Taze veri kontrolü {today}", "",
               "Sadece yargı için. Kurallar bu sonuçlara bakılarak değiştirilmez (docs/journal.md).", ""]  # fmt: skip
+    captured: dict[str, str] = {}
     for title, ft_args, capture in plan(args.with_nfi, not args.no_download):
         print(f"== {title}: ft.py {' '.join(ft_args)}", flush=True)
         code, out = run(ft_args, capture)
@@ -99,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAILED ({code}): {title}")
             return code
         if capture:
+            captured[title] = out
             print(out)
             for ln in out.splitlines():
                 if ln.startswith("breadth_csv: "):
@@ -108,6 +130,12 @@ def main(argv: list[str] | None = None) -> int:
     path = OUT_DIR / f"{today}.md"
     path.write_text("\n".join(report))
     print(f"report: {path.relative_to(ROOT)}")
+    short = kaan_report.write(OUT_DIR, today, kaan_report.render(
+        today, health_summary(), captured.get("scan pool", ""), kaan_report.breadth_rows(BREADTH_CSV),
+        captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
+        kaan_report.ai_counts(OUT_DIR / "ai-views.md"),
+    ))  # fmt: skip
+    print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0
 
 
