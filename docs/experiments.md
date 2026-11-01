@@ -493,3 +493,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 21:37 | backtest | TrendEmaVolTarget | judge25 | universe judge_2025a, no kill switch (research) |
 | 2026-11-01 21:37 | backtest | TrendEmaVolTargetAdx | judge25 | universe judge_2025a, no kill switch (research) |
 | 2026-11-01 21:37 | backtest | TrendEmaVolTargetTakeHalf2R | judge25 | universe judge_2025a, no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | train | no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | validation | no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:12 | backtest | TrendEmaVolTargetLossGuard | early | universe early, no kill switch (research) |

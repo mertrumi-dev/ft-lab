@@ -32,6 +32,8 @@ Günlük kayıp limiti (%3 / 24 saat), haftalık kayıp limiti (%10 / 7 gün) ve
 
 Neden: Aynı anda en fazla 3 × %1 = %3 risk açık olabiliyor. Günlük %3 frenine ulaşmak için üç işlemin aynı gün stoploss olması gerekir; bu durumu R9 (24 saatte 3 stoploss) zaten yakalıyor. Haftalık fren de kill switch ile büyük ölçüde örtüşüyor. Her fren tahminle seçilmiş bir sayı daha demek; fazla ayar, geçmişi ezberleme (overfitting) riskini artırır.
 
+**Açıklama notu (2026-11-02, sayı değişmedi):** R9, Freqtrade'in StoplossGuard korumasıyla uygulanıyor ve bu koruma **sadece stop çıkışlarını** sayıyor; sinyal çıkışıyla (EMA kesişmesi) gelen zararları saymıyor. Yani yukarıdaki "aynı gün üç stoploss" gerekçesi doğru, ama aynı gün üç *sinyal* zararı R9'u tetiklemez. Her zararı sayan sürüm denendi (T113, LossGuard): yeni coinlerde biraz iyileştirdi ama 2018-2020'de büyük trendin başını kaçırdı ve ölçütü geçemedi. Bu yüzden R9 olduğu gibi kalıyor.
+
 Kural: Çıkarılan bir fren ancak backtest "bu boşluk gerçekten zarar ettiriyor" diye gösterirse geri eklenir.
 
 ## Başarı ölçütü
