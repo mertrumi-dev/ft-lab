@@ -253,6 +253,13 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "freqtrade", "/freqtrade/scripts/explain.py",
         ]]  # fmt: skip
 
+    if args.command == "durations":  # read-only: existing backtest results
+        return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/durations.py",
+                 "--slice", args.slice, "--universe", args.universe,
+                 *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+                 "--strategy", *args.strategy]]  # fmt: skip
+
     if args.command == "postmortem":  # final test slice, analysis only (scripts/postmortem.py)
         return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
                  "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/postmortem.py"]]  # fmt: skip
@@ -389,7 +396,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -444,6 +451,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     sub.add_parser("ai-score", help="score the AI chart views after 7 days (docs/fresh/ai-scores.csv)")
     sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
+    du = sub.add_parser("durations", help="trade duration vs P/L and fees from existing results (read-only)")
+    du.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24"], required=True)
+    du.add_argument("--universe", choices=UNIVERSES, default="core")
+    du.add_argument("--no-kill-switch", action="store_true")
+    du.add_argument("--strategy", nargs="+", default=["TrendEmaVolTarget"])
     sub.add_parser("postmortem", help="final test slice month by month (analysis only, used-up slice)")
     sub.add_parser("forward-risk", help="12-month forward risk with the latching kill switch (block bootstrap, judging only)")
     sub.add_parser("expected", help="is VolTarget's fresh result inside its expected range? (judging only)")
