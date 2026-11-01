@@ -453,6 +453,7 @@ class TrendEmaPyramid(TrendEma):
 
     position_adjustment_enable = True
     max_entry_position_adjustment = 1
+    pyramid_trigger = PYRAMID_TRIGGER
     use_custom_stoploss = True
 
     def adjust_trade_position(
@@ -461,7 +462,7 @@ class TrendEmaPyramid(TrendEma):
         current_exit_rate: float, current_entry_profit: float, current_exit_profit: float,
         **kwargs,
     ) -> float | None:  # fmt: skip
-        if trade.nr_of_successful_entries != 1 or current_profit < PYRAMID_TRIGGER:
+        if trade.nr_of_successful_entries != 1 or current_profit < self.pyramid_trigger:
             return None
         capital = self.wallets.get_total_stake_amount()
         room = capital * MAX_STAKE_RATIO - trade.stake_amount  # R4: whole position <= 25%
@@ -479,3 +480,15 @@ class TrendEmaPyramid(TrendEma):
         capital = self.wallets.get_total_stake_amount()
         stop = pyramid_stop_price(trade.open_rate, trade.amount, capital, RISK_PER_TRADE, abs(STOPLOSS))
         return stoploss_from_absolute(stop, current_rate)
+
+
+class Pyramid3(TrendEmaPyramid):
+    """Sensitivity neighbour: add at +3% (not a candidate)."""
+
+    pyramid_trigger = 0.03
+
+
+class Pyramid6(TrendEmaPyramid):
+    """Sensitivity neighbour: add at +6% (not a candidate)."""
+
+    pyramid_trigger = 0.06

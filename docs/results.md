@@ -532,3 +532,23 @@ Komutlar: `report`, `report --fee-stress`, `montecarlo`, `bots` (main 8e6e634)
 - Monte Carlo: DD %95'lik dilimi 16,8% (TrendEma 17,3%), P(DD ≥ %20) %1,8 (TrendEma %1,9).
 
 Karar: Komşular düz bir plato değil, tek bir sivri tepe (2 ve 4 mum TrendEma'dan kötü). Bu yüzden +0,33'lük farkın büyük kısmı muhtemelen gürültü (şans). EntryConfirm validation'a gönderilmiyor; TrendEma'da kalınıyor. Böylece bir validation bakışı boşa harcanmamış oluyor.
+
+## 2026-11-01 · Train · Tur 8: TrendEmaPyramid (kazanana bir kez ekle)
+
+Komut: `ft.py backtest/report --slice train --no-kill-switch [--universe wide] --by-year` (`--timerange 20210101-20240613`, main ef49741)
+
+| | İşlem | Getiri | CAGR | Saatlik DD | Calmar | Kazanma | Coinde | Karar |
+|---|---|---|---|---|---|---|---|---|
+| Al-tut (5 coin) | - | +2426,5% | +155,4% | 92,1% | 1,69 | - | 100% | referans |
+| TrendEma | 638 | +254,3% | +44,3% | 16,4% | 2,70 | 31% | 17% | PASS |
+| **TrendEmaPyramid** | 641 | **+614,6%** | +76,8% | 20,9% | **3,69** | 22% | 24% | PASS |
+| 14 coin: TrendEma | 949 | +156,5% | | 41,3% | 0,76 | | | PASS |
+| 14 coin: Pyramid | 972 | +303,4% | | 56,4% | 0,88 | | | FAIL (DD ≥ al-tut'un yarısı) |
+
+Yıl yıl (5 coin), Pyramid / TrendEma: 2021 +%423,9 / +%177,1; 2022 -%8,2 / -%1,5; 2023 +%38,3 / +%23,5; 2024 +%7,4 / +%5,1.
+
+- İşlemlerin %36,7'sinde ekleme yapıldı (235 / 641).
+- Yukarı çekilen stop 64 kez tetiklendi: -2881 USDT. Bunlar +%4'e çıkıp sonra geri düşen işlemler.
+- %2 risk denemesi (Risk2) 3,06 Calmar ve %30,6 düşüş vermişti. Piramit daha az düşüşle daha yüksek Calmar veriyor; yani "kazanana eklemek", "her işlemi büyütmek"ten daha iyi.
+
+Sıradaki: sağlamlık testleri. +%3 / +%6 komşuları, 2 kat komisyon, Monte Carlo, ve %25 tavan / %1 risk kurallarının gerçekten tutulup tutulmadığının kontrolü.

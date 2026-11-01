@@ -17,7 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
-    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid, tv.Pyramid3, tv.Pyramid6,
 ]  # fmt: skip
 
 
@@ -315,3 +315,10 @@ def test_pyramid_stop_never_wider_than_8_percent():
 def test_pyramid_single_entry_keeps_normal_stop():
     s = _pyramid()
     assert s.custom_stoploss("X", _Trade(1, 125.0), None, 100.0, 0.0, False) is None
+
+
+def test_pyramid_neighbours_triggers():
+    assert (tv.Pyramid3.pyramid_trigger, tv.TrendEmaPyramid.pyramid_trigger, tv.Pyramid6.pyramid_trigger) == (0.03, 0.04, 0.06)
+    s = tv.Pyramid6({})
+    s.wallets = _Wallets(1000.0)
+    assert _adjust(s, _Trade(1, 125.0), 0.05) is None

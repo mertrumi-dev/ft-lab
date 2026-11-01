@@ -63,6 +63,7 @@ ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
 ROUND7 = ["TrendEmaExitConfirm", "TrendEmaSlope", "TrendEmaEntryConfirm"]
 ROUND8 = ["TrendEmaPyramid"]  # add to winners once, total risk still 1%  # whipsaw fixes from the trade analysis
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
+PYRAMID_SENSITIVITY = ["Pyramid3", "Pyramid6"]
 ENTRY_CONFIRM_SENSITIVITY = ["EntryConfirm2", "EntryConfirm4"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 # Famous third-party bots, run ONLY as research benchmarks next to our rule.
