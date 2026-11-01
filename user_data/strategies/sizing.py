@@ -91,3 +91,70 @@ from regime import TrendEmaBtcRising  # noqa: E402
 
 class TrendEmaVolTargetBtc(TrendEmaBtcRising, TrendEmaVolTarget):
     """BtcRising entries (BTC daily SMA50 rising) + VolTarget stake (60%)."""
+
+
+# --- Pre-registered 2026-11-01 (before any run): pick the coins by trading volume.
+# Instead of 5 fixed coins, look at a big pool (every coin group we have) and only
+# open new trades on the TOP_N coins with the highest USDT trading volume over the
+# last 30 days, measured up to the PREVIOUS candle (no lookahead). Busy coins have
+# tighter spreads and less slippage; the list changes as the market changes.
+# Idea: Zarattini, Pagani & Barbon (2025), "Catching Crypto Trends" (volume-ranked
+# universe). Numbers fixed now: top 15, 30 days. Everything else = TrendEmaVolTarget.
+
+TOP_N = 15
+VOLUME_WINDOW = 24 * 30
+
+
+def volume_rank_flags(frames: dict[str, DataFrame], top_n: int = TOP_N, window: int = VOLUME_WINDOW) -> DataFrame:
+    """date x pair table: True where the pair is among the top_n by 30-day USDT volume.
+
+    Uses volumes up to the previous candle only (shift 1). A pair without a full
+    window of history is not ranked (never in the top).
+    """
+    qv = {}
+    for pair, df in frames.items():
+        s = (df["close"] * df["volume"]).set_axis(pd.DatetimeIndex(df["date"]))
+        qv[pair] = s.rolling(window, min_periods=window).sum().shift(1)
+    table = pd.DataFrame(qv).sort_index()
+    ranks = table.rank(axis=1, ascending=False, method="first")
+    return ranks.le(top_n) & table.notna()
+
+
+class TrendEmaVolTargetTopVol(TrendEmaVolTarget):
+    """TrendEmaVolTarget, but new entries only on the 15 busiest coins of the pool."""
+
+    top_n = TOP_N
+    _flags_cache: dict = {}
+
+    def _flags(self) -> DataFrame | None:
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        pairs = tuple(sorted(dp.current_whitelist()))
+        frames = {}
+        for p in pairs:
+            df = dp.get_pair_dataframe(p, self.timeframe)
+            if df is not None and not df.empty:
+                frames[p] = df
+        if not frames:
+            return None
+        key = (pairs, self.top_n, max(len(f) for f in frames.values()), max(f["date"].iloc[-1] for f in frames.values()))
+        if key not in self._flags_cache:
+            type(self)._flags_cache = {key: volume_rank_flags(frames, self.top_n)}  # keep only the latest
+        return self._flags_cache[key]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["in_top"] = True  # unit tests without a data provider
+        flags = self._flags()
+        if flags is not None and metadata.get("pair") in flags:
+            col = flags[metadata["pair"]]
+            dates = pd.DatetimeIndex(dataframe["date"])
+            dataframe["in_top"] = col.reindex(dates).fillna(False).astype(bool).to_numpy()
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[~dataframe["in_top"], ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe

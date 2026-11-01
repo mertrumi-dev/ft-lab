@@ -69,7 +69,14 @@ EARLY_2018 = [
     "EOS/USDT", "XLM/USDT", "TRX/USDT", "ETC/USDT", "QTUM/USDT", "IOTA/USDT",
 ]  # fmt: skip
 
+# pool (2026-11-01): every coin from every group above, for strategies that pick
+# their own coins (TrendEmaVolTargetTopVol ranks them by 30-day volume). The core
+# coins come first; pairs without data are skipped by the tools.
+CORE_5 = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
+POOL = list(dict.fromkeys(CORE_5 + WIDE_2021 + ALT_2022 + ALT_2023 + ALT_2024))
+
 UNIVERSES = {
+    "pool": POOL,
     "early": EARLY_2018,
     "core": None, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
 }  # None = pairs from config.json
