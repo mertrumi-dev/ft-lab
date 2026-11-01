@@ -15,9 +15,9 @@ services:
     command: >
       trade
       --logfile /freqtrade/user_data/logs/freqtrade.log
-      --db-url sqlite:////freqtrade/user_data/tradesv3.dryrun.sqlite
+      --db-url sqlite:////freqtrade/user_data/tradesv3.voltarget.dryrun.sqlite
       --config /freqtrade/user_data/config/config.json
-      --strategy TrendEma
+      --strategy TrendEmaVolTarget
 
   # Forward test (2026-11-01): a second dry-run bot with the best backtest rule,
   # judged on NEW prices only. Fake money, same risk rules. Not started by a plain
