@@ -34,4 +34,18 @@ ALT_2023 = [
     "XTZ/USDT", "CHZ/USDT", "QNT/USDT", "FTM/USDT",
 ]  # fmt: skip
 
-UNIVERSES = {"core": None, "wide": WIDE_2021, "alt2023": ALT_2023}  # None = pairs from config.json
+# alt2024 (added 2026-11-01, BEFORE any backtest on it; never changed after results):
+# a fourth untouched group. Rule: coins roughly in the top ~40 by market cap around
+# January 2024, minus stablecoins and everything in core, wide or alt2023. All 15
+# candidates are listed; coins without Binance spot data are skipped by the tools.
+# RENDER traded as RNDR/USDT in January 2024 (renamed later), so the 2024 ticker is used.
+# Known limits: many of these coins were listed in 2023, so their train history is
+# short (the buy & hold window starts at the latest listing; the tools warn), and
+# a 2024 pick means they survived 2023 (survivorship).
+ALT_2024 = [
+    "APT/USDT", "ARB/USDT", "OP/USDT", "INJ/USDT", "SUI/USDT", "SEI/USDT", "TIA/USDT",
+    "STX/USDT", "IMX/USDT", "RNDR/USDT", "LDO/USDT", "RUNE/USDT", "GRT/USDT", "MKR/USDT",
+    "KAS/USDT",
+]  # fmt: skip
+
+UNIVERSES = {"core": None, "wide": WIDE_2021, "alt2023": ALT_2023, "alt2024": ALT_2024}  # None = pairs from config.json
