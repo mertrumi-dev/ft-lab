@@ -182,6 +182,8 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         ]]  # fmt: skip
 
     if args.command == "bots":
+        if args.slice == "test" and not args.final_test:
+            raise SystemExit("Refusing: the test slice is the final exam. Add --final-test (once per strategy).")
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
@@ -308,7 +310,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")
     bo.add_argument("--no-kill-switch", action="store_true")

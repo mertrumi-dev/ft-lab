@@ -57,12 +57,19 @@ def test_fees_make_tiny_steps_lose():
     assert trips > 50 and eq.iloc[-1] < 1.0  # 0.2% step < 0.3% round-trip fee
 
 
-def test_ft_bots_never_on_test_slice():
+def test_ft_bots_test_slice_needs_final_test_flag():
     with pytest.raises(SystemExit):
-        ft.parse_args(["bots", "--slice", "test"])
+        ft.build_commands(ft.parse_args(["bots", "--slice", "test"]))
+    (cmd,) = ft.build_commands(ft.parse_args(["bots", "--slice", "test", "--final-test"]))
+    assert cmd[cmd.index("--slice") + 1] == "test"
     (cmd,) = ft.build_commands(ft.parse_args(["bots", "--slice", "train", "--no-kill-switch"]))
     assert "/freqtrade/scripts/bots.py" in cmd and f"/freqtrade/{ft.NO_KILL_DIR}" in cmd
     assert "TrendEma" in cmd and "NostalgiaForInfinityX8" in cmd
+
+
+def test_ft_bots_train_command():
+    (cmd,) = ft.build_commands(ft.parse_args(["bots", "--slice", "train", "--no-kill-switch"]))
+    assert "/freqtrade/scripts/bots.py" in cmd and f"/freqtrade/{ft.NO_KILL_DIR}" in cmd
 
 
 # --- 3Commas-style DCA bot -------------------------------------------------
