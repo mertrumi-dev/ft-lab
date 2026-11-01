@@ -271,3 +271,19 @@ Komut (RC, Kaan'ın Mac'i): `ft.py report --slice train`, `--no-kill-switch`, `-
 - **Şu an hiçbir strateji train + validation'ı birlikte geçmiyor.** En iyi aday hâlâ TrendEma (train 2,69).
 - **Paranın ortalama sadece %15-20'si coinde.** Yükselişte al-tut'un çok gerisinde kalmanın ana sebebi bu. Bu %1 risk kuralının sonucu; kural değişikliği Kaan'ın kararı.
 - Ölçüm artık al-tut ile aynı cetvel. Bundan sonraki tüm kararlar buna göre.
+
+## 2026-11-01 · Train · Tur 3: ADX ve uzun trend filtresi (kill switch kapalı, saatlik düşüş) (deneme train #16-17, wide #4-5)
+
+Komut (RC): `ft.py backtest --slice train --no-kill-switch --strategy TrendEma TrendEmaAdx TrendEmaLongTrend` ve `--universe wide --strategy TrendEmaAdx TrendEmaLongTrend`; `report ... --by-year`. `--timerange 20210101-20240613`, `--fee 0.0015`.
+
+| Strateji | 5 coin Calmar | 5 coin düşüş | 14 coin Calmar | 14 coin düşüş | Coinde |
+|---|---|---|---|---|---|
+| Al-tut | 1,69 | 92,1% | 0,49 | 90,6% | %100 |
+| **TrendEma** | **2,69** | 16,5% | 0,76 | 41,4% | %16-20 |
+| TrendEmaLongTrend | 2,25 | 16,2% | **0,98** | 34,7% | %11-15 |
+| TrendEmaAdx | 1,28 (FAIL) | 15,5% | 0,84 | 40,5% | %11-16 |
+
+- **İkisi de 5 coinde TrendEma'yı geçemedi.** Filtreler giriş sayısını azaltıp parayı daha çok nakitte tutuyor: düşüş pek azalmıyor, kazanç azalıyor.
+- Uzun trend filtresi 14 zayıf coinde en iyisi (0,98, düşüş %41 → %35), ama 5 coinde kazancı kesiyor (2023: +%7,6 vs +%23,5).
+- ADX 2022'de tek pozitif kural (+%3,7) ama yükseliş yıllarında çok geride.
+- **Desen:** Giriş filtresi eklemek güçlü coinlerde hep kazancı kesiyor. Asıl kaldıraç (sözün gelişi) giriş değil, paranın ne kadarının coinde olduğu (%16). Bu risk kuralı → Kaan'ın kararı bekleniyor.
