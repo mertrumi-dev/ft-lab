@@ -344,3 +344,16 @@ Komut (RC): `ft.py backtest --slice train --no-kill-switch [--universe wide] --s
 - Validation (kesin ölçüm): TrendEma 1,55, TrendEmaSlow 1,62, al-tut 2,11: ikisi de FAIL.
 
 **Ara sonuç (22 train denemesi sonra):** 5 ana coinde TrendEma'yı geçen kural bulunamadı. Giriş filtresi eklemek hep paranın coinde olan kısmını ve kazancı düşürüyor.
+
+## 2026-11-01 · Train · Tur 5: çıkış denemeleri (kill switch kapalı)
+
+Komut (RC): `ft.py backtest --slice train --no-kill-switch [--universe wide] --strategy TrendEmaHold`, ayrıca Mac'te TrendEmaExitPrice (kapanış EMA50 altı). `--timerange 20210101-20240613`, `--fee 0.0015`.
+
+| Strateji | 5 coin Calmar | Düşüş | Getiri | 14 coin Calmar | Karar |
+|---|---|---|---|---|---|
+| TrendEma | 2,70 | 16,4% | +254% | 0,76 | en iyi |
+| TrendEmaHold (EMA200 altında sat) | 1,76 | 26,6% | +277% | 0,72 (DD 49%) | FAIL |
+| TrendEmaExitPrice (EMA50 altında sat) | 0,57 | 15,6% | +34% | -0,03 | FAIL |
+
+- Geç çıkmak biraz daha kazanç getiriyor ama 2022'de çok geri veriyor (-%13 vs -%1,5). Erken çıkmak trend kazancını öldürüyor. Mevcut çıkış (EMA20/50 kesişimi) ikisinin arasında, en iyi denge.
+- **24 train denemesinden sonra TrendEma (EMA20/50 + EMA200 filtresi) hâlâ en iyi.** Kural aramayı durdurup TrendEma'nın sağlamlığını ölçmeye geçiyoruz (sayı komşuları, Monte Carlo).
