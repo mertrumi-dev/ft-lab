@@ -741,3 +741,15 @@ Pencere: APE 2022-03-17'de listelendi. Adil karşılaştırma için bütün sat�
 Monte Carlo (2000 karıştırma, kapanmış işlem DD): TrendEma P(DD≥20%) %67, Gap %4,2.
 
 Okuma: Aday (Gap), hiç bakılmamış üçüncü grupta da TrendEma'yı ve bütün ünlü bot tiplerini geçiyor; düşüşü en küçükler arasında. Bilinen yanlılık: 2023'te seçilen coinler 2022 çöküşünden sağ çıkmış coinler.
+
+## 2026-11-01 · Validation (yeni coin gruplarında ilk bakış) + fresh alt2023
+
+Komut: `ft.py backtest --slice validation --universe wide|alt2023 --strategy TrendEma TrendEmaBtcRisingGap` (kill switch açık), `ft.py bots ...`; fresh: `--slice fresh --universe alt2023`. Bu gruplarda validation'a ilk kez bakıldı.
+
+| Grup / dilim | Al-tut | Haftalık DCA | Grid | DCA bot | TrendEma | **Gap (aday)** |
+|---|---|---|---|---|---|---|
+| wide, validation (Calmar) | 0,62 | 0,43 | 0,71 | **0,78** | 0,71 | 0,66 |
+| alt2023, validation (Calmar) | -0,20 | 0,00 | 0,02 | **0,11** | 0,01 | -0,11 |
+| alt2023, fresh Ekim 2026 (getiri) | -21,1% | -17,1% | -12,9% | -6,7% | -7,2% | **-4,8%** (25 işlem) |
+
+Okuma (dürüst): Aday, train'de üç coin grubunun üçünde de TrendEma'yı geçmişti; ama **validation döneminde (Haz 2024 – Ağu 2025) yeni gruplarda geçemedi**. wide'da TrendEma ve DCA bot'un biraz gerisinde, alt2023'te hafif zararda. Adayın üstünlüğü büyük ölçüde 2022 ayı piyasasında koruma sağlamasından geliyordu; 2024-25'in yükselen-sonra-yatay piyasasında bir katkısı görünmüyor. Ekim 2026 taze veride yine en az kaybeden (işlem sayısı az).
