@@ -112,3 +112,19 @@ def test_gap_only_removes_entries():
     hits = b.index[b["enter_long"] == 1]
     assert all(b["close"][i] >= b["ema_trend"][i] * 1.01 for i in hits)
     assert regime.TrendEmaBtcRisingGap.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+
+
+class _T:
+    def __init__(self, open_rate, max_rate):
+        self.open_rate, self.max_rate = open_rate, max_rate
+
+
+def test_breakeven_stop_only_after_trigger():
+    s = regime.TrendEmaGapBreakeven({})
+    # never reached +5%: keep the normal stop
+    assert s.custom_stoploss("X", _T(100, 104), None, 103, 0.03, False) is None
+    # reached +6%, now at 103: stop at 100.5 -> (103-100.5)/103 below current
+    sl = s.custom_stoploss("X", _T(100, 106), None, 103, 0.03, False)
+    assert sl == pytest.approx((103 - 100.5) / 103, rel=1e-3)
+    assert regime.TrendEmaGapBreakeven.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+    assert regime.TrendEmaGapBreakeven.stoploss == trend_ema.STOPLOSS

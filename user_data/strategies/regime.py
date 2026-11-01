@@ -151,3 +151,49 @@ class BtcRisingGap2(TrendEmaBtcRisingGap):
 
 
 GAP_NEIGHBOURS = [BtcRisingGap05, BtcRisingGap2]
+
+
+# --- Round 14: protect trades that were clearly winning ------------------------------
+# Train analysis of TrendEmaBtcRisingGap (core, 310 trades), grouped by the best
+# unrealized gain each trade reached (max_rate): trades that reached +2..10% and
+# then fell back ended at about zero or worse (107 trades, -414 USDT), giving
+# back 5-7 points. Classic fix: once a trade has been up enough, move the stop
+# to break-even (entry + fees) so a good start can't turn into a loss.
+# Round numbers fixed BEFORE the backtest: trigger +5%, stop at entry +0.5%
+# (covers the 2 x 0.15% fee). Before the trigger the -8% stop is unchanged.
+
+from datetime import datetime  # noqa: E402
+
+from freqtrade.persistence import Trade  # noqa: E402
+from freqtrade.strategy import stoploss_from_absolute  # noqa: E402
+
+BREAKEVEN_TRIGGER = 0.05
+BREAKEVEN_LOCK = 0.005
+
+
+class TrendEmaGapBreakeven(TrendEmaBtcRisingGap):
+    """Gap candidate + break-even stop once the trade has been +5% at its best."""
+
+    use_custom_stoploss = True
+    be_trigger = BREAKEVEN_TRIGGER
+    be_lock = BREAKEVEN_LOCK
+
+    def custom_stoploss(
+        self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
+        current_profit: float, after_fill: bool, **kwargs,
+    ) -> float | None:  # fmt: skip
+        best = (trade.max_rate or trade.open_rate) / trade.open_rate - 1
+        if best < self.be_trigger:
+            return None  # keep the normal -8% stop
+        return stoploss_from_absolute(trade.open_rate * (1 + self.be_lock), current_rate)
+
+
+class GapBreakeven3(TrendEmaGapBreakeven):
+    be_trigger = 0.03
+
+
+class GapBreakeven8(TrendEmaGapBreakeven):
+    be_trigger = 0.08
+
+
+BREAKEVEN_NEIGHBOURS = [GapBreakeven3, GapBreakeven8]
