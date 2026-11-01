@@ -292,3 +292,34 @@ def test_btc_bull_flags_match_regimes_label_and_use_closed_days():
     known = lab.notna().to_numpy()
     assert known.sum() > 1000 and (flags[known] == (lab[known] == "bull").to_numpy()).all()
     assert not flags[~known].any()  # before the label exists: treated as not bull (60%)
+
+
+def test_kama_equals_talib():
+    talib = pytest.importorskip("talib")
+    rng = np.random.default_rng(1)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 2000))))
+    ours = sizing.kama(close)
+    theirs = talib.KAMA(close.to_numpy(), timeperiod=10)
+    assert np.isnan(ours.iloc[:9]).all() and ours.iloc[9] == close.iloc[9]
+    np.testing.assert_allclose(ours.iloc[10:], theirs[10:], rtol=1e-10)
+
+
+def test_kama_slows_down_in_chop_and_follows_a_trend():
+    chop = pd.Series(np.tile([100.0, 102.0], 100))  # back and forth: ER = 0
+    trend = pd.Series(np.linspace(100, 200, 200))  # straight line: ER = 1
+    assert abs(sizing.kama(chop).iloc[-1] - sizing.kama(chop).iloc[20]) < 0.5  # barely moves
+    assert sizing.kama(trend).iloc[-1] > 199  # hugs the price
+
+
+def test_kama_strategy_only_swaps_the_fast_line():
+    cls = sizing.TrendEmaVolTargetKama
+    assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+    assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    rng = np.random.default_rng(4)
+    df = pd.DataFrame({"close": 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.01, 1500))), "volume": 1.0})
+    out = cls({}).populate_indicators(df.copy(), {})
+    assert np.allclose(out["ema_fast"].iloc[20:], sizing.kama(df["close"]).iloc[20:])
+    s = cls({})
+    entries = s.populate_entry_trend(out.copy(), {})["enter_long"].fillna(0).sum()
+    assert entries > 5

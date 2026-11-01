@@ -591,3 +591,40 @@ class TrendEmaVolTargetBullVol(TrendEmaVolTarget):
                 bull = bool(dataframe["btc_bull"].iloc[-1]) if "btc_bull" in dataframe else False
         target = self.bull_target_vol if bull else self.target_vol
         return min(stake * vol_scale(vol, target), max_stake)
+
+
+# --- KAMA instead of the fast EMA (pre-registered 2026-11-01, research 06: sideways whipsaws) ---
+# Kaufman's Adaptive Moving Average, textbook numbers (10, 2, 30), Smarter Trading (1995).
+# Efficiency ratio ER = |net move over 10 candles| / sum of the 10 single-candle moves:
+# 1 = a straight line (trend), near 0 = back and forth (chop). The smoothing constant
+# goes from the 30-period EMA speed (chop) to the 2-period EMA speed (clean trend),
+# squared so it slows down strongly in chop. Same output as TA-Lib's KAMA (tested).
+
+KAMA_N, KAMA_FAST, KAMA_SLOW = 10, 2, 30
+
+
+def kama(close: pd.Series, n: int = KAMA_N, fast: int = KAMA_FAST, slow: int = KAMA_SLOW) -> pd.Series:
+    """Kaufman Adaptive Moving Average. NaN for the first n-1 candles, seeded with close[n-1]."""
+    c = close.to_numpy(dtype=float)
+    out = np.full(len(c), np.nan)
+    if len(c) < n:
+        return pd.Series(out, index=close.index)
+    change = np.abs(c[n:] - c[:-n])  # net move over n candles, for i = n..len-1
+    step = np.abs(np.diff(c))
+    volatility = pd.Series(step).rolling(n).sum().to_numpy()[n - 1:]  # sum of the last n single moves
+    er = np.divide(change, volatility, out=np.zeros_like(change), where=volatility > 0)
+    fast_sc, slow_sc = 2 / (fast + 1), 2 / (slow + 1)
+    sc = (er * (fast_sc - slow_sc) + slow_sc) ** 2
+    out[n - 1] = c[n - 1]
+    for i in range(n, len(c)):  # recursive: each value builds on the previous one
+        out[i] = out[i - 1] + sc[i - n] * (c[i] - out[i - 1])
+    return pd.Series(out, index=close.index)
+
+
+class TrendEmaVolTargetKama(TrendEmaVolTarget):
+    """VolTarget with KAMA(10, 2, 30) in place of EMA20: entry/exit = KAMA crossing EMA50."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["ema_fast"] = kama(dataframe["close"])  # TrendEma's entry/exit read this column
+        return dataframe

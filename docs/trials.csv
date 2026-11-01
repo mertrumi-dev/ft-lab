@@ -93,3 +93,4 @@ T091,2026-11-01,VTStop10,robustness,stop -%10,komşu: Calmar ≥ temelin %70'i v
 T092,2026-11-01,VTVol480,robustness,oynaklık penceresi 480,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.63,,,train core,
 T093,2026-11-01,VTVol960,robustness,oynaklık penceresi 960,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.81,,,train core,
 T094,2026-11-01,TrendEmaVolTargetBullVol,sizing,"BTC boğa rejiminde hedef oynaklık %80, değilse %60",validation Calmar ≥3/5 ve DD ≥3/5; train/early en fazla %10 düşük,FAIL,2.08,1.69,2.22,train core; validation 5 grup; early,validation 0/5 + 0/5; araştırma 06'dan
+T095,2026-11-01,TrendEmaVolTargetKama,entry,"Hızlı EMA20 yerine KAMA(10,2,30): testerede yavaşlar, trendde hızlanır (Kaufman 1995)",validation Calmar ≥3/5 ve DD ≥3/5; train core/early en fazla %10 düşük; ≥50 işlem,PENDING,,,,train core; validation 5 grup; early,ön kayıt yapıldı; henüz koşulmadı

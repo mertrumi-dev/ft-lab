@@ -26,7 +26,8 @@ FIELDS = ["id", "date", "name", "family", "idea", "criterion", "verdict",
 # PASS: passed its pre-registered criterion. FAIL: did not. WATCH: failed or unproven, but followed
 # on fresh data. ELIMINATED: dropped on train without reaching a formal test. NEIGHBOUR: a robustness
 # variant (never a candidate). REFERENCE: someone else's bot, comparison only (not a trial).
-VERDICTS = ("PASS", "FAIL", "WATCH", "ELIMINATED", "NEIGHBOUR", "REFERENCE")
+# PENDING: pre-registered, not run yet (it already counts in N: the decision to test was made).
+VERDICTS = ("PASS", "FAIL", "WATCH", "ELIMINATED", "NEIGHBOUR", "REFERENCE", "PENDING")
 NUMBERS = ("train_core_calmar", "validation_core_calmar", "early_calmar")
 ID = re.compile(r"^T\d{3}$")
 
