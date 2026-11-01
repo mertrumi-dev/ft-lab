@@ -658,3 +658,19 @@ Olumlu tek taraf: Kill switch görevini yaptı. Kayıp yaklaşık %20'de durdu; 
 Not: Getiri negatif olunca Calmar karşılaştırması anlamını yitiriyor (-0,82 / -0,38). Karar Calmar'a değil, kuralın para kaybetmesine ve PF'nin çökmesine dayanıyor.
 
 Kural gereği bu sonuca bakarak hiçbir şey ayarlanmayacak. Test dilimi bu iki kural için artık kullanıldı.
+
+### Final test dönemi: ünlü bot türleri (aynı dönem, bir kez)
+
+| Bot | Getiri | DD |
+|---|---|---|
+| Al-tut | -27,0% | 63,7% |
+| Haftalık DCA | **+3,4%** | 31,2% |
+| Grid bot | -26,4% | 52,1% |
+| DCA bot | -5,3% | 37,6% |
+| TrendEma | -20,1% | 21,4% |
+| TrendEma %50 + Grid %50 | -23,3% | 34,9% |
+| TrendEmaPyramidBtc | -20,4% | 22,0% |
+
+- Düşen piyasada aktif botların hepsi para kaybetti; sadece haftalık DCA hafif kârda.
+- Bizim kurallarımızın düşüşü en küçük olanlar (kill switch sayesinde).
+- Ama bizim kurallar paranın ortalama sadece %6'sını coinde tutmasına rağmen al-tut'a yakın kaybetti: çok sayıda başarısız kırılım işlemi (kazanma oranı %8-19).
