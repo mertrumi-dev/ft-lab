@@ -49,6 +49,7 @@ DAILY_FROM = f"{DATA_START.year - 2}0101"
 # Default is 1h; list every strategy that uses something else here.
 STRATEGY_TIMEFRAMES = {
     "TrendEma4h": "4h",
+    "DipRsi4h": "4h",
     "TrendDonchianEnsemble": "1d",
     "TrendDonchianEnsembleFull": "1d",
 }
@@ -57,9 +58,10 @@ ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
 ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
 ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
 ROUND5 = ["TrendEmaHold"]
+ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
-ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6]
 
 
 def docker_cmd(*args: str) -> list[str]:
