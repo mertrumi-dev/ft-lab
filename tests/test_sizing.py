@@ -451,3 +451,13 @@ def test_derisk72h_uses_the_short_vol_now_and_the_30d_vol_at_entry():
     close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 1500))))
     ind = s.populate_indicators(pd.DataFrame({"close": close, "volume": 1.0}), {})
     assert np.isclose(ind["rvol_short"].iloc[-1], np.log(close).diff().iloc[-72:].std() * np.sqrt(8760))
+
+
+@pytest.mark.parametrize("cls,w", [(sizing.VTDerisk48h, 48), (sizing.VTDerisk96h, 96)])
+def test_derisk_neighbours_only_move_the_short_window(cls, w):
+    assert cls.short_vol_window == w and sizing.TrendEmaVolTargetDerisk72h.short_vol_window == 72
+    assert cls.adjust_trade_position is sizing.TrendEmaVolTargetDerisk72h.adjust_trade_position
+    rng = np.random.default_rng(5)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 1500))))
+    ind = cls({}).populate_indicators(pd.DataFrame({"close": close, "volume": 1.0}), {})
+    assert np.isclose(ind["rvol_short"].iloc[-1], np.log(close).diff().iloc[-w:].std() * np.sqrt(8760))

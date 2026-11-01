@@ -775,9 +775,11 @@ SHORT_VOL_WINDOW = 72  # hours = 3 days (pre-registered 2026-11-01, not tuned)
 class TrendEmaVolTargetDerisk72h(TrendEmaVolTargetDerisk2x):
     """Derisk2x with the CURRENT scale from a 72-hour volatility (entry scale stays 30-day)."""
 
+    short_vol_window = SHORT_VOL_WINDOW
+
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
-        dataframe["rvol_short"] = realized_vol(dataframe["close"], SHORT_VOL_WINDOW, self.periods_per_year)
+        dataframe["rvol_short"] = realized_vol(dataframe["close"], self.short_vol_window, self.periods_per_year)
         return dataframe
 
     def adjust_trade_position(self, trade, current_time, current_rate, current_profit, min_stake, max_stake,
@@ -796,3 +798,12 @@ class TrendEmaVolTargetDerisk72h(TrendEmaVolTargetDerisk2x):
         if np.isfinite(at_entry) and now < 0.5 * at_entry:
             return -(trade.stake_amount / 2), "derisk_vol_72h"
         return None
+
+
+# Derisk72h plateau neighbours (NOT candidates): only the short window moves.
+class VTDerisk48h(TrendEmaVolTargetDerisk72h):
+    short_vol_window = 48
+
+
+class VTDerisk96h(TrendEmaVolTargetDerisk72h):
+    short_vol_window = 96

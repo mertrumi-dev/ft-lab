@@ -95,7 +95,7 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
         var_sr = float(np.var(list(srs.values()), ddof=1)) if len(srs) > 2 else float("nan")
         print(f"\n== {sl} {uni}  --timerange {s.timerange}: {len(srs)} strategies with results here, "
               f"variance of their daily Sharpe = {var_sr:.6f}, N = {n_trials}")  # fmt: skip
-        for name in ("TrendEmaVolTarget", "TrendEmaVolTargetCooldown24", "TrendEma"):
+        for name in ("TrendEmaVolTarget", "TrendEmaVolTargetCooldown24", "TrendEmaVolTargetDerisk72h", "TrendEma"):
             if name not in rets:
                 print(f"  {name}: no result")
                 continue
