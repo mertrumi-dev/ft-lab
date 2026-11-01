@@ -87,19 +87,25 @@ def render(pair: str, r: dict, b: dict) -> str:
     def pct(x):
         return "n/a" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{x:+.1%}"
 
-    def px(x):
-        return "-" if x is None else f"{x:,.6g}"
+    def px(x, none="-"):
+        if x is None:
+            return none
+        if abs(x) >= 1:
+            return f"{x:,.2f}" if abs(x) >= 100 else f"{x:,.4f}"
+        # tiny prices (PEPE 0.000005): plain decimals, 6 significant digits, no 5e-06
+        return np.format_float_positional(x, precision=6, unique=False, fractional=False, trim="-")
 
     lines = [
         f"{pair}  daily, last closed candle {r['date']}  close {px(r['close'])}",
         f"  EMA20 {px(r['ema20'])} ({pct(r['vs_ema20'])})  EMA50 {px(r['ema50'])} ({pct(r['vs_ema50'])})"
         f"  EMA200 {px(r['ema200'])} ({pct(r['vs_ema200'])})   (+ = price above the line)",
         f"  return 7d {pct(r['ret7'])}  30d {pct(r['ret30'])}  90d {pct(r['ret90'])}",
-        f"  60-day range {px(r['low60'])} .. {px(r['high60'])}   nearest support {px(r['support'])}"
-        f"  resistance {px(r['resistance'])}",
+        f"  60-day range {px(r['low60'])} .. {px(r['high60'])}   nearest support "
+        f"{px(r['support'], 'none (price at its 60-day low)')}"
+        f"  resistance {px(r['resistance'], 'none (price at its 60-day high)')}",
         f"  volatility 30d {r['vol30']:.0%}/year   volume last 30d vs 90d {r['volume_ratio']:.2f}x",
-        f"Our bot (1h, candle {b['candle']}):",
-        f"  short trend {'UP' if b['short_up'] else 'DOWN'} (EMA20 vs EMA50), "
+        f"Our bot works on 1-HOUR candles (a shorter view than the daily lines above), candle {b['candle']}:",
+        f"  1h short trend {'UP' if b['short_up'] else 'DOWN'} (EMA20 vs EMA50), "
         f"{'above' if b['above_trend'] else 'below'} EMA200 -> entry signal now: {'YES' if b['entry_now'] else 'no'}",
         f"  VolTarget size: {b['size_scale']:.0%} of the normal stake (hourly volatility {b['vol1h']:.0%}/year)",
         "A reading of the past, not a forecast. Not investment advice.",

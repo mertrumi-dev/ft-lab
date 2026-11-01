@@ -43,3 +43,12 @@ def test_ft_chart_downloads_the_pair_then_reads_it():
     cmds = ft.build_commands(ft.parse_args(["chart", "--pair", "link"]))
     assert "LINK/USDT" in cmds[0] and "download-data" in cmds[0]
     assert cmds[1][-2:] == ["--pair", "LINK/USDT"]
+
+
+def test_tiny_prices_print_as_plain_decimals():
+    d = _daily(list(np.linspace(4e-6, 5e-6, 300)))
+    h = pd.DataFrame({"close": np.linspace(4e-6, 5e-6, 24 * 40)},
+                     index=pd.date_range("2025-01-01", periods=24 * 40, freq="1h", tz="UTC"))
+    text = chart.render("PEPE/USDT", chart.daily_reading(d), chart.bot_view(h))
+    assert "e-06" not in text and "0.000005" in text
+    assert "none (price at its 60-day high)" in text
