@@ -208,3 +208,27 @@ def test_derisk_halves_only(monkeypatch):
     monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: [_T(-110, 1)]))
     assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(62.5)
     assert sizing.TrendEmaVolTargetDerisk.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+
+
+def test_atr_stop_distance_is_clipped():
+    assert sizing.atr_stop_distance(100, 1.0) == pytest.approx(0.03)  # 3% floor
+    assert sizing.atr_stop_distance(100, 2.0) == pytest.approx(0.06)
+    assert sizing.atr_stop_distance(100, 5.0) == pytest.approx(0.08)  # 8% cap
+    assert sizing.atr_stop_distance(100, float("nan")) == pytest.approx(0.08)
+
+
+def test_atr_stop_stake_keeps_1pct_risk():
+    class _DpAtr:
+        def get_analyzed_dataframe(self, pair, tf):
+            return pd.DataFrame({"date": [pd.Timestamp("2024-01-01", tz="UTC")], "close": [100.0],
+                                 "atr": [1.5], "rvol": [0.3]}), None
+
+    s = sizing.TrendEmaVolTargetAtrStop({})
+    s.wallets, s.dp = _Wallets(), _DpAtr()
+    stake = s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long")
+    # stop 4.5% -> 1000 x 1% / 4.5% = 222.2 (cap 250), calm coin -> scale 1
+    assert stake == pytest.approx(1000 * 0.01 / 0.045)
+    assert stake * 0.045 == pytest.approx(10.0)  # a stop-out costs 1% of capital
+    cls = sizing.TrendEmaVolTargetAtrStop
+    assert cls.stoploss == trend_ema.STOPLOSS and cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+    assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend

@@ -350,3 +350,67 @@ class TrendEmaVolTargetDerisk(TrendEmaVolTarget):
         if derisk_active(self.wallets.get_starting_balance(), [t.close_profit_abs or 0.0 for t in closed]):
             return stake * DERISK_FACTOR
         return stake
+
+
+# --- Volatility stop (pre-registered 2026-11-01) --------------------------------------
+# Stop = entry - 3 x ATR(14) of the signal candle, never wider than -8% and never tighter
+# than -3%. Stake = 1% of equity / stop distance (cap 25%) x the VolTarget scale, so a
+# stop-out still costs at most 1% (R2) and R4 holds.
+
+from freqtrade.strategy import stoploss_from_absolute  # noqa: E402
+from trend_variants import atr  # noqa: E402
+
+ATR_STOP_MULT = 3.0
+STOP_MIN, STOP_MAX = 0.03, 0.08
+
+
+def atr_stop_distance(close: float, atr_value: float, mult: float = ATR_STOP_MULT) -> float:
+    """Stop distance as a ratio of price, clipped to [3%, 8%]; 8% if ATR is unknown."""
+    if not np.isfinite(atr_value) or atr_value <= 0 or close <= 0:
+        return STOP_MAX
+    return float(min(STOP_MAX, max(STOP_MIN, mult * atr_value / close)))
+
+
+class TrendEmaVolTargetAtrStop(TrendEmaVolTarget):
+    """VolTarget with a 3xATR stop (3%..8%) and the 1%-risk stake sized to that stop."""
+
+    use_custom_stoploss = True
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["atr"] = atr(dataframe)
+        return dataframe
+
+    def _signal_row(self, pair: str, when=None):
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        df, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+        if df is None or df.empty:
+            return None
+        if when is None:
+            return df.iloc[-1]
+        rows = df[df["date"] < when]  # the candle that produced the entry signal
+        return rows.iloc[-1] if not rows.empty else None
+
+    def custom_stake_amount(
+        self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+        min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+        side: str, **kwargs,
+    ) -> float:  # fmt: skip
+        row = self._signal_row(pair)
+        dist = atr_stop_distance(float(row["close"]), float(row["atr"])) if row is not None else STOP_MAX
+        vol = float(row["rvol"]) if row is not None and "rvol" in row else float("nan")
+        capital = self.wallets.get_total_stake_amount()
+        stake = risk_based_stake(capital, RISK_PER_TRADE, -dist, MAX_STAKE_RATIO)
+        return min(stake * vol_scale(vol, self.target_vol), max_stake)
+
+    def custom_stoploss(
+        self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
+        current_profit: float, after_fill: bool, **kwargs,
+    ) -> float | None:  # fmt: skip
+        row = self._signal_row(pair, trade.open_date_utc)
+        if row is None:
+            return None  # keep the -8% hard stop
+        dist = atr_stop_distance(float(row["close"]), float(row["atr"]))
+        return stoploss_from_absolute(trade.open_rate * (1 - dist), current_rate)

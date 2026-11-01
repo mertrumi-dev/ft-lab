@@ -41,3 +41,8 @@ def test_watch_rows_are_tracked_on_fresh_only():
     assert all(a[a.index("--slice") + 1] == "fresh" for _, a, _ in steps if "--slice" in a)
     titles = [t for t, _, _ in steps]
     assert {"download alt2022", "download alt2023", "download alt2024", "download core_gold"} <= set(titles)
+
+
+def test_speed_ensemble_legs_are_both_tracked():
+    flat = [a for _, args, _ in daily.plan(False, True) for a in args]
+    assert "TrendEmaVolTarget" in flat and "TrendEmaVolTarget2h" in flat
