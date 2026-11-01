@@ -95,7 +95,7 @@ def chart_reading(text: str) -> list[str]:
 
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
            execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "",
-           ai_score_text: str = "", charts: list[str] | None = None) -> str:  # fmt: skip
+           ai_score_text: str = "", charts: list[str] | None = None, forward_text: str = "") -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -131,6 +131,9 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     exp = [ln.removeprefix("expected_line: ") for ln in expected_text.splitlines() if ln.startswith("expected_line: ")]
     if exp:
         lines += ["", f"VolTarget beklenen aralıkta mı? {exp[0]}"]
+    fwd = [ln.removeprefix("forward_line: ") for ln in forward_text.splitlines() if ln.startswith("forward_line: ")]
+    if fwd:
+        lines += ["", f"İleriye risk: {fwd[0]}"]
     gold = [r for r in bots_rows(bots_gold) if r.startswith("TrendEmaVolTarget ")]
     if gold:
         lines += ["", "İzleme (altın dahil 6 coin): ", "```", TABLE_HEAD, *gold, "```"]

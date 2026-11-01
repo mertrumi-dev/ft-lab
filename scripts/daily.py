@@ -106,6 +106,7 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
     for universe, names in WATCH_UNIVERSES.items():
         steps.append((f"bots {universe} (watch)", ["bots", "--slice", "fresh", "--universe", universe, "--strategy", *names], True))
     steps.append(("expected", ["expected"], True))  # fresh result vs its expected range (judging only)
+    steps.append(("forward-risk", ["forward-risk"], True))  # next 12 months from history, kill switch latched
     steps.append(("execution", ["execution"], True))
     steps.append(("ai-score", ["ai-score"], True))  # score AI views whose 7 days have passed
     steps.append(("explain", ["explain"], True))  # every trade in plain Turkish -> trades-explained.md  # order quality (read-only)
@@ -150,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
         captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
         kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""), explained,
         captured.get("ai-score", ""), [captured.get(f"chart {c}", "") for c in CHART_COINS],
+        captured.get("forward-risk", ""),
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0

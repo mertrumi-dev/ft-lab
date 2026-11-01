@@ -250,6 +250,10 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "freqtrade", "/freqtrade/scripts/explain.py",
         ]]  # fmt: skip
 
+    if args.command == "forward-risk":
+        return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/forward_risk.py"]]  # fmt: skip
+
     if args.command == "expected":
         return [[
             "docker", "compose", "run", "--rm",
@@ -378,7 +382,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -433,6 +437,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     sub.add_parser("ai-score", help="score the AI chart views after 7 days (docs/fresh/ai-scores.csv)")
     sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
+    sub.add_parser("forward-risk", help="12-month forward risk with the latching kill switch (block bootstrap, judging only)")
     sub.add_parser("expected", help="is VolTarget's fresh result inside its expected range? (judging only)")
     sub.add_parser("execution", help="read-only fill/slippage/fee report from the dry-run DB(s)")
 
