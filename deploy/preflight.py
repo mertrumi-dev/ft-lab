@@ -53,6 +53,31 @@ def check_config(config: dict) -> list[tuple[str, str]]:
     return out
 
 
+DEMO_CONFIG = ROOT / "user_data" / "config" / "config.demo.json"
+# Exchanges where Freqtrade 2026.10 itself supports demo trading (freqtrade/exchange/*.py:
+# supports_demo_trading True). Binance is deliberately False there.
+DEMO_SUPPORTED = {"bybit"}
+
+
+def check_demo_config(config: dict) -> list[tuple[str, str]]:
+    """config.demo.json may only ever leave dry-run towards a DEMO exchange account, never a real one."""
+    ex = config.get("exchange", {})
+    out = []
+    filled = [f"{s}.{k}" for s, k in SECRET_FIELDS if config.get(s, {}).get(k)]
+    out.append(("FAIL", f"keys in config.demo.json: {', '.join(filled)} (they belong in .env)") if filled
+               else ("PASS", "config.demo.json: no keys in the file"))  # fmt: skip
+    mode = config.get("trading_mode", "spot")
+    out.append(("PASS", "config.demo.json: spot only") if mode == "spot" and not config.get("margin_mode")
+               else ("FAIL", f"config.demo.json: trading_mode {mode!r} / margin_mode {config.get('margin_mode')!r}"))  # fmt: skip
+    if config.get("dry_run") is not True:
+        demo_ok = ex.get("demo_trading") is True and ex.get("name", "").lower() in DEMO_SUPPORTED
+        out.append(("PASS", "config.demo.json: dry_run false only together with a supported demo exchange") if demo_ok
+                   else ("FAIL", "config.demo.json: dry_run false without demo_trading on a supported demo exchange = REAL MONEY"))  # fmt: skip
+    else:
+        out.append(("PASS", "config.demo.json: dry_run true (demo switch not made yet)"))
+    return out
+
+
 MAIN_SERVICE = "freqtrade"  # the only service a plain `docker compose up -d` may start
 
 
@@ -160,6 +185,8 @@ def main() -> int:
     results = []
     results += check_config(json.loads(CONFIG.read_text()))
     results += check_all_configs(CONFIG.parent)
+    if DEMO_CONFIG.exists():
+        results += check_demo_config(json.loads(DEMO_CONFIG.read_text()))
     results += check_compose(COMPOSE.read_text())
     results += check_env(ENV, (ROOT / ".gitignore").read_text())
     results += check_tools()

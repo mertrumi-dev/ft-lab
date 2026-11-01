@@ -1,0 +1,16 @@
+{
+  "dry_run": true,
+  "trading_mode": "spot",
+  "bot_name": "ft-lab-demo",
+  "exchange": {
+    "name": "binance",
+    "key": "",
+    "secret": "",
+    "demo_trading": false
+  },
+  "ftlab_demo": {
+    "target": "Binance Demo Mode (spot), fake balance, order book like the live exchange",
+    "keys": "demo-account keys only, in .env, trade permission only; never real-account keys, never withdraw",
+    "status": "NOT READY: Freqtrade 2026.10 refuses demo_trading for Binance (supports_demo_trading False) and refuses demo_trading together with dry_run. See docs/research/07-binance-demo.md"
+  }
+}

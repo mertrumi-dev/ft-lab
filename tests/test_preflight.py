@@ -1,5 +1,6 @@
 """Tests for deploy/preflight.py (server readiness check)."""
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -79,3 +80,29 @@ def test_preflight_never_opens_env_content():
     source = (ROOT / "deploy" / "preflight.py").read_text()
     # .env is only stat()-ed, never read
     assert "ENV.read" not in source and "env.read" not in source and "open(ENV" not in source
+
+
+DEMO = {"dry_run": True, "trading_mode": "spot", "exchange": {"name": "binance", "key": "", "secret": "", "demo_trading": False}}
+
+
+def test_real_demo_config_is_safe_and_not_switched_yet():
+    cfg = json.loads(preflight.DEMO_CONFIG.read_text())
+    assert cfg["dry_run"] is True and cfg["trading_mode"] == "spot" and "margin_mode" not in cfg
+    assert cfg["exchange"]["key"] == "" and cfg["exchange"]["secret"] == ""
+    assert "leverage" not in json.dumps(cfg).lower().replace("never", "")
+    assert set(levels(preflight.check_demo_config(cfg))) == {"PASS"}
+
+
+def test_demo_config_can_never_combine_dry_run_false_with_a_real_exchange():
+    live_real = {**DEMO, "dry_run": False}  # binance, demo_trading false -> real account
+    assert "FAIL" in levels(preflight.check_demo_config(live_real))
+    binance_demo = {**DEMO, "dry_run": False, "exchange": {**DEMO["exchange"], "demo_trading": True}}
+    assert "FAIL" in levels(preflight.check_demo_config(binance_demo))  # Freqtrade 2026.10 has no Binance demo
+    bybit_demo = {**DEMO, "dry_run": False, "exchange": {"name": "bybit", "key": "", "secret": "", "demo_trading": True}}
+    assert set(levels(preflight.check_demo_config(bybit_demo))) == {"PASS"}
+
+
+def test_demo_config_keys_and_futures_fail():
+    keyed = {**DEMO, "exchange": {**DEMO["exchange"], "key": "abc"}}
+    assert "FAIL" in levels(preflight.check_demo_config(keyed))
+    assert "FAIL" in levels(preflight.check_demo_config({**DEMO, "trading_mode": "futures", "margin_mode": "isolated"}))
