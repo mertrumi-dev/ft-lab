@@ -49,7 +49,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır. Geçmiş veri Kaan'ın Mac'inde indirildi (2026-10-31, 2020-10'dan beri 1h + 4h).
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
 - Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
-- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları; tur 3: TrendEmaAdx, TrendEmaLongTrend). TrendEmaSlow train + validation (#2) PASS ama 14 coinde (kill switch kapalı) FAIL; dry-run geçişi ertelendi. Canlıya sadece train + validation'da kazanan geçer.
+- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları; tur 3: TrendEmaAdx, TrendEmaLongTrend). TrendEmaSlow saatlik düşüş ölçümüyle validation FAIL (1,62 < 2,11) ve 14 coinde FAIL; elendi. Şu an train+validation geçen strateji yok. Canlıya sadece train + validation'da kazanan geçer.
 - Risk kuralları: `docs/risk-rules.md`. Bir risk sayısını değiştirmek = Kaan'a sor + tabloyu ve testi güncelle. Testi gevşeterek kural gevşetmek yasak.
 - Demo borsa (Faz 5): Binance. Telegram: Faz 5'te.
 

@@ -35,3 +35,4 @@ Her faz sonunda: ne yaptık, ne öğrendik, ne işe yaramadı. Deneme sayıları
 - 14 coin + BTC filtresi: DD %37,7 → %21,0, getiri +156% → +82%, Calmar 0,90 (TrendEma 0,83). Filtre düşüşte koruyor ama kazancı da kesiyor. Kural değişmedi.
 - Yıl yıl rapor (`report --by-year`, `--strategy` filtresi): eski sonuçları yıllara böler, yeni deneme değil. Öğretici kart 08. 106 test.
 - Rapor artık strateji düşüşünü saat saat, açık işlemler dahil ölçüyor (scripts/equity.py, al-tut ile aynı yöntem); Calmar ve PASS/FAIL buna göre. 'In coins' = paranın ortalama ne kadarı coinde. Kill switch işareti hâlâ kapanmış işlem düşüşüne bakıyor. 110 test.
+- Saatlik ölçümle: TrendEmaSlow validation 1,62 → FAIL (önceki 3,32 iyimser ölçümdendi). Hiçbir strateji train+validation geçmiyor. Ortalama yatırım oranı ~%16. Tur 3 (ADX, uzun trend) train'de koşuyor.

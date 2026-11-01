@@ -251,3 +251,23 @@ Komut (Remote Control ile Kaan'ın Mac'inde): `python3 scripts/ft.py report --sl
 - **Yükselişte al-tut'un çok gerisinde.** Kazancın büyük kısmı 2021'den. 2023-24'te al-tut'un küçük bir kesri.
 - Muhtemel neden: %1 risk kuralı yüzünden paranın çoğu nakitte. Ölçmek için "ortalama yatırım oranı" ve saatlik (açık işlem dahil) düşüş ekleniyor.
 - 14 coinde BTC filtresi 2022'yi -%7,6 ile en iyi geçiren kural.
+
+## 2026-11-01 · Dürüst ölçüm: saatlik düşüş (açık işlemler dahil) ile yeniden rapor
+
+Komut (RC, Kaan'ın Mac'i): `ft.py report --slice train`, `--no-kill-switch`, `--no-kill-switch --universe wide`, `report --slice validation`. Aynı backtest sonuçları; sadece ölçüm değişti (scripts/equity.py).
+
+| Strateji | Dilim | Düşüş (kapanmış → saatlik) | Calmar (eski → yeni) | Paranın coinde olan kısmı | Karar |
+|---|---|---|---|---|---|
+| TrendEma | train | 14,8% → 16,5% | 2,99 → **2,69** | %16 | PASS |
+| TrendEmaSlow | train | 14,5% → 22,6% | 2,83 → **1,82** | %15 | PASS |
+| TrendEma | validation | 14,1% → 17,3% | 1,90 → **1,55** | %16 | FAIL (al-tut 2,11) |
+| **TrendEmaSlow** | **validation** | 9,7% → 20,0% | 3,32 → **1,62** | %16 | **FAIL** (al-tut 2,11) |
+| TrendEma | wide (kill kapalı) | 37,7% → 41,4% | 0,83 → 0,76 | %20 | PASS (zayıf) |
+| TrendEmaBtc | wide (kill kapalı) | 21,0% → 25,6% | 0,90 → 0,74 | %15 | PASS (zayıf) |
+
+### Yorum (dürüst)
+
+- **TrendEmaSlow'un validation PASS'i ölçüm hatasıydı.** Slow uzun işlemde kalıyor; işlem açıkken yaşanan düşüşler eski ölçümde görünmüyordu. Saatlik ölçümde %20 düşüş, Calmar 1,62 → al-tut'un (2,11) altında.
+- **Şu an hiçbir strateji train + validation'ı birlikte geçmiyor.** En iyi aday hâlâ TrendEma (train 2,69).
+- **Paranın ortalama sadece %15-20'si coinde.** Yükselişte al-tut'un çok gerisinde kalmanın ana sebebi bu. Bu %1 risk kuralının sonucu; kural değişikliği Kaan'ın kararı.
+- Ölçüm artık al-tut ile aynı cetvel. Bundan sonraki tüm kararlar buna göre.
