@@ -81,9 +81,10 @@ def by_year(equity: pd.Series) -> dict[int, dict]:
     return out
 
 
-def run(
-    slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR, universe: str = "core"
-) -> dict:
+def load_slice_closes(
+    slice_name: str, timeframe: str, data_dir: Path = DATA_DIR, universe: str = "core"
+) -> tuple[dict[str, pd.Series], list[str]]:
+    """Close prices of every pair in the universe, cut to the slice. Missing wide pairs are skipped."""
     s = SLICES[slice_name]
     pairs = universe_pairs(universe)
     start = pd.Timestamp(s.start, tz="UTC")
@@ -98,12 +99,22 @@ def run(
             skipped.append(pair)  # e.g. delisted from Binance, nothing to download
             continue
         closes[pair] = series[(series.index >= start) & (series.index < end)]
+    return closes, skipped
+
+
+def run(
+    slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR, universe: str = "core"
+) -> dict:
+    s = SLICES[slice_name]
+    closes, skipped = load_slice_closes(slice_name, timeframe, data_dir, universe)
     equity = buy_and_hold_equity(closes, fee)
     result = summarize(equity)
     result["years"] = by_year(equity)
     result.update(
         slice=slice_name, timerange=s.timerange, pairs=list(closes), skipped=skipped, fee=fee
     )
+    result["closes"] = closes  # reused by report.py for hourly strategy equity
+    result["index"] = equity.index
     return result
 
 

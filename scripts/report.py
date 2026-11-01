@@ -12,6 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import benchmark  # noqa: E402
+import equity  # noqa: E402
 from splits import SLICES  # noqa: E402
 from universe import UNIVERSES  # noqa: E402
 
@@ -54,10 +55,15 @@ def latest_stats_per_strategy(
     return found
 
 
-def strategy_row(name: str, s: dict) -> dict:
-    mdd = s.get("max_drawdown_account", 0.0)
+def strategy_row(name: str, s: dict, hourly: dict | None = None) -> dict:
+    """One table row. With `hourly` (open trades included) the drawdown and Calmar
+    use the hourly measurement, the same way buy-and-hold is measured."""
+    closed_mdd = s.get("max_drawdown_account", 0.0)
+    mdd = hourly["max_drawdown_hourly"] if hourly else closed_mdd
     cagr = s.get("cagr", 0.0)
     return {
+        "closed_drawdown": closed_mdd,
+        "exposure": hourly["exposure"] if hourly else None,
         "name": name,
         "trades": s["total_trades"],
         "total_return": s["profit_total"],
@@ -81,7 +87,8 @@ def verdict(row: dict, bh: dict, kill_switch_on: bool = True) -> str:
     if row["max_drawdown"] >= bh["max_drawdown"] / 2:
         problems.append("DD >= half of B&H")
     result = "PASS" if not problems else "FAIL: " + ", ".join(problems)
-    if row["max_drawdown"] >= KILL_SWITCH_DRAWDOWN:
+    # the kill switch looks at CLOSED trades only, so use that drawdown here
+    if row.get("closed_drawdown", row["max_drawdown"]) >= KILL_SWITCH_DRAWDOWN:
         result += (
             " [kill switch hit: stopped buying]"
             if kill_switch_on
@@ -133,17 +140,22 @@ def format_years(stats: dict[str, dict], bh_years: dict[int, dict]) -> str:
 
 
 def format_table(rows: list[dict], bh: dict, kill_switch_on: bool = True) -> str:
-    head = f"{'Strategy':<18}{'Trades':>7}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}{'Win%':>7}{'PF':>6}{'Last trade':>12}  Verdict"
+    head = (
+        f"{'Strategy':<18}{'Trades':>7}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}"
+        f"{'Win%':>7}{'PF':>6}{'In coins':>9}{'Last trade':>12}  Verdict"
+    )
     lines = [head, "-" * len(head)]
     lines.append(
         f"{'BUY & HOLD':<18}{'-':>7}{bh['total_return']:>+9.1%}{bh['cagr']:>+8.1%}"
-        f"{bh['max_drawdown']:>8.1%}{bh['calmar']:>8.2f}{'-':>7}{'-':>6}{'-':>12}  (reference)"
+        f"{bh['max_drawdown']:>8.1%}{bh['calmar']:>8.2f}{'-':>7}{'-':>6}{'100%':>9}{'-':>12}  (reference)"
     )
     for r in sorted(rows, key=lambda r: r["calmar"], reverse=True):
         lines.append(
             f"{r['name']:<18}{r['trades']:>7}{r['total_return']:>+9.1%}{r['cagr']:>+8.1%}"
             f"{r['max_drawdown']:>8.1%}{r['calmar']:>8.2f}{r['win_rate']:>7.0%}"
-            f"{r['profit_factor']:>6.2f}{r['last_trade']:>12}  {verdict(r, bh, kill_switch_on)}"
+            f"{r['profit_factor']:>6.2f}"
+            f"{(format(r['exposure'], '.0%') if r['exposure'] is not None else '-'):>9}"
+            f"{r['last_trade']:>12}  {verdict(r, bh, kill_switch_on)}"
         )
     return "\n".join(lines)
 
@@ -170,7 +182,12 @@ def main() -> None:
         )
     if args.strategy:
         stats = {name: st for name, st in stats.items() if name in args.strategy}
-    rows = [strategy_row(name, st) for name, st in stats.items()]
+    rows = []
+    for name, st in stats.items():
+        curve = equity.hourly_equity(
+            st.get("trades", []), bh["closes"], st.get("starting_balance", 1000.0), bh["index"]
+        )
+        rows.append(strategy_row(name, st, equity.summary(curve)))
     print(
         f"Slice: {args.slice}  --timerange {s.timerange}  universe {args.universe} "
         f"({len(bh['pairs'])} coins)  fee {args.fee:.2%}/side  start 1000 USDT"
@@ -179,6 +196,8 @@ def main() -> None:
         print(f"Results from {args.results_dir.name} (research run, kill switch OFF)")
     if bh["skipped"]:
         print(f"No data (skipped): {', '.join(bh['skipped'])}")
+    print("MaxDD and Calmar: measured every hour, open trades included (same as buy & hold).")
+    print("In coins: average share of the money actually invested.")
     print(format_table(rows, bh, kill_switch_on=args.results_dir == RESULTS_DIR))
     if args.by_year:
         print("\nYear by year (strategy: closed trades only, so its MaxDD is optimistic)")
