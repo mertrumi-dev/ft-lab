@@ -255,3 +255,39 @@ class TrendEmaVolTargetPool2(TrendEmaVolTargetTopVol):
             above = daily_above_sma(daily, dataframe["date"]) if daily is not None and not daily.empty else False
             dataframe["in_top"] = dataframe["in_top"] & above
         return dataframe
+
+
+# --- Pullback entry (pre-registered 2026-11-01) --------------------------------------
+# The VolTarget entry signal only ARMS the trade. It is bought on the first candle in the
+# next 12 where the low touches EMA20 while the trend is intact (EMA20 > EMA50 and
+# close > EMA200). No touch within 12 candles = the signal is skipped. Number fixed: 12.
+
+PULLBACK_WINDOW = 12
+
+
+def pullback_entries(dataframe: DataFrame, window: int = PULLBACK_WINDOW) -> pd.Series:
+    """True on the first candle after an armed cross where price touches EMA20 (no lookahead)."""
+    armed_at = pd.Series(np.where(
+        (dataframe["ema_fast"] > dataframe["ema_slow"])
+        & (dataframe["ema_fast"].shift(1) <= dataframe["ema_slow"].shift(1))
+        & (dataframe["close"] > dataframe["ema_trend"]),
+        np.arange(len(dataframe)), np.nan), index=dataframe.index)  # fmt: skip
+    last_arm = armed_at.ffill()
+    age = np.arange(len(dataframe)) - last_arm  # candles since the last arming
+    touch = (
+        (age >= 1) & (age <= window)
+        & (dataframe["low"] <= dataframe["ema_fast"])
+        & (dataframe["ema_fast"] > dataframe["ema_slow"])
+        & (dataframe["close"] > dataframe["ema_trend"])
+        & (dataframe["volume"] > 0)
+    )  # fmt: skip
+    first = touch & ~touch.groupby(last_arm).cumsum().gt(1)
+    return first.fillna(False).astype(bool)
+
+
+class TrendEmaVolTargetPullback(TrendEmaVolTarget):
+    """VolTarget, but buy the first dip to EMA20 within 12 candles after the signal."""
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe.loc[pullback_entries(dataframe), ["enter_long", "enter_tag"]] = (1, "pullback_ema20")
+        return dataframe

@@ -132,3 +132,42 @@ def test_pool2_core_pairs_always_allowed_and_signals_unchanged():
                        "open": close, "high": close, "low": close, "close": close, "volume": 100.0})
     out = cls({}).populate_indicators(df, {"pair": "BTC/USDT"})
     assert out["in_top"].all()
+
+
+def _frame(close, low=None):
+    close = np.asarray(close, dtype=float)
+    df = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=len(close), freq="1h", tz="UTC"),
+                       "open": close, "high": close, "low": close if low is None else np.asarray(low, float),
+                       "close": close, "volume": 100.0})
+    return trend_ema.TrendEma({}).populate_indicators(df, {"pair": "X"})
+
+
+def test_pullback_buys_first_touch_after_arming_only():
+    close = np.concatenate([np.linspace(100, 200, 600), np.linspace(200, 185, 60), np.linspace(185, 260, 340)])
+    df = _frame(close)
+    base = trend_ema.TrendEma({}).populate_entry_trend(df.copy(), {})
+    arm = int(base.index[base["enter_long"] == 1][0])
+    low = close.copy()
+    low[arm + 5] = df["ema_fast"].iloc[arm + 5] * 0.999  # one dip to EMA20, 5 candles later
+    low[arm + 7] = df["ema_fast"].iloc[arm + 7] * 0.999  # a second dip: must NOT buy again
+    out = sizing.pullback_entries(_frame(close, low))
+    hits = list(out.index[out])
+    assert arm + 5 in hits and arm + 7 not in hits and arm not in hits
+
+
+def test_pullback_skips_without_touch_in_window():
+    close = np.concatenate([np.linspace(100, 200, 600), np.linspace(200, 185, 60), np.linspace(185, 260, 340)])
+    df = _frame(close)
+    base = trend_ema.TrendEma({}).populate_entry_trend(df.copy(), {})
+    arm = int(base.index[base["enter_long"] == 1][0])
+    low = close.copy()
+    low[arm + 13] = df["ema_fast"].iloc[arm + 13] * 0.999  # touch too late (13 > 12)
+    out = sizing.pullback_entries(_frame(close, low))
+    assert not out.iloc[arm : arm + 14].any()
+
+
+def test_pullback_keeps_exit_stop_and_size():
+    cls = sizing.TrendEmaVolTargetPullback
+    assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    assert cls.stoploss == trend_ema.STOPLOSS and cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
