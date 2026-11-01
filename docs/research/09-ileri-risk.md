@@ -19,9 +19,23 @@ Komut: `python3 scripts/ft.py forward-risk`. Her gün günlük rapora bir satır
 | TrendEma | %0,2 | %3,1 | %12,2 | +%23,3 | -%14,5 | %17 | 147 gün |
 | Al-tut (aynı coinler) | (%20 düşüş: %79) | (%96) | (%99,8) | +%28,5 | -%65,0 | %37 | 189 gün |
 
+## Stres: kötü dönem dahil (final test sonrası, 2026-11-01)
+
+VolTarget'in test dilimini tek kullanımı (journal): 2025-08 → 2026-10 arası **-%19,9**, kill switch **tetiklendi** (Temmuz 2026 sonu; TrendEma Nisan'da). Bu dönemin günlük getirileri geçmişe eklendi; stratejilerde kill switch'e kadarki günler kullanıldı.
+
+| | Kill switch 12 ay | 12 ay ortanca | En kötü %5 | Zarar ihtimali | En uzun zirve altı |
+|---|---|---|---|---|---|
+| **VolTarget (stres)** | %2,4 | **+%12,7** | **-%10,3** | **%20** | 167 gün |
+| TrendEma (stres) | %16,7 | +%13,8 | -%17,5 | %27 | 172 gün |
+| Al-tut (stres) | (%99,8) | +%15,0 | -%65,0 | %42 | 203 gün |
+
+Blok uzunluğu değişince (7/30/90/180 gün) VolTarget'in kill switch ihtimali %1,7-3,6 arasında kalıyor.
+
+**Çelişki ve dürüst okuma:** Model, kill switch'e çarpılan bir yılı "%2-4 ihtimalli" sayıyor. Ama elimizdeki ~3,4 yıllık geçmişin **1 yılında** (test dilimi) bu oldu. Kısa geçmişle gerçek ihtimal bilinemez. Bu tabloyu bir alt sınır gibi oku: gerçek risk daha büyük olabilir. Test dönemi hızlı bir çöküş değil, **yavaş ve uzun bir kanama**ydı: küçük kayıplar ay ay birikti. Boyut küçültme (VolTarget) bunu geciktirdi (3,5 ay daha uzun dayandı) ama önleyemedi.
+
 ## Kaan için sade dille
 
-- Geçmiş tekrar ederse VolTarget'in tipik yılı **+%23 civarı**. 20 yıldan 1'i **-%4 veya daha kötü** olur; **12 yılda 1** zararla kapanır.
+- Geçmiş tekrar ederse VolTarget'in tipik yılı **+%23 civarı**; kötü dönemi de katınca **+%13 civarı**, zarar ihtimali %8'den **%20**'ye çıkıyor. 20 yıldan 1'i **-%4 veya daha kötü** olur; **12 yılda 1** zararla kapanır.
 - Kill switch'e çarpma ihtimali **yılda ~%1**. TrendEma'da bu %12. Fark, oynak coinde küçük pozisyon (VolTarget) sayesinde.
 - Sadece coin tutsaydık getiri biraz daha yüksek olurdu (+%28), ama 20 yılda 1, **-%65**; hemen her yıl bir noktada %20'den fazla düşüş.
 - Bot genelde **4 aya yakın** (132 gün) bir süre önceki zirvesinin altında kalabiliyor. Bu normal; panik sebebi değil.

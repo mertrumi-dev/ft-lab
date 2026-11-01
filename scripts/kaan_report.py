@@ -134,6 +134,9 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     fwd = [ln.removeprefix("forward_line: ") for ln in forward_text.splitlines() if ln.startswith("forward_line: ")]
     if fwd:
         lines += ["", f"İleriye risk: {fwd[0]}"]
+    stress = [ln.removeprefix("forward_stress: ") for ln in forward_text.splitlines() if ln.startswith("forward_stress: ")]
+    if stress:
+        lines.append(f"Stres (kötü dönem dahil): {stress[0]}")
     gold = [r for r in bots_rows(bots_gold) if r.startswith("TrendEmaVolTarget ")]
     if gold:
         lines += ["", "İzleme (altın dahil 6 coin): ", "```", TABLE_HEAD, *gold, "```"]

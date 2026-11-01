@@ -10,7 +10,8 @@ below its peak; from then on the path is flat (no new trades, R13).
 Approximation, stated plainly: the real kill switch looks at REALIZED equity (closed trades);
 these paths are mark-to-market (open trades included), which usually falls at least as deep.
 So the kill-switch probabilities here lean high (cautious).
-Compared with TrendEma and buy-and-hold of the same coins (buy-and-hold has no kill switch:
+A STRESS variant adds the test slice (2025-08..2026-10, where TrendEma and VolTarget both
+hit the kill switch). Compared with TrendEma and buy-and-hold of the same coins (buy-and-hold has no kill switch:
 its row says how often it would have been 20% down). Judging only, nothing is tuned.
 """
 
@@ -83,7 +84,11 @@ def render(rows: dict[str, dict], history_days: dict[str, int]) -> str:
     return "\n".join(lines)
 
 
-def main() -> None:  # pragma: no cover - needs backtest results inside the container
+def daily_history(cases):  # pragma: no cover - needs backtest results inside the container
+    """{name: [daily return arrays]} for VolTarget, TrendEma and buy-and-hold over the given slices.
+
+    A strategy's days end at its last trade's close when the kill switch stopped it (a stopped
+    rule does not trade; the flat days after it would understate the risk)."""
     import pandas as pd
 
     import benchmark
@@ -91,8 +96,6 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
     from equity import build_curve
     from splits import SLICES
 
-    nk = Path("/freqtrade/user_data/backtest_results/no_kill_switch")
-    cases = (("validation", "core", nk), ("early", "early", report.RESULTS_DIR))
     hist: dict[str, list[np.ndarray]] = {"TrendEmaVolTarget": [], "TrendEma": [], "Buy & hold (same coins)": []}
     days = {}
     for sl, uni, d in cases:
@@ -105,15 +108,29 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
             st = stats_.get(name)
             if st and st.get("trades"):
                 eq = build_curve(st["trades"], bh["closes"], st.get("starting_balance", 1000.0), bh["index"])["equity"]
+                if sl == "test":  # stopped by the kill switch: keep only the days it was trading
+                    eq = eq[eq.index <= pd.Timestamp(max(t["close_date"] for t in st["trades"]))]
                 hist[name].append(eq.resample("1D").last().pct_change().dropna().to_numpy())
         days[f"{sl} {uni}"] = len(bh_eq.resample("1D").last()) - 1
-    rows = {}
-    for name, parts in hist.items():
-        if not parts:
-            continue
-        r = np.concatenate(parts)
-        rows[name] = stats(block_bootstrap(r, DAYS, runs=RUNS), None if name.startswith("Buy") else KILL)
-    print(render(rows, days))
+    return hist, days
+
+
+def main() -> None:  # pragma: no cover - needs backtest results inside the container
+    import report
+
+    nk = Path("/freqtrade/user_data/backtest_results/no_kill_switch")
+    base = (("validation", "core", nk), ("early", "early", report.RESULTS_DIR))
+    for title, cases in (("", base), (" STRESS: + test slice 2025-08..2026-10 (the bad period)",
+                                      base + (("test", "core", report.RESULTS_DIR),))):  # fmt: skip
+        hist, days = daily_history(cases)
+        rows = {name: stats(block_bootstrap(np.concatenate(parts), DAYS, runs=RUNS), None if name.startswith("Buy") else KILL)
+                for name, parts in hist.items() if parts}  # fmt: skip
+        text = render(rows, days)
+        if title:
+            text = text.replace("forward_line: VolTarget", "forward_stress: VolTarget (kötü dönem dahil)")
+        print(title.strip() or "BASE (validation + early)")
+        print(text)
+        print()
 
 
 if __name__ == "__main__":

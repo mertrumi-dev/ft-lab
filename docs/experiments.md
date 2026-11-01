@@ -422,3 +422,4 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 15:14 | backtest | TrendEmaVolTargetKama | train | no kill switch (research) |
 | 2026-11-01 15:15 | backtest | TrendEmaVolTargetKama | early | universe early |
 | 2026-11-01 15:35 | backtest | TrendEmaVolTarget | fresh | no kill switch (research) |
+| 2026-11-01 16:26 | backtest | TrendEmaVolTarget | test |  |

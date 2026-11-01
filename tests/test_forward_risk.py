@@ -40,9 +40,11 @@ def test_stats_counts_kill_by_horizon_and_losses():
 
 
 def test_report_line_goes_to_kaan_report():
-    text = "Forward risk ...\nforward_line: VolTarget önümüzdeki 12 ay: ortanca +10%\n"
+    text = ("Forward risk ...\nforward_line: VolTarget önümüzdeki 12 ay: ortanca +10%\n"
+            "forward_stress: VolTarget (kötü dönem dahil) önümüzdeki 12 ay: ortanca +2%\n")
     out = kaan_report.render("2026-11-02", {}, "", [], "", "", "", (0, 0), forward_text=text)
     assert "İleriye risk: VolTarget önümüzdeki 12 ay: ortanca +10%" in out
+    assert "Stres (kötü dönem dahil): VolTarget (kötü dönem dahil) önümüzdeki 12 ay: ortanca +2%" in out
 
 
 def test_longest_underwater_is_the_longest_unbroken_stretch():
