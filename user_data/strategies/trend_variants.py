@@ -166,13 +166,47 @@ class TrendEmaAtrWide(TrendEmaAtr):
 class TrendEmaSlow(TrendEma):
     """Slower averages: fewer, longer trades (research 02: longer windows worked better on BTC)."""
 
-    startup_candle_count = 1200
+    fast_len, slow_len, trend_len = 50, 200, 600
+    startup_candle_count = 1500  # >= 2 x the longest average in this class and its neighbours
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe["ema_fast"] = ema(dataframe["close"], 50)
-        dataframe["ema_slow"] = ema(dataframe["close"], 200)
-        dataframe["ema_trend"] = ema(dataframe["close"], 600)
+        dataframe["ema_fast"] = ema(dataframe["close"], self.fast_len)
+        dataframe["ema_slow"] = ema(dataframe["close"], self.slow_len)
+        dataframe["ema_trend"] = ema(dataframe["close"], self.trend_len)
         return dataframe
+
+
+# --- Sensitivity check for TrendEmaSlow (Phase 3 idea, train slice only) ------
+# Each neighbour moves ONE number by ~25%. If the result collapses when a number
+# moves a little, TrendEmaSlow was lucky with its numbers (overfit). If the
+# neighbours stay close, the rule is robust. These are NOT candidates for live.
+
+
+class SlowFast40(TrendEmaSlow):
+    fast_len = 40
+
+
+class SlowFast60(TrendEmaSlow):
+    fast_len = 60
+
+
+class SlowSlow150(TrendEmaSlow):
+    slow_len = 150
+
+
+class SlowSlow250(TrendEmaSlow):
+    slow_len = 250
+
+
+class SlowTrend450(TrendEmaSlow):
+    trend_len = 450
+
+
+class SlowTrend750(TrendEmaSlow):
+    trend_len = 750
+
+
+SLOW_NEIGHBOURS = [SlowFast40, SlowFast60, SlowSlow150, SlowSlow250, SlowTrend450, SlowTrend750]
 
 
 MULTI_PAIRS = [(20, 50), (50, 150), (100, 300)]

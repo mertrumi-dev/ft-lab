@@ -36,6 +36,7 @@ DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
 STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h"}
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
+SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2]
 
 

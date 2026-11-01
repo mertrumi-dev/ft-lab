@@ -78,3 +78,26 @@ Komut: `python3 scripts/ft.py backtest --slice train --strategy TrendEma TrendEm
 Karar: validation'a sadece TrendEmaSlow girecek (validation bakışı #2). Diğerleri elendi.
 
 Deneme sayacı: train 9, validation 1, test 0.
+
+## 2026-11-01 · Validation dilimi · TrendEmaSlow (validation bakışı #2)
+
+Komut: `python3 scripts/ft.py backtest --slice validation --strategy TrendEmaSlow` + `report --slice validation`
+`--timerange 20240613-20250807`, `--fee 0.0015`, `--enable-protections`.
+
+| Strateji | İşlem | Getiri | Yıllık | En büyük düşüş | Calmar | Kazanma % | PF | Karar |
+|---|---|---|---|---|---|---|---|---|
+| Al-tut | - | +122,6% | +100,9% | 47,8% | 2,11 | - | - | referans |
+| **TrendEmaSlow** | 71 | +38,0% | +32,3% | 9,7% | **3,32** | 32% | 2,07 | **PASS** |
+| TrendEma (#1'den) | 217 | +31,4% | +26,8% | 14,1% | 1,90 | 33% | 1,62 | FAIL |
+
+### Yorum
+
+- **İlk kez bir strateji hem train'de hem validation'da başarı kuralını geçti.**
+- **Tutarlılık güçlü işaret:** PF train'de 2,08, validation'da 2,07. Kural yeni dönemde aynı kalitede çalıştı.
+- **Dikkat 1:** 71 işlem. 50 sınırının üstünde ama az. Tek bir şanslı işlem sonucu çok etkileyebilir.
+- **Dikkat 2:** Düşüş kapanmış işlemlerden hesaplanıyor (iyimser). Faz 3'te saatlik bakiye ile yeniden ölçülecek.
+- **Dikkat 3:** Slow, validation #1'i gördükten sonra yazılan 4 fikirden biri. Hafif "seçim şansı" payı var; bu yüzden sayı sağlamlığı (komşu sayılar) testi yapılıyor.
+
+Sıradaki: sayı sağlamlığı (sadece train'de), sonra TrendEmaSlow dry-run'a geçer. Final sınavı (test) Faz 3 bitince, bir kere.
+
+Deneme sayacı: train 9, validation 2, test 0.

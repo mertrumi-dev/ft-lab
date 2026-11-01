@@ -16,6 +16,7 @@ import trend_variants as tv  # noqa: E402
 VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
+    *tv.SLOW_NEIGHBOURS,
 ]  # fmt: skip
 
 
@@ -93,6 +94,16 @@ def test_slow_variant_uses_slower_averages():
     last = df.iloc[-1]
     assert last["close"] > last["ema_fast"] > last["ema_slow"] > last["ema_trend"]
     assert tv.TrendEmaSlow.startup_candle_count >= 600 * 2
+
+
+@pytest.mark.parametrize("cls", tv.SLOW_NEIGHBOURS, ids=lambda c: c.__name__)
+def test_slow_neighbours_change_exactly_one_number(cls):
+    base = (tv.TrendEmaSlow.fast_len, tv.TrendEmaSlow.slow_len, tv.TrendEmaSlow.trend_len)
+    mine = (cls.fast_len, cls.slow_len, cls.trend_len)
+    changed = [b != m for b, m in zip(base, mine)]
+    assert sum(changed) == 1
+    assert cls.fast_len < cls.slow_len < cls.trend_len
+    assert cls.startup_candle_count >= 2 * cls.trend_len
 
 
 def test_multi_enters_once_when_votes_turn_bullish():
