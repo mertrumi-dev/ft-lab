@@ -926,3 +926,28 @@ class VTAdx15(TrendEmaVolTargetAdx):
 
 class VTAdx25(TrendEmaVolTargetAdx):
     adx_min = 25
+
+
+# --- Partial take-profit at 2R (pre-registered 2026-11-01, T109) ---------------------------
+# When an open trade is up 2R (2 x the 8% stop distance = +16%), sell half of it once; the
+# other half keeps the normal exits (EMA cross-down, -8% stop). "2R" is the textbook risk
+# multiple, not tuned. Trade-off measured by the trial: profit locked on reversals vs the
+# big trends (where most of the profit comes from) cut in half.
+
+TAKE_PROFIT_R = 2
+
+
+class TrendEmaVolTargetTakeHalf2R(TrendEmaVolTarget):
+    """VolTarget that banks half of a trade once it is up 2R (+16%)."""
+
+    position_adjustment_enable = True
+    max_entry_position_adjustment = 0  # never adds
+
+    def adjust_trade_position(self, trade, current_time, current_rate, current_profit, min_stake, max_stake,
+                              current_entry_rate, current_exit_rate, current_entry_profit, current_exit_profit,
+                              **kwargs):  # fmt: skip
+        if trade.nr_of_successful_exits > 0 or getattr(trade, "has_open_orders", False):
+            return None
+        if current_profit >= TAKE_PROFIT_R * abs(self.stoploss):
+            return -(trade.stake_amount / 2), "take_half_2r"
+        return None

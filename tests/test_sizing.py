@@ -523,3 +523,22 @@ def test_adx_gate_only_removes_entries_below_the_threshold():
     assert (b["enter_long"].fillna(0)[kept] == 1).all() and (f.loc[kept, "adx"] > 20).all()
     assert (f.loc[removed, "adx"] <= 20).all() and kept.any() and removed.any()
     assert np.allclose(f["adx"].dropna(), adx(df).loc[f["adx"].dropna().index])
+
+
+def test_take_half_2r_sells_half_once_at_plus_16_percent():
+    from types import SimpleNamespace
+
+    cls = sizing.TrendEmaVolTargetTakeHalf2R
+    assert cls.position_adjustment_enable and cls.max_entry_position_adjustment == 0
+    assert sizing.TAKE_PROFIT_R * abs(cls.stoploss) == pytest.approx(0.16)
+    assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    s = cls({})
+    trade = SimpleNamespace(nr_of_successful_exits=0, has_open_orders=False, stake_amount=120.0)
+    call = lambda profit: s.adjust_trade_position(trade, None, 1.0, profit, 5.0, 1000.0, 1.0, 1.0, profit, profit)  # noqa: E731
+    assert call(0.159) is None
+    assert call(0.16) == (-60.0, "take_half_2r") and call(0.30) == (-60.0, "take_half_2r")
+    trade.nr_of_successful_exits = 1
+    assert call(0.30) is None  # only once
+    trade.nr_of_successful_exits, trade.has_open_orders = 0, True
+    assert call(0.30) is None  # not while an order is still open
