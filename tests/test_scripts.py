@@ -146,10 +146,13 @@ def test_strategies_grouped_by_timeframe():
 def test_timeframe_map_matches_strategies():
     pytest.importorskip("freqtrade")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))
+    import donchian_ensemble
     import trend_variants
 
+    modules = [trend_variants, donchian_ensemble]
     for name, tf in ft.STRATEGY_TIMEFRAMES.items():
-        assert getattr(trend_variants, name).timeframe == tf
+        cls = next(getattr(m, name) for m in modules if hasattr(m, name))
+        assert cls.timeframe == tf
     assert trend_variants.TrendEmaAtr.timeframe == "1h"
 
 

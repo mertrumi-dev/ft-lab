@@ -44,14 +44,16 @@ STRESS_FEE = "0.003"  # 2x: does the rule survive much worse costs?
 DEFAULT_STRATEGY = "TrendEma"
 # Extra months before DATA_START so EMA200 has warm-up candles.
 DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
+DAILY_FROM = f"{DATA_START.year - 2}0101"
 # Freqtrade backtests one timeframe per run, so strategies are grouped by it.
 # Default is 1h; list every strategy that uses something else here.
-STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h"}
+STRATEGY_TIMEFRAMES = {"TrendEma4h": "4h", "TrendDonchianEnsemble": "1d"}
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
 ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
+ROUND4 = ["TrendDonchianEnsemble"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
-ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4]
 
 
 def docker_cmd(*args: str) -> list[str]:
@@ -81,12 +83,21 @@ def kill_switch_args(args: argparse.Namespace) -> list[str]:
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
     if args.command == "download":
-        return [docker_cmd(
-            "download-data", "--config", CONFIG,
-            "--timerange", f"{DOWNLOAD_FROM}-",
-            "--timeframes", "1h", "4h", "1d",
-            *pairs_args(args),
-        )]  # fmt: skip
+        return [
+            docker_cmd(
+                "download-data", "--config", CONFIG,
+                "--timerange", f"{DOWNLOAD_FROM}-",
+                "--timeframes", "1h", "4h",
+                *pairs_args(args),
+            ),
+            # daily strategies look back up to a year, so daily candles start 2 years early
+            docker_cmd(
+                "download-data", "--config", CONFIG,
+                "--timerange", f"{DAILY_FROM}-",
+                "--timeframes", "1d",
+                *pairs_args(args),
+            ),
+        ]  # fmt: skip
 
     if args.command == "backtest":
         if args.slice == "test" and not args.final_test:
