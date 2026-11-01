@@ -181,3 +181,30 @@ def test_voltarget_2h_same_rule_scaled_vol():
     rng = np.random.default_rng(1)
     close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.6 / np.sqrt(4380), 3000))))
     assert sizing.realized_vol(close, 360, 4380).iloc[-1] == pytest.approx(0.6, rel=0.15)
+
+
+def test_derisk_hysteresis():
+    assert not sizing.derisk_active(1000, [])
+    assert not sizing.derisk_active(1000, [-90])  # 9% down: off
+    assert sizing.derisk_active(1000, [-110])  # 11% down: on
+    assert sizing.derisk_active(1000, [-110, +40])  # 7% down: still on (needs <= 5%)
+    assert not sizing.derisk_active(1000, [-110, +70])  # 4% down: off again
+    assert sizing.derisk_active(1000, [+200, -150])  # peak 1200, 12.5% down: on
+
+
+def test_derisk_halves_only(monkeypatch):
+    class _T:
+        def __init__(self, p, d):
+            self.close_profit_abs, self.close_date_utc = p, d
+
+    class _W(_Wallets):
+        def get_starting_balance(self):
+            return 1000.0
+
+    s = sizing.TrendEmaVolTargetDerisk({})
+    s.wallets, s.dp = _W(), _Dp(0.3)
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: []))
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(125)
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: [_T(-110, 1)]))
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(62.5)
+    assert sizing.TrendEmaVolTargetDerisk.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry

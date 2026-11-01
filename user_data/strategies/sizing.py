@@ -306,3 +306,47 @@ class TrendEmaVolTarget2h(TrendEmaVolTarget):
     vol_window = 12 * 30
     periods_per_year = 12 * 365
     startup_candle_count = 2 * 200 + 12 * 30
+
+
+# --- Equity-curve de-risking (pre-registered 2026-11-01) ----------------------------
+# When the account's realized equity (closed trades, the same measure as the kill
+# switch) is more than 10% below its peak, stakes are halved; they stay halved until
+# equity is back within 5% of the peak. Computed from the trade history every time,
+# so a restart cannot reset it. Only shrinks the stake: R2/R4 and the 20% kill switch stay.
+
+DERISK_START = 0.10
+DERISK_END = 0.05
+DERISK_FACTOR = 0.5
+
+
+def derisk_active(starting: float, closed_profits: list[float],
+                  start: float = DERISK_START, end: float = DERISK_END) -> bool:  # fmt: skip
+    """Walk the closed trades in order and return whether de-risking is on now."""
+    equity = peak = starting
+    on = False
+    for profit in closed_profits:
+        equity += profit
+        peak = max(peak, equity)
+        dd = (peak - equity) / peak if peak > 0 else 0.0
+        if not on and dd > start:
+            on = True
+        elif on and dd <= end:
+            on = False
+    return on
+
+
+class TrendEmaVolTargetDerisk(TrendEmaVolTarget):
+    """VolTarget, with half-size trades while realized equity is >10% below its peak."""
+
+    def custom_stake_amount(
+        self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+        min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+        side: str, **kwargs,
+    ) -> float:  # fmt: skip
+        stake = super().custom_stake_amount(
+            pair, current_time, current_rate, proposed_stake, min_stake, max_stake, leverage, entry_tag, side, **kwargs
+        )
+        closed = sorted(Trade.get_trades_proxy(is_open=False), key=lambda t: t.close_date_utc)
+        if derisk_active(self.wallets.get_starting_balance(), [t.close_profit_abs or 0.0 for t in closed]):
+            return stake * DERISK_FACTOR
+        return stake
