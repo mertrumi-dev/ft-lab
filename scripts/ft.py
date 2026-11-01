@@ -84,7 +84,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         return [docker_cmd(
             "download-data", "--config", CONFIG,
             "--timerange", f"{DOWNLOAD_FROM}-",
-            "--timeframes", "1h", "4h",
+            "--timeframes", "1h", "4h", "1d",
             *pairs_args(args),
         )]  # fmt: skip
 
@@ -178,7 +178,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Safe Freqtrade wrapper for ft-lab")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    dl = sub.add_parser("download", help="download 1h and 4h candles for all pairs")
+    dl = sub.add_parser("download", help="download 1h, 4h and 1d candles for all pairs")
     dl.add_argument("--universe", choices=UNIVERSES, default="core")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
