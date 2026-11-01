@@ -24,6 +24,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 ## Backtest kuralları
 
 - Her backtest sonucu al-tut benchmark'ı (`scripts/benchmark.py`, Faz 1) ile yan yana raporlanır.
+- (Kaan, 2026-11-01) Her testte ünlü botlar da yan yana: haftalık DCA, grid bot (Pionex tarzı), DCA bot (3Commas tarzı), NFI X8 (`ft.py bots`). NFI sadece araştırma kıyası; `user_data/strategies/thirdparty/`, GPL-3.0, bot yükleyemez.
 - Veri bölme: train / validation / test. **Son %20 test dilimi hyperopt'ta ve strateji geliştirirken asla kullanılmaz.** Test dilimine bakıp strateji değiştirmek yasak; her seferinde Kaan'a hatırlat.
 - Kayma (slippage) için komisyon yüksek tutulur: `--fee 0.0015` (%0.1 komisyon + %0.05 kayma payı).
 - 50'den az işlem = istatistiksel olarak anlamsız, uyar.
@@ -63,7 +64,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (186)
+.venv/bin/python -m pytest          # tüm testler (214)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)
@@ -72,6 +73,8 @@ docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/conf
 .venv/bin/python scripts/ft.py report --slice train --by-year --strategy A B   # yıl yıl kırılım (yeni backtest gerekmez)
 .venv/bin/python scripts/ft.py walkforward --slice train --no-kill-switch     # geçmiş 12 ayda en iyiyi seç, sonraki 6 ayda dene (sadece train)
 .venv/bin/python scripts/ft.py benchmark --slice train                         # al-tut + haftalık DCA
+.venv/bin/python scripts/ft.py bots --slice train --no-kill-switch           # ünlü bot türleri + TrendEma + NFI tek tabloda
+.venv/bin/python scripts/ft.py download --fine                                  # 5m/15m veri (NFI için)
 ```
 
 FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).

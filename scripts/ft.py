@@ -50,6 +50,7 @@ DAILY_FROM = f"{DATA_START.year - 2}0101"
 STRATEGY_TIMEFRAMES = {
     "TrendEma4h": "4h",
     "DipRsi4h": "4h",
+    "NostalgiaForInfinityX8": "5m",
     "TrendDonchianEnsemble": "1d",
     "TrendDonchianEnsembleFull": "1d",
 }
@@ -61,6 +62,11 @@ ROUND5 = ["TrendEmaHold"]
 ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
+# Famous third-party bots, run ONLY as research benchmarks next to our rule.
+# Their code lives in user_data/strategies/thirdparty (not loadable by the bot).
+THIRD_PARTY = ["NostalgiaForInfinityX8"]
+THIRD_PARTY_PATH = "/freqtrade/user_data/strategies/thirdparty"
+BOTS_CONFIG = "/freqtrade/user_data/config/research-bots.json"
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6]
 
 
@@ -88,6 +94,13 @@ def kill_switch_args(args: argparse.Namespace) -> list[str]:
     return ["--config", RESEARCH_CONFIG, "--backtest-directory", f"/freqtrade/{NO_KILL_DIR}"]
 
 
+def third_party_args(strategies: list[str]) -> list[str]:
+    """Where the benchmark bots live, and their research config (5 open trades, dry-run)."""
+    if not any(s in THIRD_PARTY for s in strategies):
+        return []
+    return ["--strategy-path", THIRD_PARTY_PATH, "--config", BOTS_CONFIG]
+
+
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
     if args.command == "download":
@@ -98,6 +111,13 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "--timeframes", "1h", "4h",
                 *pairs_args(args),
             ),
+            *([docker_cmd(
+                # 5m/15m candles: only needed by the NFI benchmark bot (it trades on 5m)
+                "download-data", "--config", CONFIG,
+                "--timerange", f"{DOWNLOAD_FROM}-",
+                "--timeframes", "5m", "15m",
+                *pairs_args(args),
+            )] if getattr(args, "fine", False) else []),
             # daily strategies look back up to a year, so daily candles start 2 years early
             docker_cmd(
                 "download-data", "--config", CONFIG,
@@ -127,6 +147,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "--fee", fee_of(args),
                 "--enable-protections",  # include our risk brakes in the simulation
                 "--export", "trades",
+                *third_party_args(strategies),
                 *kill_switch_args(args),
                 *pairs_args(args),  # last: --pairs takes every word after it
             )
@@ -140,6 +161,17 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--entrypoint", "python",
             "freqtrade", "/freqtrade/scripts/montecarlo.py",
             "--slice", args.slice, "--universe", args.universe,
+            *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+            "--strategy", *args.strategy,
+        ]]  # fmt: skip
+
+    if args.command == "bots":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/bots.py",
+            "--slice", args.slice, "--universe", args.universe, "--fee", fee_of(args),
             *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
             "--strategy", *args.strategy,
         ]]  # fmt: skip
@@ -192,7 +224,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -222,6 +254,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     dl = sub.add_parser("download", help="download 1h, 4h and 1d candles for all pairs")
     dl.add_argument("--universe", choices=UNIVERSES, default="core")
+    dl.add_argument("--fine", action="store_true", help="also 5m and 15m (for the NFI benchmark bot)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
     bt.add_argument("--slice", choices=["train", "validation", "test"], required=True)
@@ -251,6 +284,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mc.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY])
     mc.add_argument("--universe", choices=UNIVERSES, default="core")
     mc.add_argument("--no-kill-switch", action="store_true")
+
+    bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
+    bo.add_argument("--slice", choices=["train", "validation"], required=True)
+    bo.add_argument("--universe", choices=UNIVERSES, default="core")
+    bo.add_argument("--fee-stress", action="store_true")
+    bo.add_argument("--no-kill-switch", action="store_true")
+    bo.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY, *THIRD_PARTY])
 
     wf = sub.add_parser("walkforward", help="pick best on past 12 months, trade next 6 (train only)")
     wf.add_argument("--slice", choices=["train"], required=True)

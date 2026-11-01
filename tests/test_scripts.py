@@ -152,6 +152,8 @@ def test_timeframe_map_matches_strategies():
 
     modules = [trend_variants, donchian_ensemble, dip_rsi]
     for name, tf in ft.STRATEGY_TIMEFRAMES.items():
+        if name in ft.THIRD_PARTY:
+            continue  # third-party code is not imported in tests (checked in test_benchmark_bots)
         cls = next(getattr(m, name) for m in modules if hasattr(m, name))
         assert cls.timeframe == tf
     assert trend_variants.TrendEmaAtr.timeframe == "1h"
