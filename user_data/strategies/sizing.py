@@ -533,3 +533,61 @@ class VTVol960(TrendEmaVolTarget):
 
 
 VT_NEIGHBOURS = [VTFast15, VTFast25, VTSlow40, VTSlow60, VTTrend150, VTTrend250, VTStop6, VTStop10, VTVol480, VTVol960]
+
+
+# --- Regime-dependent target vol (pre-registered 2026-11-01, research 06 backlog) ------
+# Same label as scripts/regimes.py: BTC bull = last CLOSED daily close above SMA200 AND
+# SMA200 higher than 20 days earlier. In a bull regime the target is 80%, else 60%.
+# min(1, target / vol) still caps the stake at the base 12.5%, so R2/R4 hold.
+
+BULL_SMA, BULL_SLOPE_DAYS = 200, 20
+BULL_TARGET_VOL = 0.80
+
+
+def btc_bull_flags(daily: DataFrame, hourly_dates: pd.Series, sma: int = BULL_SMA, days: int = BULL_SLOPE_DAYS) -> np.ndarray:
+    """For each hourly time: was BTC in a bull regime at the last COMPLETED daily close?"""
+    s = daily["close"].rolling(sma).mean()
+    bull = (daily["close"] > s) & (s > s.shift(days))
+    flags = pd.DataFrame({
+        "available_from": (daily["date"] + pd.Timedelta(days=1)).astype("datetime64[ns, UTC]"),
+        "bull": bull.to_numpy(),
+    }).sort_values("available_from")  # fmt: skip
+    left = pd.DataFrame({"date": pd.DatetimeIndex(hourly_dates).astype("datetime64[ns, UTC]")})
+    merged = pd.merge_asof(left, flags, left_on="date", right_on="available_from", direction="backward")
+    return merged["bull"].fillna(False).astype(bool).to_numpy()
+
+
+class TrendEmaVolTargetBullVol(TrendEmaVolTarget):
+    """VolTarget with an 80% target while BTC is in a bull regime, 60% otherwise."""
+
+    bull_target_vol = BULL_TARGET_VOL
+
+    def informative_pairs(self):
+        return [("BTC/USDT", "1d")]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["btc_bull"] = False
+        dp = getattr(self, "dp", None)
+        if dp is not None:
+            daily = dp.get_pair_dataframe("BTC/USDT", "1d")
+            if daily is not None and not daily.empty:
+                dataframe["btc_bull"] = btc_bull_flags(daily, dataframe["date"])
+        return dataframe
+
+    def custom_stake_amount(
+        self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+        min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+        side: str, **kwargs,
+    ) -> float:  # fmt: skip
+        capital = self.wallets.get_total_stake_amount()
+        stake = risk_based_stake(capital, RISK_PER_TRADE, self.stoploss, MAX_STAKE_RATIO)
+        vol, bull = float("nan"), False
+        dp = getattr(self, "dp", None)
+        if dp is not None:
+            dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+            if dataframe is not None and not dataframe.empty and "rvol" in dataframe:
+                vol = float(dataframe["rvol"].iloc[-1])
+                bull = bool(dataframe["btc_bull"].iloc[-1]) if "btc_bull" in dataframe else False
+        target = self.bull_target_vol if bull else self.target_vol
+        return min(stake * vol_scale(vol, target), max_stake)

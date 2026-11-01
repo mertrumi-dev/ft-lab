@@ -260,3 +260,35 @@ def test_vt_neighbours_change_one_thing_and_lens_matches_base():
     assert len(sizing.VT_NEIGHBOURS) == 10
     assert sizing.VTStop6.stoploss == -0.06 and sizing.VTVol480.vol_window == 480
     assert base.stoploss == trend_ema.STOPLOSS  # the live rule is untouched
+
+
+class _DpBull:
+    def __init__(self, vol, bull):
+        self.vol, self.bull = vol, bull
+
+    def get_analyzed_dataframe(self, pair, timeframe):
+        return pd.DataFrame({"rvol": [self.vol], "btc_bull": [self.bull]}), None
+
+
+@pytest.mark.parametrize("vol,bull,expected", [(1.6, True, 125 * 0.80 / 1.6), (1.6, False, 125 * 0.60 / 1.6),
+                                               (0.5, True, 125.0)])  # fmt: skip
+def test_bullvol_stake_uses_80_only_in_bull_and_never_exceeds_base(vol, bull, expected):
+    s = sizing.TrendEmaVolTargetBullVol({})
+    s.wallets, s.dp = _Wallets(), _DpBull(vol, bull)
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(expected)
+    assert sizing.TrendEmaVolTargetBullVol.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+
+
+def test_btc_bull_flags_match_regimes_label_and_use_closed_days():
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import regimes
+
+    days = pd.date_range("2020-01-01", periods=800, freq="1D", tz="UTC")
+    close = pd.Series(np.concatenate([np.linspace(100, 300, 400), np.linspace(300, 100, 400)]), index=days)
+    daily = pd.DataFrame({"date": days, "close": close.to_numpy()})
+    hours = pd.Series(pd.date_range("2020-01-02", periods=799 * 24, freq="1h", tz="UTC"))
+    flags = sizing.btc_bull_flags(daily, hours)
+    lab = regimes.hourly_labels(regimes.label_days(close), pd.DatetimeIndex(hours))["trend"]
+    known = lab.notna().to_numpy()
+    assert known.sum() > 1000 and (flags[known] == (lab[known] == "bull").to_numpy()).all()
+    assert not flags[~known].any()  # before the label exists: treated as not bull (60%)
