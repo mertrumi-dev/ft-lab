@@ -257,6 +257,17 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--strategy", *args.strategy,
         ]]  # fmt: skip
 
+    if args.command == "regimes":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/regimes.py",
+            "--slice", args.slice, "--universe", args.universe,
+            *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+            "--strategy", *args.strategy,
+        ]]  # fmt: skip
+
     if args.command == "bots":
         if args.slice == "test" and not args.final_test:
             raise SystemExit("Refusing: the test slice is the final exam. Add --final-test (once per strategy).")
@@ -406,6 +417,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     bo.add_argument("--fee-stress", action="store_true")
     bo.add_argument("--no-kill-switch", action="store_true")
     bo.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY, *THIRD_PARTY])
+
+    rg = sub.add_parser("regimes", help="bot results split by BTC market regime (train/early only, analysis)")
+    rg.add_argument("--slice", choices=["train", "early"], required=True)
+    rg.add_argument("--universe", choices=UNIVERSES, default="core")
+    rg.add_argument("--no-kill-switch", action="store_true")
+    rg.add_argument("--strategy", nargs="+", default=["TrendEma", "TrendEmaVolTarget"])
 
     wf = sub.add_parser("walkforward", help="pick best on past 12 months, trade next 6 (train only)")
     wf.add_argument("--slice", choices=["train"], required=True)
