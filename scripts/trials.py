@@ -1,6 +1,7 @@
 """The trial register: docs/trials.csv, one row per trial ever run (stdlib only, runs on the Mac).
 
     python3 scripts/trials.py            # check the file, print the counts
+    python3 scripts/trials.py --find adx # was this idea already tried? (trials.csv + docs/journal.md)
 
 Rules checked:
   - ids are unique (T001, T002, ...)
@@ -79,8 +80,23 @@ def n_trials(rows: list[dict]) -> int:
     return sum(r["verdict"] != "REFERENCE" for r in rows)
 
 
-def main() -> int:
+def find(rows: list[dict], journal_text: str, words: list[str]) -> list[str]:
+    """Rows and journal lines mentioning ALL the words (case-insensitive): check before pre-registering."""
+    ws = [w.lower() for w in words]
+    hits = [f"{r['id']} {r['verdict']:<10} {r['name']}: {r['idea'][:90]}" for r in rows
+            if all(w in " ".join((r["name"], r["idea"], r["notes"])).lower() for w in ws)]  # fmt: skip
+    hits += [f"journal: {ln.strip()[:160]}" for ln in journal_text.splitlines() if all(w in ln.lower() for w in ws)]
+    return hits
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
     rows = load()
+    if argv[:1] == ["--find"]:
+        journal = ROOT / "docs" / "journal.md"
+        hits = find(rows, journal.read_text() if journal.exists() else "", argv[1:])
+        print("\n".join(hits) if hits else f"nothing found for {' '.join(argv[1:])!r}")
+        return 0
     found = problems(rows, tested_names(EXPERIMENTS.read_text()) if EXPERIMENTS.exists() else set())
     for p in found:
         print("PROBLEM:", p)

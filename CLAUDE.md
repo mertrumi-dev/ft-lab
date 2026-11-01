@@ -31,6 +31,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Başarı ölçütü (risk-ayarlı): Calmar oranı al-tut'tan yüksek + max drawdown al-tut'un yarısından az + en az 50 işlem. Ham getiride al-tut'u geçmek beklenmez (sermayenin çoğu nakitte).
 - Sayı verirken komutu ve tam `--timerange`'i yaz. Sayıları süsleme; kötü strateji kötüdür.
 - Kaç deneme/hyperopt yapıldığını `docs/journal.md`'de say (validation dilimi de zamanla ezberlenir).
+- Yeni deneme ön kaydından önce aynı fikir denenmiş mi bak: `python3 scripts/trials.py --find <kelime>` (trials.csv + journal). Denenmişse ön kayda yaz ve önce söyle.
 
 ## Çalışma modu
 

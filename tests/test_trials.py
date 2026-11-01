@@ -48,3 +48,10 @@ def test_tested_names_reads_the_strategy_column():
 def test_ft_deflated_passes_n_from_the_register():
     cmd = ft.build_commands(ft.parse_args(["deflated"]))[0]
     assert cmd[-1] == str(trials.n_trials(trials.load())) and cmd[-2].endswith("deflated.py")
+
+
+def test_find_reports_earlier_trials_and_journal_lines():
+    rows = [row(name="TrendEmaAdx", idea="ADX > 20 filter", notes=""), row(id="T002", name="Other", idea="x", notes="")]
+    hits = trials.find(rows, "- Tur 3: ADX (1,28) FAIL\n- unrelated", ["adx"])
+    assert hits[0].startswith("T001") and any(h.startswith("journal: - Tur 3: ADX") for h in hits) and len(hits) == 2
+    assert trials.find(rows, "", ["nothing-like-this"]) == []
