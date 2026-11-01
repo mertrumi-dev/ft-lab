@@ -413,3 +413,19 @@ Komutlar (Mac, main d1bfbad / b4915a9, `--timerange 20210101-20240613`, fee %0,1
 Yıl yıl (5 coin): DipRsi her yıl zararda (-32,8 / -27,6 / -31,3 / -15,4%), DipRsi4h de her yıl zararda (-12,1 / -11,4 / -7,9 / -4,2%).
 
 Yorum: Kazanma oranı yüksek (%54-61) ama PF < 1. Küçük kazançlar, büyük kayıplar, ve binlerce işlemde komisyon. Connors RSI(2) kuralı kriptoda bu haliyle çalışmıyor. DCA, al-tut'un riskini azaltıyor ama Calmar'da TrendEma'nın çok gerisinde.
+
+## 2026-11-01 · Train · Faz 3: walk-forward (yeni backtest yok)
+
+Komut (Mac, main 4dd3efa, `--timerange 20210101-20240613`, 5 coin, kill switch kapalı): `ft.py walkforward --slice train --no-kill-switch [--strategy ...]`.
+Seçim için önceki 12 ay kullanıldı, sonraki 6 ayda işlem yapıldı. Örneklem dışı dönem 2022-01 ile 2024-06 arası. Düşüş sadece kapanmış işlemlerden ölçüldü.
+
+| Aday grubu | "En iyiyi seç" | Sabit TrendEma |
+|---|---|---|
+| TrendEma + 6 komşu | +%18,7, DD %11,6, Calmar 0,63 (437 işlem) | +%28,2, DD %8,7, Calmar 1,23 (437 işlem) |
+| 7 farklı kural (Slow, LongTrend, Multi, Calm, Hold, Atr, TrendEma) | +%25,0, DD %13,6, Calmar 0,70 (342 işlem) | aynı |
+
+Pencere seçimleri:
+- Komşular: TrendEma, EmaSlow60, EmaSlow60, TrendEma, EmaTrend150.
+- Kurallar: LongTrend, LongTrend, Atr, TrendEma, Multi.
+
+Yorum: Geçen yılın kazananını seçmek, sabit kurala göre hem daha az kazandırıyor hem de daha çok düşürüyor. Sayı ayarlamak ve kural değiştirmek değer katmıyor. Sabit TrendEma'da kalınacak, hyperopt yapılmayacak.
