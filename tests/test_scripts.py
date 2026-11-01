@@ -410,3 +410,10 @@ def test_fresh_starts_where_test_ends_and_never_overlaps():
 def test_fresh_backtest_needs_no_final_test_flag():
     c = ft.build_commands(ft.parse_args(["backtest", "--slice", "fresh"]))[0]
     assert c[c.index("--timerange") + 1] == SLICES["fresh"].timerange
+
+
+def test_window_warning_only_when_buy_and_hold_starts_late():
+    idx_ok = pd.date_range("2021-01-01", periods=3, freq="1h", tz="UTC")
+    idx_late = pd.date_range("2022-03-17", periods=3, freq="1h", tz="UTC")
+    assert benchmark.window_warning(date(2021, 1, 1), idx_ok) is None
+    assert "2022-03-17" in benchmark.window_warning(date(2021, 1, 1), idx_late)

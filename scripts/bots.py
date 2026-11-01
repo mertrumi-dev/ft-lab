@@ -22,7 +22,7 @@ import dcabot  # noqa: E402
 import grid  # noqa: E402
 import report  # noqa: E402
 import rotation  # noqa: E402
-from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, load_closes, summarize, universe_pairs  # noqa: E402
+from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, load_closes, summarize, universe_pairs, window_warning  # noqa: E402
 from benchmark import run as benchmark_run  # noqa: E402
 from equity import build_curve  # noqa: E402
 from splits import SLICES  # noqa: E402
@@ -46,7 +46,9 @@ def simulate_bot(sim, slice_name: str, universe: str, fee: float, data_dir: Path
     return out
 
 
-def rotation_bot(slice_name: str, universe: str, fee: float, data_dir: Path = DATA_DIR) -> dict:
+def rotation_bot(
+    slice_name: str, universe: str, fee: float, data_dir: Path = DATA_DIR, start: pd.Timestamp | None = None
+) -> dict:
     """Our weekly momentum rotation (scripts/rotation.py) on the same coins.
 
     Scores need history from BEFORE the slice (30 days, BTC 100-day average),
@@ -61,7 +63,8 @@ def rotation_bot(slice_name: str, universe: str, fee: float, data_dir: Path = DA
             continue
     btc = rotation.daily_closes({"BTC": load_closes("BTC/USDT", "1h", data_dir)})["BTC"]
     weights = rotation.target_weights(rotation.daily_closes(full), btc)
-    start, end = pd.Timestamp(s.start, tz="UTC"), pd.Timestamp(s.end, tz="UTC")
+    end = pd.Timestamp(s.end, tz="UTC")
+    start = max(start, pd.Timestamp(s.start, tz="UTC")) if start is not None else pd.Timestamp(s.start, tz="UTC")
     hourly = pd.DataFrame(full).sort_index().ffill()
     hourly = hourly[(hourly.index >= start) & (hourly.index < end)]
     equity, orders = rotation.simulate(hourly, weights[(weights.index >= start - pd.Timedelta(days=1))], fee)
@@ -122,7 +125,7 @@ def main() -> None:
                 lambda c, cash, fee: grid.simulate_pair(c, cash, fee=fee), args.slice, args.universe, args.fee)),
             ("DCA bot (3Commas-style)", simulate_bot(
                 dcabot.simulate_pair, args.slice, args.universe, args.fee)),
-            ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee))]  # fmt: skip
+            ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee, start=bh["index"][0]))]  # fmt: skip
 
     stats = report.latest_stats_per_strategy(
         s.timerange, universe_pairs(args.universe), args.fee, args.results_dir)
@@ -142,6 +145,9 @@ def main() -> None:
                                r["trades"] + rows[2][1]["trades"])  # fmt: skip
             rows.append(("TrendEma 50% + Grid 50%", combo))
 
+    warn = window_warning(s.start, bh["index"])
+    if warn:
+        print(warn.split(" Return")[0] + " Every row below uses that same shorter window.")
     print(f"Famous bot types vs our rule, --timerange {s.timerange}, universe {args.universe}, "
           f"fee {args.fee:.2%}/side, hourly drawdown")
     head = f"{'Bot':<24}{'Trades':>7}{'Return':>10}{'CAGR':>9}{'MaxDD':>8}{'Calmar':>8}"

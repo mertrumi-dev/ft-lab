@@ -196,6 +196,9 @@ def main() -> None:
         print(f"Results from {args.results_dir.name} (research run, kill switch OFF)")
     if bh["skipped"]:
         print(f"No data (skipped): {', '.join(bh['skipped'])}")
+    warn = benchmark.window_warning(s.start, bh["index"])
+    if warn:
+        print(warn)
     print("MaxDD and Calmar: measured every hour, open trades included (same as buy & hold).")
     print("In coins: average share of the money actually invested.")
     print(format_table(rows, bh, kill_switch_on=args.results_dir == RESULTS_DIR))

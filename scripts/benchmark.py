@@ -127,6 +127,17 @@ def load_slice_closes(
     return closes, skipped
 
 
+def window_warning(slice_start, index) -> str | None:
+    """Buy & hold only starts when EVERY coin has data. If one coin was listed late
+    (e.g. APE in 2022), the comparison window is shorter than the slice: say so loudly."""
+    first = index[0]
+    if first.date() > slice_start:
+        return (f"WARNING: buy & hold starts {first.date()}, not {slice_start} (a coin was listed later). "
+                f"Return/CAGR from Freqtrade cover the whole slice; compare with the bots table "
+                f"(same window for every row) instead.")
+    return None
+
+
 def run(
     slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR, universe: str = "core"
 ) -> dict:
