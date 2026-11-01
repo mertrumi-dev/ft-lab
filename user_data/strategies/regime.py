@@ -197,3 +197,33 @@ class GapBreakeven8(TrendEmaGapBreakeven):
 
 
 BREAKEVEN_NEIGHBOURS = [GapBreakeven3, GapBreakeven8]
+
+
+# --- Research only: does Gap keep its Calmar with more money in coins? -------------
+# Pre-registered 2026-11-01 (docs/research/04). Same rule as TrendEmaBtcRisingGap,
+# but 2% risk per trade instead of 1%. With the -8% stop that is 25% of capital per
+# trade, exactly the live 25% cap, which stays. Like research_risk.TrendEmaRisk2 it
+# refuses every entry outside backtest/hyperopt, so it can never trade, even by mistake.
+
+from trend_ema import MAX_STAKE_RATIO, STOPLOSS, risk_based_stake  # noqa: E402
+
+GAP_RESEARCH_RISK = 0.02
+
+
+class TrendEmaBtcRisingGapRisk2(TrendEmaBtcRisingGap):
+    """Gap with 2% risk per trade. BACKTEST ONLY."""
+
+    def custom_stake_amount(
+        self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+        min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+        side: str, **kwargs,
+    ) -> float:  # fmt: skip
+        capital = self.wallets.get_total_stake_amount()
+        stake = risk_based_stake(capital, GAP_RESEARCH_RISK, STOPLOSS, MAX_STAKE_RATIO)
+        return min(stake, max_stake)
+
+    def confirm_trade_entry(self, pair: str, *args, **kwargs) -> bool:
+        runmode = getattr(getattr(getattr(self, "dp", None), "runmode", None), "value", None)
+        if runmode not in ("backtest", "hyperopt"):
+            return False  # research class: never trades with real or fake money
+        return super().confirm_trade_entry(pair, *args, **kwargs)

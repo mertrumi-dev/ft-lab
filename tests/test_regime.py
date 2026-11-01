@@ -128,3 +128,25 @@ def test_breakeven_stop_only_after_trigger():
     assert sl == pytest.approx((103 - 100.5) / 103, rel=1e-3)
     assert regime.TrendEmaGapBreakeven.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
     assert regime.TrendEmaGapBreakeven.stoploss == trend_ema.STOPLOSS
+
+
+def test_gap_risk2_is_research_only_and_live_risk_stays_1pct():
+    cls = regime.TrendEmaBtcRisingGapRisk2
+    assert trend_ema.RISK_PER_TRADE == 0.01  # the live rule is untouched
+    assert regime.GAP_RESEARCH_RISK == 2 * trend_ema.RISK_PER_TRADE
+    assert trend_ema.MAX_STAKE_RATIO == 0.25
+    assert cls.custom_stake_amount is not trend_ema.TrendEma.custom_stake_amount
+    # outside backtest (no dp / dry-run) every entry is refused
+    assert cls({}).confirm_trade_entry("BTC/USDT", "limit", 1, 1, "GTC", None, None, "long") is False
+
+    class _Rm:
+        value = "dry_run"
+
+    class _Dp:
+        runmode = _Rm()
+
+    s = cls({})
+    s.dp = _Dp()
+    assert s.confirm_trade_entry("BTC/USDT", "limit", 1, 1, "GTC", None, None, "long") is False
+    compose = (Path(__file__).resolve().parent.parent / "docker-compose.yml").read_text()
+    assert "Risk2" not in compose
