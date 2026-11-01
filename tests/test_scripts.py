@@ -508,3 +508,11 @@ def test_judge_slices_only_with_their_own_universe_and_before_the_test_slice():
         assert SLICES[sl].timerange in cmd
         assert SLICES[sl].end <= SLICES["test"].start  # never touches the test slice
     assert SLICES["judge21"].timerange == "20210101-20250807" and SLICES["judge25"].timerange == "20250101-20250807"
+
+
+def test_judge_eval_is_a_read_only_command_and_respects_restricted_slices():
+    cmd = ft.build_commands(ft.parse_args(["judge-eval", "--slice", "judge21", "--universe", "judge_old", "--no-kill-switch",
+                                           "--strategy", "TrendEmaVolTarget"]))[0]  # fmt: skip
+    assert "judge_eval.py" in " ".join(cmd) and "backtesting" not in cmd
+    with pytest.raises(SystemExit, match="reserved"):
+        ft.build_commands(ft.parse_args(["judge-eval", "--slice", "judge21", "--universe", "core", "--strategy", "X"]))

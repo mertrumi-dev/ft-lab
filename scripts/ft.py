@@ -255,6 +255,13 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "freqtrade", "/freqtrade/scripts/explain.py",
         ]]  # fmt: skip
 
+    if args.command == "judge-eval":  # read-only: existing results over the full slice window
+        return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/judge_eval.py",
+                 "--slice", args.slice, "--universe", args.universe,
+                 *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+                 "--strategy", *args.strategy]]  # fmt: skip
+
     if args.command == "durations":  # read-only: existing backtest results
         return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
                  "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/durations.py",
@@ -398,7 +405,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -453,6 +460,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     sub.add_parser("ai-score", help="score the AI chart views after 7 days (docs/fresh/ai-scores.csv)")
     sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
+    je = sub.add_parser("judge-eval", help="strategy results over the full slice window (read-only)")
+    je.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24", "judge21", "judge25"], required=True)
+    je.add_argument("--universe", choices=UNIVERSES, default="core")
+    je.add_argument("--no-kill-switch", action="store_true")
+    je.add_argument("--strategy", nargs="+", required=True)
     du = sub.add_parser("durations", help="trade duration vs P/L and fees from existing results (read-only)")
     du.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     du.add_argument("--universe", choices=UNIVERSES, default="core")
