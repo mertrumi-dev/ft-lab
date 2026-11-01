@@ -77,3 +77,9 @@ def test_expected_line_shown():
 def test_section_7_trades():
     text = kaan_report.render("d", {}, "", [], BOTS, "", "", (0, 0), "", "# İşlem açıklamaları\n\nSahte para...\n\nHenüz işlem yok.\n- BTC: x\n")
     assert "## 7. İşlemler (sade dille)" in text and "Henüz işlem yok." in text and "- BTC: x" in text
+
+
+def test_ai_score_line_in_section_6():
+    text = kaan_report.render("d", {}, "", [], BOTS, "", "", (5, 0), "", "",
+                              "ai_score: henüz puanlanacak tahmin yok (ilk: 2026-11-07), bekleyen 5\n")
+    assert "- Puanlama: henüz puanlanacak tahmin yok" in text

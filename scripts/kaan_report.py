@@ -80,7 +80,8 @@ def ai_counts(path: Path) -> tuple[int, int]:
 
 
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
-           execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "") -> str:  # fmt: skip
+           execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "",
+           ai_score_text: str = "") -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -124,6 +125,9 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     written, scored = ai
     lines.append(f"- Kaydedilen yorum: {written}, puanlanan: {scored}. Bota bağlanması için önce 50+ puanlanmış tahminde"
                  " yazı-tura ve 'hep yukarı'yı geçmesi gerekiyor.")  # fmt: skip
+    for ln in ai_score_text.splitlines():
+        if ln.startswith("ai_score: "):
+            lines.append(f"- Puanlama: {ln.removeprefix('ai_score: ')}")
     body = [ln for ln in explained.splitlines() if ln and not ln.startswith("# ") and not ln.startswith("Sahte para")]
     lines += ["", "## 7. İşlemler (sade dille)", ""]
     lines += body[:15] or ["- Açıklama yok."]
