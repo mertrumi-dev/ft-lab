@@ -203,3 +203,22 @@ Komut: `python3 scripts/ft.py backtest --slice train --no-kill-switch --strategy
 - **Karar:** Dry-run'da TrendEmaSlow'a geçiş **ertelendi**; TrendEma (zaten çalışıyor) kalıyor. Kanıt iki taraflı: Slow validation'da daha iyi, TrendEma başka coinlerde daha iyi.
 
 Deneme sayacı: train 15 (+ 4 sağlamlık + 11 kill-switch'siz yeniden ölçüm), validation 2, test 0. Wide dilimi artık "görüldü": buna bakıp yeni kural yazarsak wide da ezberlenmeye başlar.
+
+## 2026-11-01 · Train · 14 coin · BTC filtresi (kill switch kapalı, deneme: wide #3)
+
+Komut: `python3 scripts/ft.py backtest --slice train --no-kill-switch --universe wide --strategy TrendEmaBtc` + `report --slice train --no-kill-switch --universe wide`
+`--timerange 20210101-20240613`, `--fee 0.0015`, `--enable-protections`.
+
+| Strateji | İşlem | Getiri | Yıllık | Düşüş | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|---|
+| Al-tut (14 coin) | - | +256,3% | +44,6% | 90,6% | 0,49 | - | referans |
+| TrendEmaBtc | 677 | +82,2% | +19,0% | 21,0% | 0,90 | 1,27 | PASS (zayıf) |
+| TrendEma | 949 | +156,5% | +31,4% | 37,7% | 0,83 | 1,20 | PASS (zayıf) |
+| TrendEmaSlow | 322 | +72,3% | +17,1% | 41,8% | 0,41 | 1,23 | FAIL |
+
+### Yorum
+
+- **Hipotez doğrulandı, ama bedeli var.** BTC filtresi zayıf coinlerde düşüşü %37,7'den %21,0'a indirdi (neredeyse yarıya). Ama kazanç da yarıya indi (+156% → +82%).
+- Ana 5 coinde aynı filtre Calmar'ı 2,99'dan 1,76'ya düşürmüştü. Yani güçlü coinlerde filtre fazla temkinli, zayıf coinlerde işe yarıyor.
+- Hiçbir kural 14 coinde güçlü değil (Calmar < 1, PF ~1,2). Kuralın gerçek avantajı güçlü coinlerde.
+- Karar: canlı kural değişmiyor (TrendEma). Yeni kural denemesine ara; şimdi yıl yıl analiz (hangi piyasa havasında kazanıp kaybediyor).
