@@ -634,3 +634,25 @@ def test_vol_confirm_only_removes_low_volume_entries():
     removed = (b["enter_long"].fillna(0) == 1) & ~kept
     assert (b["enter_long"].fillna(0)[kept] == 1).all() and ok[kept].all()
     assert (~ok[removed]).all() and kept.any() and removed.any()
+
+
+def test_vote9_counts_pairs_and_uses_hysteresis():
+    from trend_ema import ema
+
+    assert len(sizing.VOTE_PAIRS) == 9 and (20, 50) in sizing.VOTE_PAIRS
+    rng = np.random.default_rng(5)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, 3000))))
+    votes = sizing.ema_votes(close)
+    expect = sum((ema(close, f) > ema(close, s)).astype(int) for f, s in sizing.VOTE_PAIRS)
+    assert (votes == expect).all() and votes.between(0, 9).all()
+    cls = sizing.TrendEmaVolTargetVote9
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount and cls.stoploss == -0.08
+    df = pd.DataFrame({"close": close, "high": close, "low": close, "volume": 1.0})
+    s = cls({})
+    out = s.populate_exit_trend(s.populate_entry_trend(s.populate_indicators(df, {}), {}), {})
+    ent, ext = out["enter_long"].fillna(0) == 1, out["exit_long"].fillna(0) == 1
+    assert ent.any() and ext.any()
+    assert (out.loc[ent, "votes"] >= 5).all() and (out["votes"].shift(1)[ent] < 5).all()
+    assert (out.loc[ent, "close"] > out.loc[ent, "ema_trend"]).all()
+    assert (out.loc[ext, "votes"] <= 3).all() and (out["votes"].shift(1)[ext] > 3).all()
+    assert not (out["votes"] == 4)[ent | ext].any()  # 4 votes: neither enter nor exit

@@ -1062,3 +1062,44 @@ class TrendEmaVolTargetVolConfirm(TrendEmaVolTarget):
         if "enter_long" in dataframe:
             dataframe.loc[~volume_confirmed(dataframe["volume"]), ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# T132. T115 found EMA 20/50 is a local peak on a rugged surface (neighbours 0.67-1.88), so the
+# rule should not hang on one pair: all 9 pairs of the 3x3 grid vote. Enter when the vote turns
+# into a majority (>= 5 of 9) with the close above EMA200; exit when the majority is clearly lost
+# (<= 3); at 4 the trade is held (hysteresis). Size, stop and protections = TrendEmaVolTarget.
+VOTE_PAIRS = [(f, s) for f in (15, 20, 25) for s in (40, 50, 60)]
+VOTE_ENTER = 5
+VOTE_EXIT = 3
+
+
+def ema_votes(close: pd.Series, pairs: list[tuple[int, int]] = VOTE_PAIRS) -> pd.Series:
+    """How many (fast, slow) pairs have fast EMA above slow EMA, per candle."""
+    from trend_ema import ema
+
+    return sum((ema(close, f) > ema(close, s)).astype(int) for f, s in pairs)
+
+
+class TrendEmaVolTargetVote9(TrendEmaVolTarget):
+    """VolTarget whose entry/exit signal is a 9-pair EMA vote with hysteresis (T132)."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["votes"] = ema_votes(dataframe["close"])
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        up = dataframe["votes"] >= VOTE_ENTER
+        dataframe.loc[
+            up & ~up.shift(1, fill_value=False) & (dataframe["close"] > dataframe["ema_trend"]) & (dataframe["volume"] > 0),
+            ["enter_long", "enter_tag"],
+        ] = (1, "votes_up")
+        return dataframe
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        down = dataframe["votes"] <= VOTE_EXIT
+        dataframe.loc[
+            down & ~down.shift(1, fill_value=False) & (dataframe["volume"] > 0),
+            ["exit_long", "exit_tag"],
+        ] = (1, "votes_down")
+        return dataframe
