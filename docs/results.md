@@ -516,3 +516,19 @@ Yıl yıl, EntryConfirm vs TrendEma: 2021 +%180,8 / +%177,1; 2022 -%2,7 / -%1,5;
 NFI notu: Kazanma oranı %97. Bunun sebebi stop olmaması ve zarardaki işleme ek alım yapması; kaybeden işlemleri ortalama 35 gün tutuyor. Kârının 2/3'ü 2021'den geliyor; 2022-2024 arasında sadece 28 işlem yapmış (50'den az, istatistik olarak zayıf). Bize katılabilecek bir fikir bulunamadı: avantajı stop'suz ek alım mekanizmasına bağlı, bu da risk kurallarımıza (R1, R2) aykırı.
 
 Karar: EntryConfirm umut verici, ama fikir train analizinden çıktı. Validation'dan önce sayı sağlamlığına (2 ve 4 mum) ve 2 kat komisyon testine girecek.
+
+### EntryConfirm sağlamlık (train, kill switch kapalı)
+
+Komutlar: `report`, `report --fee-stress`, `montecarlo`, `bots` (main 8e6e634)
+
+| Bekleme (mum) | Calmar | DD |
+|---|---|---|
+| 1 (TrendEma) | 2,70 | 16,4% |
+| 2 (EntryConfirm2) | 2,60 | 15,7% |
+| **3 (EntryConfirm)** | **3,03** | 15,3% |
+| 4 (EntryConfirm4) | 2,14 | 20,4% |
+
+- 2 kat komisyonla: EntryConfirm 2,05, TrendEma 1,81.
+- Monte Carlo: DD %95'lik dilimi 16,8% (TrendEma 17,3%), P(DD ≥ %20) %1,8 (TrendEma %1,9).
+
+Karar: Komşular düz bir plato değil, tek bir sivri tepe (2 ve 4 mum TrendEma'dan kötü). Bu yüzden +0,33'lük farkın büyük kısmı muhtemelen gürültü (şans). EntryConfirm validation'a gönderilmiyor; TrendEma'da kalınıyor. Böylece bir validation bakışı boşa harcanmamış oluyor.
