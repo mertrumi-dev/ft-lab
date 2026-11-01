@@ -57,6 +57,7 @@ ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
 ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
 ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
 ROUND5 = ["TrendEmaHold"]
+EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5]
 
@@ -130,6 +131,17 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             for timeframe, strategies in groups.items()
         ]  # fmt: skip
 
+    if args.command == "montecarlo":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/montecarlo.py",
+            "--slice", args.slice, "--universe", args.universe,
+            *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+            "--strategy", *args.strategy,
+        ]]  # fmt: skip
+
     if args.command in ("benchmark", "report"):
         # Runs our script inside the Freqtrade container, which already has
         # pandas and freqtrade, so no local Python setup is needed.
@@ -167,7 +179,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report"):
+    if args.command in ("download", "benchmark", "report", "montecarlo"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -220,6 +232,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
     rp.add_argument("--by-year", action="store_true", help="also show each calendar year separately")
     rp.add_argument("--strategy", nargs="+", help="only these strategies")
+
+    mc = sub.add_parser("montecarlo", help="reshuffle trades 2000x: how bad could it get")
+    mc.add_argument("--slice", choices=["train", "validation"], required=True)
+    mc.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY])
+    mc.add_argument("--universe", choices=UNIVERSES, default="core")
+    mc.add_argument("--no-kill-switch", action="store_true")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)

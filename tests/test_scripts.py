@@ -322,3 +322,37 @@ def test_report_by_year_and_strategy_filter_are_passed_on():
     r = cmd("report", "--slice", "train", "--by-year", "--strategy", "TrendEma", "TrendEmaBtc")
     assert "--by-year" in r
     assert r[r.index("--strategy") + 1:r.index("--strategy") + 3] == ["TrendEma", "TrendEmaBtc"]
+
+
+# --- Monte Carlo ----------------------------------------------------------------
+
+import montecarlo  # noqa: E402
+
+
+def test_trade_returns_are_share_of_balance():
+    trades = [{"close_date": "2021-01-02", "profit_abs": 100},
+              {"close_date": "2021-01-03", "profit_abs": -110}]
+    r = montecarlo.trade_returns(trades, 1000.0)
+    assert list(r) == pytest.approx([0.10, -0.10])
+
+
+def test_simulation_is_repeatable_and_sane():
+    r = np.array([0.02, -0.01] * 50)
+    a = montecarlo.simulate(r, years=1.0, runs=300)
+    b = montecarlo.simulate(r, years=1.0, runs=300)
+    assert a == b  # fixed seed
+    assert 0 < a["dd_median"] <= a["dd_p95"] <= a["dd_worst"] < 1
+    assert a["cagr_p5"] <= a["cagr_median"]
+    assert 0 <= a["loss_chance"] <= 1
+
+
+def test_all_losing_trades_always_lose():
+    a = montecarlo.simulate(np.array([-0.01] * 30), years=1.0, runs=50)
+    assert a["loss_chance"] == 1.0
+
+
+def test_montecarlo_command_runs_in_docker_and_never_on_test_slice():
+    c = cmd("montecarlo", "--slice", "train", "--strategy", "TrendEma")
+    assert "/freqtrade/scripts/montecarlo.py" in c
+    with pytest.raises(SystemExit):
+        cmds("montecarlo", "--slice", "test", "--strategy", "TrendEma")
