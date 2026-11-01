@@ -16,7 +16,7 @@ import trend_variants as tv  # noqa: E402
 VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
-    *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend,
+    *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
 ]  # fmt: skip
 
 
@@ -190,3 +190,21 @@ def test_long_trend_blocks_entries_below_long_average():
     out = _entries(tv.TrendEmaLongTrend, df)
     blocked = out["close"] <= out["ema_long"]
     assert (out.loc[blocked, "enter_long"].fillna(0) == 0).all()
+
+
+def test_hold_exits_only_when_close_crosses_below_trend_line():
+    t = np.arange(3000)
+    close = 100 + t * 0.02 + 15 * np.sin(t / 15)
+    df = candles(close, high=close + 1, low=close - 1)
+    s = tv.TrendEmaHold({})
+    df = s.populate_exit_trend(s.populate_indicators(df, {"pair": "BTC/USDT"}), {"pair": "BTC/USDT"})
+    exits = df.index[df["exit_long"].fillna(0) == 1]
+    assert len(exits) > 0
+    for i in exits:
+        assert df["close"].iloc[i] < df["ema_trend"].iloc[i]
+        assert df["close"].iloc[i - 1] >= df["ema_trend"].iloc[i - 1]
+    # entry rule untouched
+    base = trend_ema.TrendEma({})
+    ref = base.populate_entry_trend(base.populate_indicators(candles(close, close + 1, close - 1), {}), {})
+    mine = s.populate_entry_trend(df, {})
+    assert (ref["enter_long"].fillna(0) == mine["enter_long"].fillna(0)).all()

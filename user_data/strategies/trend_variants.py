@@ -337,3 +337,23 @@ class TrendEmaLongTrend(TrendEma):
             below = ~(dataframe["close"] > dataframe["ema_long"])
             dataframe.loc[below, ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# --- Round 5: exits (2026-11-01) ---------------------------------------------
+# Diagnosis after 22 trials: entry filters only push more money into cash.
+# The bot holds coins ~17% of the time and misses most of each rise. Hypothesis:
+# exit later, not enter differently.
+
+
+class TrendEmaHold(TrendEma):
+    """Same entry. Exit only when the close crosses below the trend line (EMA200)
+    instead of when EMA20 crosses below EMA50. No new number: reuses the filter line.
+    The -8% hard stop still protects every trade."""
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        below = dataframe["close"] < dataframe["ema_trend"]
+        dataframe.loc[
+            below & ~below.shift(1, fill_value=False) & (dataframe["volume"] > 0),
+            ["exit_long", "exit_tag"],
+        ] = (1, "below_trend")
+        return dataframe

@@ -56,8 +56,9 @@ ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
 ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
 ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
+ROUND5 = ["TrendEmaHold"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
-ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5]
 
 
 def docker_cmd(*args: str) -> list[str]:
