@@ -468,3 +468,32 @@ Komut: `ft.py bots --slice train --no-kill-switch [--fee-stress] --strategy Tren
 | TrendEma %50 + Grid %50 | 1,99 | 1,38 | 19,5% |
 
 Komisyon iki katına çıkınca da TrendEma bütün bot türlerini geçiyor ve al-tut'u geçen tek bot o. Birleşik deneme (TrendEma %50 + Grid %50) iki parçasının arasında kalıyor, TrendEma'nın tek başına sonucunu geçmiyor. FAIL, elendi. Yıl yıl: grid 2022'de -%20, TrendEma -%1,5.
+
+## 2026-11-01 · Train · TrendEma işlem analizi (yeni deneme değil)
+
+Komut: `ft.py analyze --slice train --no-kill-switch --strategy TrendEma` (`--timerange 20210101-20240613`, 638 işlem)
+
+| Satış nedeni | İşlem | Kazanma | Ortalama | Toplam USDT |
+|---|---|---|---|---|
+| ema_cross_down | 613 | 32,6% | +2,20% | +3135,6 |
+| stop_loss | 24 | 0% | -8,27% | -582,5 |
+| force_exit | 1 | 0% | -2,40% | -10,6 |
+
+| Tutma süresi | İşlem | Kazanma | Toplam USDT |
+|---|---|---|---|
+| 6 saatten az | 54 | 0% | -460,9 |
+| 6 saat - 1 gün | 144 | 0% | -1514,8 |
+| 1-3 gün | 245 | 12,7% | -1731,6 |
+| 3-7 gün | 153 | 83,0% | +2379,0 |
+| 1-2 hafta | 38 | 100% | +2931,8 |
+| 2 haftadan fazla | 4 | 100% | +939,1 |
+
+Coin bazında: SOL +1216,7, BNB +753,0, XRP +329,4, ETH +296,6, BTC -53,0 USDT.
+
+En iyi %10'luk işlem dilimi toplam kârın %201'ini yapıyor; kalan işlemler toplamda zararda.
+
+Yorum: Tipik trend takibi. Kârın tamamı birkaç uzun yükselişten geliyor. Zarar, girişten kısa süre sonra EMA'ların geri kesişmesinden (whipsaw, testere hareketi) doğuyor. Dikkat: tutma süresi sonuçtan etkileniyor, çünkü kaybeden işlemler kaybettikleri için erken kapanıyor. BTC'yi çıkarmak geçmişe bakarak coin seçmek olur, yapılmayacak.
+
+Tur 7 hipotezleri (Kaan devam deyince):
+1. Çıkış onayı: kesişme N mum sürerse sat.
+2. Giriş onayı: EMA50'nin eğimi pozitif olsun.
