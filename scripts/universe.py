@@ -75,8 +75,12 @@ EARLY_2018 = [
 CORE_5 = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
 POOL = list(dict.fromkeys(CORE_5 + WIDE_2021 + ALT_2022 + ALT_2023 + ALT_2024))
 
+# core_gold (2026-11-01, research): the 5 core coins + tokenized gold, a different asset
+# class (Hurst, Ooi & Pedersen 2017: trend following works best across uncorrelated markets).
+CORE_GOLD = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "PAXG/USDT"]
+
 UNIVERSES = {
     "pool": POOL,
     "early": EARLY_2018,
-    "core": None, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
+    "core": None, "core_gold": CORE_GOLD, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
 }  # None = pairs from config.json

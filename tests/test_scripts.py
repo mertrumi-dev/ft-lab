@@ -433,3 +433,10 @@ def test_download_early_prepends_old_candles():
     assert first[first.index("--timerange") + 1] == "20170801-"
     plain = ft.build_commands(ft.parse_args(["download"]))[0]
     assert "--prepend" not in plain
+
+
+def test_core_gold_universe_is_core_plus_paxg():
+    from universe import UNIVERSES
+
+    assert UNIVERSES["core_gold"][:5] == ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
+    assert UNIVERSES["core_gold"][5] == "PAXG/USDT" and len(UNIVERSES["core_gold"]) == 6
