@@ -156,3 +156,13 @@ Komut: `python3 scripts/ft.py backtest --slice train --fee-stress --strategy Tre
 - İkisi de 2 kat komisyonda ayakta. Slow daha az etkilendi (az işlem yaptığı için): Calmar 2,83 → 2,18; TrendEma 2,99 → 1,97.
 
 Deneme sayacı (sağlamlık çalıştırmaları seçim için kullanılmadı): train 15 + 4 sağlamlık, validation 2, test 0.
+
+## 2026-11-01 · Önemli düzeltme: kill switch backtest'leri yarıda kesti
+
+`report` ile "Last trade" sütunu eklendi (komut: `ft.py report --slice train` ve `--universe wide`). Düşüşü ~%20 olan sonuçlarda son işlem tarihi dönem sonundan çok önce:
+- 14 coin: TrendEma son işlem 2021-07-12, TrendEmaSlow 2022-02-18.
+- 5 coin: TrendEmaMulti 2022-06-07, TrendBreakout 2022-06-10, TrendEma4h 2023-03-03, SlowSlow150 2023-05-01, TrendEmaAtrWide 2023-09-27.
+
+Sonuç: bu satırlar "kural 3,5 yılda nasıl" değil "ilk %20 düşüşe kadar nasıl" ölçüyor. 14 coin PASS'i ve bu FAIL'ler **kesin değil**. TrendEma, TrendEmaSlow ve sayı komşularının çoğu (5 coin) dönem sonuna kadar işlem yaptı; onların sonuçları geçerli.
+
+Çözüm: araştırma backtest'i için `--no-kill-switch` (bkz. risk-rules.md). Yeniden ölçülecek.

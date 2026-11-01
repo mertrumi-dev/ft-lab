@@ -258,3 +258,19 @@ def test_report_shows_last_trade_and_flags_kill_switch():
     assert row["last_trade"] == "2022-06-19"
     assert "kill switch" in report.verdict(row, BH)
     assert "kill switch" not in report.verdict(report.strategy_row("Y", fake_stats(mdd=0.19)), BH)
+
+
+def test_no_kill_switch_uses_research_config_and_own_folder():
+    c = cmd("backtest", "--slice", "train", "--no-kill-switch")
+    assert c[c.index("--config", c.index("--config") + 1) + 1].endswith("research-no-kill-switch.json")
+    assert c[c.index("--backtest-directory") + 1].endswith("no_kill_switch")
+    assert "--config" in cmd("backtest", "--slice", "train") and \
+        "--backtest-directory" not in cmd("backtest", "--slice", "train")
+    r = cmd("report", "--slice", "train", "--no-kill-switch")
+    assert r[r.index("--results-dir") + 1].endswith("no_kill_switch")
+    assert "--results-dir" not in cmd("report", "--slice", "train")
+
+
+def test_no_kill_switch_still_refuses_test_slice():
+    with pytest.raises(SystemExit):
+        cmds("backtest", "--slice", "test", "--no-kill-switch")

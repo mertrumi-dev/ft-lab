@@ -143,3 +143,44 @@ def test_all_protections_present():
 
 def test_max_open_trades_at_most_3():
     assert 0 < json.loads(CONFIG_FILE.read_text())["max_open_trades"] <= 3
+
+
+# --- kill switch research toggle -----------------------------------------------
+
+
+class _Runmode:
+    def __init__(self, value):
+        self.value = value
+
+
+class _Dp:
+    def __init__(self, mode):
+        self.runmode = _Runmode(mode)
+
+
+@pytest.mark.parametrize("mode", ["dry_run", "live"])
+def test_kill_switch_cannot_be_disabled_when_trading(mode):
+    strat = trend_ema.TrendEma({"ftlab_research_no_kill_switch": True})
+    strat.dp = _Dp(mode)
+    assert strat.kill_switch_active() is True
+
+
+def test_kill_switch_on_by_default_in_backtest():
+    strat = trend_ema.TrendEma({})
+    strat.dp = _Dp("backtest")
+    assert strat.kill_switch_active() is True
+
+
+def test_kill_switch_off_only_with_research_flag_in_backtest():
+    strat = trend_ema.TrendEma({"ftlab_research_no_kill_switch": True})
+    strat.dp = _Dp("backtest")
+    assert strat.kill_switch_active() is False
+
+
+def test_kill_switch_on_when_runmode_unknown():
+    # no data provider -> we can't prove it's a backtest -> stay safe
+    assert trend_ema.TrendEma({"ftlab_research_no_kill_switch": True}).kill_switch_active() is True
+
+
+def test_live_config_has_no_research_flag():
+    assert "ftlab_research_no_kill_switch" not in json.loads(CONFIG_FILE.read_text())

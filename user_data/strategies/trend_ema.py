@@ -160,6 +160,19 @@ class TrendEma(IStrategy):
         stake = risk_based_stake(capital, RISK_PER_TRADE, self.stoploss, MAX_STAKE_RATIO)
         return min(stake, max_stake)
 
+    def kill_switch_active(self) -> bool:
+        """The kill switch can be switched off ONLY in a backtest, for research.
+
+        Why: in a backtest the switch stops all buying forever once it fires, so
+        the rest of the period says nothing about the rule. To judge the rule we
+        sometimes run it without the switch (config research-no-kill-switch.json).
+        In dry-run or live it is always on, whatever the config says.
+        """
+        if not self.config.get("ftlab_research_no_kill_switch", False):
+            return True
+        runmode = getattr(getattr(self, "dp", None), "runmode", None)
+        return getattr(runmode, "value", None) not in ("backtest", "hyperopt")
+
     def confirm_trade_entry(
         self,
         pair: str,
@@ -175,20 +188,21 @@ class TrendEma(IStrategy):
         # Kill switch: realized equity fell 20% from its peak -> no new trades.
         # It is computed from the trade history, so a restart does not reset it;
         # only a human (new database / config change) can.
-        closed = sorted(
-            Trade.get_trades_proxy(is_open=False), key=lambda t: t.close_date_utc
-        )
-        drawdown = drawdown_from_peak(
-            self.wallets.get_starting_balance(), [t.close_profit_abs or 0.0 for t in closed]
-        )
-        if drawdown >= KILL_SWITCH_DRAWDOWN:
-            logger.warning(
-                "KILL SWITCH: realized drawdown %.1f%% >= %.0f%%. Entry on %s refused.",
-                drawdown * 100,
-                KILL_SWITCH_DRAWDOWN * 100,
-                pair,
+        if self.kill_switch_active():
+            closed = sorted(
+                Trade.get_trades_proxy(is_open=False), key=lambda t: t.close_date_utc
             )
-            return False
+            drawdown = drawdown_from_peak(
+                self.wallets.get_starting_balance(), [t.close_profit_abs or 0.0 for t in closed]
+            )
+            if drawdown >= KILL_SWITCH_DRAWDOWN:
+                logger.warning(
+                    "KILL SWITCH: realized drawdown %.1f%% >= %.0f%%. Entry on %s refused.",
+                    drawdown * 100,
+                    KILL_SWITCH_DRAWDOWN * 100,
+                    pair,
+                )
+                return False
 
         # Stale data guard: don't trade on old prices (exchange/network problem).
         if self.dp.runmode.value in ("live", "dry_run"):

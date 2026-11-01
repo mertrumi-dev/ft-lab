@@ -48,6 +48,16 @@ Hepsi önce train/validation verisinde, en sonda bir kere test diliminde.
 
 Kill switch işlem geçmişinden hesaplanır, bu yüzden bot yeniden başlasa da açık kalır. Bilerek böyle: kötü giden bir botu "restart" ile kandıramazsın. Sıfırlamak için önce nedenini incele (`docs/journal.md`'ye yaz), sonra Claude ile birlikte karar ver.
 
+### Araştırma backtest'inde kapatma (2026-11-01)
+
+Backtest'te kill switch bir kere tetiklenince dönemin geri kalanında hiç alım olmaz. O zaman sonuç "kural nasıl" değil "kural ilk %20 düşüşe kadar nasıldı" olur (ör. 14 coin testinde TrendEma Temmuz 2021'de durdu).
+
+Bu yüzden **sadece backtest'te**, kuralı ölçmek için kill switch kapatılabilir: `ft.py backtest --no-kill-switch` (`user_data/config/research-no-kill-switch.json`). Kurallar:
+- Dry-run ve gerçek işlemde config ne derse desin kill switch **her zaman açık** (`TrendEma.kill_switch_active`, testle zorunlu).
+- Ana config'te bu bayrak olamaz (test).
+- Bu sonuçlar ayrı klasöre yazılır, normal raporla karışmaz.
+- Sayı (%20) değişmedi.
+
 ## Bilinen sınırlar
 
 - Kill switch sadece **kapanmış** işlemlere bakar. Açık işlemler stoploss (R1) ile korunur.

@@ -107,11 +107,14 @@ def main() -> None:
     parser.add_argument("--slice", choices=["train", "validation", "test"], required=True)
     parser.add_argument("--universe", choices=UNIVERSES, default="core")
     parser.add_argument("--fee", type=float, default=benchmark.DEFAULT_FEE)
+    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
     args = parser.parse_args()
 
     s = SLICES[args.slice]
     bh = benchmark.run(args.slice, "1h", args.fee, universe=args.universe)
-    stats = latest_stats_per_strategy(s.timerange, benchmark.universe_pairs(args.universe), args.fee)
+    stats = latest_stats_per_strategy(
+        s.timerange, benchmark.universe_pairs(args.universe), args.fee, args.results_dir
+    )
     if not stats:
         raise SystemExit(
             f"No backtest results for --timerange {s.timerange}, universe {args.universe}, "
@@ -122,6 +125,8 @@ def main() -> None:
         f"Slice: {args.slice}  --timerange {s.timerange}  universe {args.universe} "
         f"({len(bh['pairs'])} coins)  fee {args.fee:.2%}/side  start 1000 USDT"
     )
+    if args.results_dir != RESULTS_DIR:
+        print(f"Results from {args.results_dir.name} (research run, kill switch OFF)")
     if bh["skipped"]:
         print(f"No data (skipped): {', '.join(bh['skipped'])}")
     print(format_table(rows, bh))

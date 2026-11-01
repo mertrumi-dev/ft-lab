@@ -19,6 +19,8 @@ every run to docs/experiments.md so we can count how many times we tried.
     .venv/bin/python scripts/ft.py backtest --slice train --universe wide --strategy TrendEmaSlow
     .venv/bin/python scripts/ft.py backtest --slice train --fee-stress --strategy TrendEmaSlow
     .venv/bin/python scripts/ft.py report --slice train --universe wide
+    .venv/bin/python scripts/ft.py backtest --slice train --no-kill-switch --strategy all
+    .venv/bin/python scripts/ft.py report --slice train --no-kill-switch
 """
 
 import argparse
@@ -35,6 +37,9 @@ ROOT = Path(__file__).resolve().parent.parent
 EXPERIMENTS_LOG = ROOT / "docs" / "experiments.md"
 CONFIG = "/freqtrade/user_data/config/config.json"  # path inside the container
 FEE = "0.0015"
+RESEARCH_CONFIG = "/freqtrade/user_data/config/research-no-kill-switch.json"
+# Separate folder so these results never mix with normal ones in the report.
+NO_KILL_DIR = "user_data/backtest_results/no_kill_switch"
 STRESS_FEE = "0.003"  # 2x: does the rule survive much worse costs?
 DEFAULT_STRATEGY = "TrendEma"
 # Extra months before DATA_START so EMA200 has warm-up candles.
@@ -66,6 +71,12 @@ def fee_of(args: argparse.Namespace) -> str:
     return STRESS_FEE if getattr(args, "fee_stress", False) else FEE
 
 
+def kill_switch_args(args: argparse.Namespace) -> list[str]:
+    if not getattr(args, "no_kill_switch", False):
+        return []
+    return ["--config", RESEARCH_CONFIG, "--backtest-directory", f"/freqtrade/{NO_KILL_DIR}"]
+
+
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
     if args.command == "download":
@@ -95,7 +106,8 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "--fee", fee_of(args),
                 "--enable-protections",  # include our risk brakes in the simulation
                 "--export", "trades",
-                *pairs_args(args),
+                *kill_switch_args(args),
+                *pairs_args(args),  # last: --pairs takes every word after it
             )
             for timeframe, strategies in groups.items()
         ]  # fmt: skip
@@ -105,6 +117,8 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         # pandas and freqtrade, so no local Python setup is needed.
         extra = ["--timeframe", "1h"] if args.command == "benchmark" else []
         extra += ["--universe", args.universe, "--fee", fee_of(args)]
+        if args.command == "report" and args.no_kill_switch:
+            extra += ["--results-dir", f"/freqtrade/{NO_KILL_DIR}"]
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
@@ -150,6 +164,8 @@ def log_run(args: argparse.Namespace) -> None:
                 note.append(f"universe {args.universe}")
             if getattr(args, "fee_stress", False):
                 note.append(f"fee {STRESS_FEE}")
+            if getattr(args, "no_kill_switch", False):
+                note.append("no kill switch (research)")
             f.write(f"| {now} | {args.command} | {strategy} | {slice_name} | {', '.join(note)} |\n")
 
 
@@ -167,6 +183,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
     bt.add_argument("--universe", choices=UNIVERSES, default="core", help="which coins (scripts/universe.py)")
     bt.add_argument("--fee-stress", action="store_true", help=f"fee {STRESS_FEE} instead of {FEE}")
+    bt.add_argument("--no-kill-switch", action="store_true",
+                    help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
     bm.add_argument("--slice", choices=["train", "validation", "test"], required=True)
@@ -177,6 +195,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rp.add_argument("--slice", choices=["train", "validation", "test"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
+    rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)
@@ -195,6 +214,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry:
         return 0
     log_run(args)
+    if getattr(args, "no_kill_switch", False):
+        (ROOT / NO_KILL_DIR).mkdir(parents=True, exist_ok=True)
     for cmd in commands:
         code = subprocess.call(cmd, cwd=ROOT)
         if code != 0:
