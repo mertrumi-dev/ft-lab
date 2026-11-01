@@ -152,7 +152,9 @@ def test_timeframe_map_matches_strategies():
     import sma_daily
     import trend_variants
 
-    modules = [trend_variants, donchian_ensemble, dip_rsi, sma_daily, regime]
+    import sizing
+
+    modules = [trend_variants, donchian_ensemble, dip_rsi, sma_daily, regime, sizing]
     for name, tf in ft.STRATEGY_TIMEFRAMES.items():
         if name in ft.THIRD_PARTY:
             continue  # third-party code is not imported in tests (checked in test_benchmark_bots)

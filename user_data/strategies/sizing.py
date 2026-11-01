@@ -29,10 +29,10 @@ VOL_WINDOW = 24 * 30  # 30 days of 1h candles
 HOURS_PER_YEAR = 24 * 365
 
 
-def realized_vol(close: pd.Series, window: int = VOL_WINDOW) -> pd.Series:
-    """Annualized volatility of hourly log returns over the last `window` candles."""
+def realized_vol(close: pd.Series, window: int = VOL_WINDOW, periods_per_year: int = HOURS_PER_YEAR) -> pd.Series:
+    """Annualized volatility of per-candle log returns over the last `window` candles."""
     returns = np.log(close).diff()
-    return returns.rolling(window).std() * np.sqrt(HOURS_PER_YEAR)
+    return returns.rolling(window).std() * np.sqrt(periods_per_year)
 
 
 def vol_scale(vol: float, target: float = TARGET_VOL) -> float:
@@ -47,10 +47,12 @@ class TrendEmaVolTarget(TrendEma):
 
     startup_candle_count = 2 * 200 + VOL_WINDOW
     target_vol = TARGET_VOL
+    vol_window = VOL_WINDOW  # candles in 30 days
+    periods_per_year = HOURS_PER_YEAR  # candles in a year
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
-        dataframe["rvol"] = realized_vol(dataframe["close"])
+        dataframe["rvol"] = realized_vol(dataframe["close"], self.vol_window, self.periods_per_year)
         return dataframe
 
     def custom_stake_amount(
@@ -291,3 +293,16 @@ class TrendEmaVolTargetPullback(TrendEmaVolTarget):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[pullback_entries(dataframe), ["enter_long", "enter_tag"]] = (1, "pullback_ema20")
         return dataframe
+
+
+# --- Same rule on 2-hour candles (pre-registered 2026-11-01) --------------------------
+# Fewer trades = less fee (the one lever that helped consistently). EMA lengths and
+# protections count candles (2x the time, like TrendEma4h). Volatility still covers 30
+# days and is annualized for 2h candles, so the 60% target means the same thing.
+
+
+class TrendEmaVolTarget2h(TrendEmaVolTarget):
+    timeframe = "2h"
+    vol_window = 12 * 30
+    periods_per_year = 12 * 365
+    startup_candle_count = 2 * 200 + 12 * 30

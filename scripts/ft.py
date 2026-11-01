@@ -56,6 +56,7 @@ STRATEGY_TIMEFRAMES = {
     "TrendDonchianEnsemble": "1d",
     "TrendDonchianEnsembleFull": "1d",
     "TrendEmaBtcRisingGap4h": "4h",
+    "TrendEmaVolTarget2h": "2h",
 }
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
@@ -117,7 +118,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             docker_cmd(
                 "download-data", "--config", CONFIG,
                 "--timerange", f"{EARLY_FROM if getattr(args, 'early', False) else DOWNLOAD_FROM}-",
-                "--timeframes", "1h", "4h",
+                "--timeframes", "1h", "2h", "4h",
                 *(["--prepend"] if getattr(args, "early", False) else []),
                 *pairs_args(args),
             ),

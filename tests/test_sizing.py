@@ -171,3 +171,13 @@ def test_pullback_keeps_exit_stop_and_size():
     assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
     assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
     assert cls.stoploss == trend_ema.STOPLOSS and cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+
+
+def test_voltarget_2h_same_rule_scaled_vol():
+    cls = sizing.TrendEmaVolTarget2h
+    assert cls.timeframe == "2h" and cls.vol_window == 360 and cls.periods_per_year == 4380
+    assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    rng = np.random.default_rng(1)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.6 / np.sqrt(4380), 3000))))
+    assert sizing.realized_vol(close, 360, 4380).iloc[-1] == pytest.approx(0.6, rel=0.15)
