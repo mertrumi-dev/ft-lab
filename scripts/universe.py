@@ -60,6 +60,16 @@ ALT_2022 = [
     "CELO/USDT", "LUNA/USDT", "FTT/USDT", "WAVES/USDT", "XMR/USDT", "HNT/USDT",
 ]  # fmt: skip
 
+# early (added 2026-11-01, BEFORE any backtest on it): for the "early" slice
+# (2018-2020). The big coins that already had Binance USDT pairs in the first
+# half of 2018. SOL did not exist yet, so core cannot run there. Known bias:
+# picked in 2026, and all of these still trade (survivorship).
+EARLY_2018 = [
+    "BTC/USDT", "ETH/USDT", "BNB/USDT", "XRP/USDT", "LTC/USDT", "ADA/USDT", "NEO/USDT",
+    "EOS/USDT", "XLM/USDT", "TRX/USDT", "ETC/USDT", "QTUM/USDT", "IOTA/USDT",
+]  # fmt: skip
+
 UNIVERSES = {
+    "early": EARLY_2018,
     "core": None, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
 }  # None = pairs from config.json

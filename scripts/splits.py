@@ -6,6 +6,9 @@ Every backtest, hyperopt and benchmark takes its dates from here, so nobody
     train       60%  tune ideas and parameters here
     validation  20%  check that what worked in train still works
     test        20%  touched ONCE per strategy, at the very end
+    early            2018-01-01 .. 2021-01-01, BEFORE train: the 2018 crash and
+                     the 2019-2020 recovery. Never used for any rule. Like fresh,
+                     it only judges rules that are already fixed.
     fresh            everything AFTER the test slice, up to today (UTC). Prices
                      nobody had when the rules were made: the honest forward
                      check. It grows by itself as new candles are downloaded.
@@ -50,7 +53,15 @@ def fresh_slice(today: date | None = None) -> Slice:
     return Slice("fresh", DATA_END, max(today, DATA_END))
 
 
-SLICES = {**compute_slices(), "fresh": fresh_slice()}
+EARLY_START = date(2018, 1, 1)  # Binance USDT pairs of the big coins exist from late 2017 / 2018
+
+
+def early_slice() -> Slice:
+    """History before the train slice: never looked at while making any rule."""
+    return Slice("early", EARLY_START, DATA_START)
+
+
+SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice()}
 SLICE_NAMES = list(SLICES)  # for argparse choices
 
 

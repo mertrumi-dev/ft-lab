@@ -45,6 +45,7 @@ DEFAULT_STRATEGY = "TrendEma"
 # Extra months before DATA_START so EMA200 has warm-up candles.
 DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
 DAILY_FROM = f"{DATA_START.year - 2}0101"
+EARLY_FROM = "20170801"  # for --early: warm-up months before the 2018 'early' slice
 # Freqtrade backtests one timeframe per run, so strategies are grouped by it.
 # Default is 1h; list every strategy that uses something else here.
 STRATEGY_TIMEFRAMES = {
@@ -115,8 +116,9 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         return [
             docker_cmd(
                 "download-data", "--config", CONFIG,
-                "--timerange", f"{DOWNLOAD_FROM}-",
+                "--timerange", f"{EARLY_FROM if getattr(args, 'early', False) else DOWNLOAD_FROM}-",
                 "--timeframes", "1h", "4h",
+                *(["--prepend"] if getattr(args, "early", False) else []),
                 *pairs_args(args),
             ),
             *([docker_cmd(
@@ -129,7 +131,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             # daily strategies look back up to a year, so daily candles start 2 years early
             docker_cmd(
                 "download-data", "--config", CONFIG,
-                "--timerange", f"{DAILY_FROM}-",
+                "--timerange", f"{EARLY_FROM if getattr(args, 'early', False) else DAILY_FROM}-",
                 "--timeframes", "1d",
                 "--erase",  # daily files are small; re-download whole history so it starts in 2019
                 *pairs_args(args),
@@ -276,9 +278,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     dl = sub.add_parser("download", help="download 1h, 4h and 1d candles for all pairs")
     dl.add_argument("--universe", choices=UNIVERSES, default="core")
     dl.add_argument("--fine", action="store_true", help="also 5m and 15m (for the NFI benchmark bot)")
+    dl.add_argument("--early", action="store_true", help="also candles from 2017-08 (for the 'early' 2018-2020 slice)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
-    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
+    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
@@ -288,12 +291,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
-    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
+    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
     bm.add_argument("--universe", choices=UNIVERSES, default="core")
     bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
-    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
+    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
@@ -313,7 +316,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
     bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")

@@ -418,3 +418,18 @@ def test_window_warning_only_when_buy_and_hold_starts_late():
     idx_late = pd.date_range("2022-03-17", periods=3, freq="1h", tz="UTC")
     assert benchmark.window_warning(date(2021, 1, 1), idx_ok) is None
     assert "2022-03-17" in benchmark.window_warning(date(2021, 1, 1), idx_late)
+
+
+def test_early_slice_ends_where_train_starts():
+    e = SLICES["early"]
+    assert e.end == SLICES["train"].start
+    assert e.timerange == "20180101-20210101"
+
+
+def test_download_early_prepends_old_candles():
+    cmds = ft.build_commands(ft.parse_args(["download", "--universe", "early", "--early"]))
+    first = cmds[0]
+    assert "--prepend" in first
+    assert first[first.index("--timerange") + 1] == "20170801-"
+    plain = ft.build_commands(ft.parse_args(["download"]))[0]
+    assert "--prepend" not in plain

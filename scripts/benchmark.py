@@ -156,7 +156,7 @@ def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
+    parser.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
     parser.add_argument("--timeframe", default="1h")
     parser.add_argument("--fee", type=float, default=DEFAULT_FEE)
     parser.add_argument("--universe", choices=UNIVERSES, default="core")
