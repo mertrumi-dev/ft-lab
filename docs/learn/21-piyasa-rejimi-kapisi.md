@@ -63,3 +63,16 @@ Aynı yöntemle (sadece train) BtcRising'in 381 girişine baktık: kapanış EMA
 | Gap %2 (komşu) | 3,89 | 0,97 |
 
 %0,5 ile %1 arası bir plato; %2'de bot çok seçici olup iyi trendleri de kaçırıyor. Ders: filtre "biraz" iyi, "çok" kötü. Bu yüzden her sayının iki komşusunu da ölçüyoruz.
+
+## Ek (aynı gün): yeni coin grupları ve 4 saatlik mum
+
+Sonra fikri hiç bakılmamış verilerle sınadık:
+
+| | wide val. | alt2023 val. | alt2024 train | alt2024 val. |
+|---|---|---|---|---|
+| TrendEma | 0,71 | 0,01 | -0,75 | -0,11 |
+| Gap | 0,66 | -0,11 | -0,91 | -0,53 |
+
+Gap, train'de üç grupta önde olmasına rağmen yeni dönemlerde ve yeni grupta **geride kaldı**. Aynı kuralı 4 saatlik mumlarla denemek de (Gap4h) bir grupta iyi, diğerinde kötü çıktı.
+
+Ders: Bir fikrin "çalıştığını" ancak hiç görmediği verilerde de çalışırsa söyleyebiliriz. Gap'in kazancı, 2022 ayı piyasasında korumaktan geliyordu; o tür bir dönem olmayan verilerde avantajı yok. Bu yüzden canlı bot TrendEma'da kalıyor.

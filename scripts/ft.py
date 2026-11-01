@@ -54,6 +54,7 @@ STRATEGY_TIMEFRAMES = {
     "TrendSmaDaily": "1d",
     "TrendDonchianEnsemble": "1d",
     "TrendDonchianEnsembleFull": "1d",
+    "TrendEmaBtcRisingGap4h": "4h",
 }
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]

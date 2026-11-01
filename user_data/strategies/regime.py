@@ -227,3 +227,12 @@ class TrendEmaBtcRisingGapRisk2(TrendEmaBtcRisingGap):
         if runmode not in ("backtest", "hyperopt"):
             return False  # research class: never trades with real or fake money
         return super().confirm_trade_entry(pair, *args, **kwargs)
+
+
+# --- Same idea, slower candles (pre-registered 2026-11-01) --------------------------
+# Like TrendEma4h vs TrendEma: everything identical, only 4-hour candles. EMA lengths
+# and protection windows count candles, so they cover 4x more time.
+
+
+class TrendEmaBtcRisingGap4h(TrendEmaBtcRisingGap):
+    timeframe = "4h"

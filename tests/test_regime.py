@@ -150,3 +150,13 @@ def test_gap_risk2_is_research_only_and_live_risk_stays_1pct():
     assert s.confirm_trade_entry("BTC/USDT", "limit", 1, 1, "GTC", None, None, "long") is False
     compose = (Path(__file__).resolve().parent.parent / "docker-compose.yml").read_text()
     assert "Risk2" not in compose
+
+
+def test_gap4h_only_changes_timeframe():
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import ft
+
+    cls = regime.TrendEmaBtcRisingGap4h
+    assert cls.timeframe == "4h" and regime.TrendEmaBtcRisingGap.timeframe == "1h"
+    assert cls.populate_entry_trend is regime.TrendEmaBtcRisingGap.populate_entry_trend
+    assert ft.timeframe_of("TrendEmaBtcRisingGap4h") == "4h"
