@@ -103,3 +103,17 @@ class BtcRisingDays15(TrendEmaBtcRising):
 
 
 BTC_RISING_NEIGHBOURS = [BtcRisingSma40, BtcRisingSma60, BtcRisingDays5, BtcRisingDays15]
+
+
+# --- Round 12: candidate + adding to winners -------------------------------------
+# Train analysis of TrendEmaBtcRising (core, 381 trades): profit still comes only
+# from the few long trends (3-14+ days: +5,172 USDT), while 253 trades held < 3 days
+# lose -2,198, and only ~11% of the money is in coins. Round 8 showed that adding
+# once to a winner (TrendEmaPyramid: +4%, same size, stop tightened so total risk
+# stays 1%) is a plateau on train. One change vs TrendEmaBtcRising: that add.
+
+from trend_variants import TrendEmaPyramid  # noqa: E402
+
+
+class TrendEmaBtcRisingPyramid(TrendEmaBtcRising, TrendEmaPyramid):
+    """BtcRising entries + TrendEmaPyramid's single add to winners (unchanged)."""

@@ -86,3 +86,16 @@ def test_neighbour_parameters_reach_the_gate():
     r5 = regime.btc_daily_rising(d, 50, 5)["btc_rising"]
     r15 = regime.btc_daily_rising(d, 50, 15)["btc_rising"]
     assert r5.sum() != r15.sum()
+
+
+def test_btc_rising_pyramid_combines_exactly_two_parents():
+    import trend_variants as tv
+
+    cls = regime.TrendEmaBtcRisingPyramid
+    assert cls.populate_entry_trend is regime.TrendEmaBtcRising.populate_entry_trend
+    assert cls.populate_indicators is regime.TrendEmaBtcRising.populate_indicators
+    assert cls.adjust_trade_position is tv.TrendEmaPyramid.adjust_trade_position
+    assert cls.custom_stoploss is tv.TrendEmaPyramid.custom_stoploss
+    assert cls.position_adjustment_enable is True and cls.max_entry_position_adjustment == 1
+    assert cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+    assert cls.stoploss == trend_ema.STOPLOSS
