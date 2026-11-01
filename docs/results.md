@@ -388,3 +388,28 @@ Komut (RC): `ft.py backtest --slice train --no-kill-switch --strategy EmaFast15 
 
 - **5 ana coinde TrendEma sağlam:** işlem sırası şanssız gitse bile %95 ihtimalle düşüş %17'nin altında, zarar olasılığı %0,1.
 - **Zayıf coinlerde uygun değil:** kill switch %78 ihtimalle tetiklenir. Karar: bot sadece büyük, likit coinlerde çalışır; coin listesini genişletmek için ayrı kanıt gerekir.
+
+## 2026-11-01 · Train · Faz 2: düşüşte alım (DipRsi) ve haftalık DCA
+
+Komutlar (Mac, main d1bfbad / b4915a9, `--timerange 20210101-20240613`, fee %0,15):
+`ft.py backtest --slice train --no-kill-switch [--universe wide] --strategy DipRsi DipRsi4h`, `ft.py report ... --by-year`, `ft.py benchmark --slice train [--universe wide]`
+
+| 5 coin (kill switch kapalı) | İşlem | Getiri | CAGR | Saatlik DD | Calmar | Kazanma | PF | Coinde | Karar |
+|---|---|---|---|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | +155,4% | 92,1% | 1,69 | - | - | 100% | referans |
+| DCA (haftalık) | - | +171,7% | +33,7% | 64,3% | 0,52 | - | - | artan | referans |
+| TrendEma | 638 | +254,3% | +44,3% | 16,4% | 2,70 | 31% | 1,63 | 17% | PASS |
+| DipRsi4h | 705 | -31,3% | -10,3% | 33,3% | -0,31 | 60% | 0,74 | 6% | FAIL |
+| DipRsi | 2884 | -71,7% | -30,7% | 73,7% | -0,42 | 54% | 0,73 | 7% | FAIL |
+
+| 14 coin | İşlem | Getiri | Saatlik DD | Calmar | Karar |
+|---|---|---|---|---|---|
+| Al-tut | - | +256,3% | 90,6% | 0,49 | referans |
+| DCA | - | +15,3% | 52,7% | 0,08 | referans |
+| TrendEma | 949 | +156,5% | 41,3% | 0,76 | PASS (DD > %20) |
+| DipRsi4h | 1142 | -28,6% | 43,0% | -0,22 | FAIL |
+| DipRsi | 5105 | -91,3% | 92,9% | -0,55 | FAIL |
+
+Yıl yıl (5 coin): DipRsi her yıl zararda (-32,8 / -27,6 / -31,3 / -15,4%), DipRsi4h de her yıl zararda (-12,1 / -11,4 / -7,9 / -4,2%).
+
+Yorum: Kazanma oranı yüksek (%54-61) ama PF < 1. Küçük kazançlar, büyük kayıplar, ve binlerce işlemde komisyon. Connors RSI(2) kuralı kriptoda bu haliyle çalışmıyor. DCA, al-tut'un riskini azaltıyor ama Calmar'da TrendEma'nın çok gerisinde.
