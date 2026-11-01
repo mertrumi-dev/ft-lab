@@ -719,3 +719,25 @@ Faber'in kuralı sıkı bir stop olmadan tasarlanmış. Bizim %1 risk / -%8 stop
 | NostalgiaForInfinity X8 | 1 | +0,1% | 0,2% |
 
 NFI ayın neredeyse tamamında nakitte kaldı (1 işlem, 2 saat 55 dk, +0,98 USDT, dönem sonunda açık işlem yok). Tek işlem istatistiksel olarak hiçbir şey söylemez (Calmar 4,93 anlamsız). Train'deki davranışıyla tutarlı: çok seçici, paranın ortalama %2'si coinde.
+
+## 2026-11-01 · Train · Üçüncü coin grubu alt2023 (hiç bakılmamış)
+
+Komut: `ft.py download --universe alt2023`, `ft.py backtest --slice train --no-kill-switch --universe alt2023 --strategy TrendEma TrendEmaBtcRising TrendEmaBtcRisingGap TrendEmaLongTrend`, `ft.py bots ...` (main 83a1d7e). Liste (`scripts/universe.py` ALT_2023) testten önce sabitlendi: Ocak 2023'te piyasa değerine göre ilk ~30'daki coinler, stabil coinler ve core/wide hariç. MATIC ve FTM'nin Binance verisi yok → 14 coin.
+
+Pencere: APE 2022-03-17'de listelendi. Adil karşılaştırma için bütün satırlar aynı pencerede: **2022-03-17 → 2024-06-13**. Bu tarihten önce kapanan işlemlerin kârı başlangıç sermayesine katılıyor, getiri pencere başındaki gerçek sermaye üzerinden hesaplanıyor (kontrol edildi: Gap +24,5% eğri / +24,3% gerçekleşmiş; TrendEma -13,2% / -10,8%).
+
+| Bot | İşlem | Getiri | Saatlik DD | Calmar | 2022 | 2023 | 2024 |
+|---|---|---|---|---|---|---|---|
+| Al-tut | - | -53,5% | 82,8% | -0,35 | -69,0% | +51,7% | -2,0% |
+| Haftalık DCA | - | +22,1% | 41,3% | 0,23 | -15,4% | +47,3% | -3,1% |
+| Grid (Pionex tarzı) | 15647 | -9,2% | 16,7% | -0,25 | -11,6% | +2,6% | +0,0% |
+| DCA bot (3Commas tarzı) | 9150 | -5,1% | 24,2% | -0,10 | -16,1% | +6,9% | +5,8% |
+| Rotasyon (haftalık) | 289 | -26,8% | 66,5% | -0,20 | -43,4% | +66,1% | -24,2% |
+| TrendEma | 959 | -13,2% | 32,0% | -0,19 | -18,5% | +18,3% | -10,6% |
+| TrendEmaLongTrend | 686 | -2,2% | 26,2% | -0,04 | -9,2% | +14,0% | -6,2% |
+| TrendEmaBtcRising | 563 | +17,8% | 17,5% | 0,43 | -6,7% | +29,3% | -3,1% |
+| **TrendEmaBtcRisingGap** | 507 | **+24,5%** | **16,7%** | **0,61** | -3,3% | +32,5% | -3,6% |
+
+Monte Carlo (2000 karıştırma, kapanmış işlem DD): TrendEma P(DD≥20%) %67, Gap %4,2.
+
+Okuma: Aday (Gap), hiç bakılmamış üçüncü grupta da TrendEma'yı ve bütün ünlü bot tiplerini geçiyor; düşüşü en küçükler arasında. Bilinen yanlılık: 2023'te seçilen coinler 2022 çöküşünden sağ çıkmış coinler.
