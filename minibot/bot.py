@@ -50,7 +50,8 @@ def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str =
     for pair in pairs:
         candles[pair] = closed_candles(exchange, pair, now_ms)
     prices = {p: c[-1][4] for p, c in candles.items() if c}
-    for pair, rows in candles.items():
+    entries = []
+    for pair, rows in candles.items():  # exits first, then entries (like Freqtrade)
         if not rows:
             continue
         stamp = datetime.fromtimestamp(rows[-1][0] / 1000, timezone.utc).isoformat()
@@ -58,16 +59,22 @@ def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str =
         if paper.stop_hit(acc, pair, low):
             stop_price = acc["positions"][pair]["entry"] * (1 + paper.STOPLOSS)
             log.append(paper.sell(acc, pair, stop_price, stamp, "stoploss"))
+            paper.after_close(acc, pair, now_ms, "stoploss")
             continue
         closes = [r[4] for r in rows]
         sig = signals.signal(closes)
-        if sig == "buy":
-            scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
-            note = paper.buy(acc, pair, close, prices, stamp, scale)
-        elif sig == "sell":
+        if sig == "sell":
             note = paper.sell(acc, pair, close, stamp, "ema_cross_down")
-        else:
-            note = None
+            if note:
+                log.append(note)
+                paper.after_close(acc, pair, now_ms, "ema_cross_down")
+        elif sig == "buy":
+            entries.append((pair, closes, stamp))
+    for pair, closes, stamp in entries:
+        if pair in acc["positions"] or paper.entry_blocked(acc, pair, now_ms):
+            continue
+        scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
+        note = paper.buy(acc, pair, closes[-1], prices, stamp, scale)
         if note:
             log.append(note)
     return log

@@ -34,6 +34,10 @@ STATE_FILE = Path(__file__).resolve().parent / "state.demo.json"
 RESEARCH_EQUITY = 1000.0  # the ledger's start; risk is never measured on the (bigger) demo balance
 UNFILLED_TIMEOUT_S = 10 * 60  # same as config.json unfilledtimeout (10 minutes)
 POLL_S = 10
+# A stop must really get out. A limit AT the stop price may never fill when the price falls
+# through it (seen in the replay: an ETH stop filled 2 days late). So the stop is a limit
+# 1% below the last close: it fills at once like a market order, but never at any price.
+STOP_LIMIT_BELOW = 0.01
 DONE = ("closed", "canceled", "cancelled", "expired", "rejected")
 
 
@@ -83,6 +87,7 @@ class DemoBroker:
     def __init__(self, exchange, state: dict, sleep=time.sleep, clock=time.monotonic):
         assert_demo_urls(exchange)  # checked again right before the first private call
         self.exchange, self.state, self.sleep, self.clock = exchange, state, sleep, clock
+        self.at = None  # the hour demo.step is trading (set by demo.step), recorded with each order
         state.setdefault("orders", [])
 
     def free_usdt(self) -> float:
@@ -107,7 +112,7 @@ class DemoBroker:
             raise DemoRefused(f"refusing: {pair} is not a spot USDT pair")
         amount = float(self.exchange.amount_to_precision(pair, amount))
         price = float(self.exchange.price_to_precision(pair, price))
-        created = datetime.now(timezone.utc).isoformat()
+        created = self.at or datetime.now(timezone.utc).isoformat()
         order = self.exchange.create_order(pair, "limit", side, amount, price, {"timeInForce": "GTC"})
         order = self._wait(order, pair)
         fill = fill_result(order, pair, side)
@@ -115,7 +120,8 @@ class DemoBroker:
             "pair": pair, "side": side, "kind": kind, "type": "limit", "requested": price, "amount": amount,
             "id": order.get("id"), "status": order.get("status"), "timed_out": order.get("timed_out", False),
             "filled": fill["filled"], "average": fill["price"], "fee_usdt": fill["fee_usdt"],
-            "created": created, "filled_at": datetime.now(timezone.utc).isoformat() if fill["filled"] else None,
+            "candle": created, "created": created,
+            "filled_at": datetime.now(timezone.utc).isoformat() if fill["filled"] else None,
         })  # fmt: skip
         return fill
 
@@ -148,37 +154,47 @@ def fill_result(order: dict, pair: str, side: str) -> dict:
 
 def step(acc: dict, broker: DemoBroker, exchange, now_ms: int, pairs: list[str] = bot.PAIRS, rule: str = "voltarget") -> list[str]:
     """Like bot.step, but every decision becomes a real demo order and the ledger books only real fills."""
+    broker.at = datetime.fromtimestamp(now_ms / 1000, timezone.utc).isoformat()
     log, candles = [], {p: bot.closed_candles(exchange, p, now_ms) for p in pairs}
     prices = {p: c[-1][4] for p, c in candles.items() if c}
+    # Exits first, then entries (like Freqtrade): a slot freed this hour can be used this hour.
+    entries = []
     for pair, rows in candles.items():
         if not rows:
             continue
         stamp = datetime.fromtimestamp(rows[-1][0] / 1000, timezone.utc).isoformat()
         low, close = rows[-1][3], rows[-1][4]
         pos = acc["positions"].get(pair)
-        if paper.stop_hit(acc, pair, low):
-            stop_price = pos["entry"] * (1 + paper.STOPLOSS)
-            f = broker.sell(pair, pos["amount"], stop_price, kind="stoploss")
-            log.append(paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "stoploss")
-                       or f"STOP {pair}: sell order not filled")  # fmt: skip
-            continue
         closes = [r[4] for r in rows]
         sig = signals.signal(closes)
-        if sig == "buy" and pos is None:
-            if paper.kill_switch_hit(acc):
-                log.append(f"KILL SWITCH: no new trades ({pair} refused)")
-                continue
-            scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
-            stake = min(paper.stake_for(acc, prices, scale), broker.free_usdt())  # ledger risk, real cash cap
-            if stake < 10:
-                continue
-            f = broker.buy(pair, stake / close, close)
-            log.append(paper.open_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp)
-                       or f"BUY {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")  # fmt: skip
+        if pos is not None and paper.stop_hit(acc, pair, low):
+            f = broker.sell(pair, pos["amount"], close * (1 - STOP_LIMIT_BELOW), kind="stoploss")
+            note = paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "stoploss")
+            if note and pair not in acc["positions"]:
+                paper.after_close(acc, pair, now_ms, "stoploss")
+            log.append(note or f"STOP {pair}: sell order not filled")
         elif sig == "sell" and pos is not None:
             f = broker.sell(pair, pos["amount"], close)
-            log.append(paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "ema_cross_down")
-                       or f"SELL {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")  # fmt: skip
+            note = paper.close_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp, "ema_cross_down")
+            if note and pair not in acc["positions"]:
+                paper.after_close(acc, pair, now_ms, "ema_cross_down")
+            log.append(note or f"SELL {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")
+        elif sig == "buy" and pos is None:
+            entries.append((pair, closes, stamp))
+    for pair, closes, stamp in entries:
+        close = closes[-1]
+        if paper.entry_blocked(acc, pair, now_ms):
+            continue
+        if paper.kill_switch_hit(acc):
+            log.append(f"KILL SWITCH: no new trades ({pair} refused)")
+            continue
+        scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
+        stake = min(paper.stake_for(acc, prices, scale), broker.free_usdt())  # ledger risk, real cash cap
+        if stake < 10:
+            continue
+        f = broker.buy(pair, stake / close, close)
+        log.append(paper.open_from_fill(acc, pair, f["filled"], f["price"], f["fee_usdt"], stamp)
+                   or f"BUY {pair}: not filled within {UNFILLED_TIMEOUT_S // 60} min, cancelled")  # fmt: skip
     return log
 
 

@@ -42,7 +42,31 @@ Demo hesapta 10.000 ya da 100.000 sahte USDT olabilir. Pozisyon o bakiyeden hesa
 - Pozisyon = defter sermayesi × %1 / %8 (en fazla %25) × VolTarget katsayısı, **ve** demo hesaptaki serbest USDT'yi geçemez. Büyük bakiye pozisyonu büyütemez, küçük bakiye ise sınırlar.
 - Kill switch defterin gerçekleşmiş kârına/zararına bakar. Yani demo emirlerinin gerçek sonuçlarını ölçer.
 
+## Tekrar oynatma (replay) kontrolü: demo döngüsü = backtest edilen kural mı?
+
+`python3 scripts/ft.py replay --slice fresh|validation`: Sahte bir borsa (`ReplayExchange`), indirilmiş gerçek 1 saatlik mumları saat saat veriyor. `demo.step` sanki Binance'teymiş gibi çalışıyor. LIMIT emir, bir sonraki mumun aralığı fiyata değerse doluyor. Sonuç Freqtrade'in TrendEmaVolTarget backtest'iyle (kill switch kapalı) işlem işlem karşılaştırılıyor.
+
+İlk ölçüm 79 fazla işlem gösterdi. Nedenleri tek tek bulundu ve mini bot Freqtrade'in **zaten uyguladığı** kurallara eşitlendi (yeni kural yok):
+
+| Fark | Kanıt | Düzeltme |
+|---|---|---|
+| En fazla 3 açık işlem yoktu | 79 fazlanın 75'i: o saatte Freqtrade'de 3 işlem açıktı | `paper.MAX_OPEN_TRADES = 3` |
+| 2 saat bekleme (CooldownPeriod) yoktu | 3 fazla işlem | `paper.after_close` → `cooldown`; kilit bitiş saatini de kapsar |
+| 3 stop / 24 saat → 12 saat ara (StoplossGuard) yoktu | kural eşitliği | `guard_until` |
+| Aynı saatte satış ve alış varsa Freqtrade önce satar | 2025-07-22: ETH satıldı, BTC girdi | her saatte önce çıkışlar, sonra girişler |
+| Stop, stop fiyatında LIMIT idi; fiyat altına düşünce dolmuyordu | bir ETH stop'u 2 gün geç doldu | stop = son kapanışın %1 altında LIMIT (hemen dolar, ama sınırsız fiyata değil) |
+
+Sonuç (2026-11-01):
+- **fresh:** 17/17 işlem aynı saatte girip aynı saatte çıktı.
+- **validation:** 217/217 giriş aynı saatte. 7 çıkış farkı: 5 stop 1 saat sonra (mini bot düşük fiyatı ancak mum kapanınca görür; backtest mumun içinde stop fiyatından çıkar) ve 2 işlem dönem sonunda açık (backtest dönem sonunda zorla kapatır).
+- Pozisyon boyutu farkı ortanca %1-2. Freqtrade sermayenin %99'u üzerinden hesaplar (tradable_balance_ratio).
+- Kâr/zarar farkı: fresh 0,39 USDT; validation +11,65 USDT (%4). Bunun +6,49'u boyut farkından, +5,15'i 1 saat geç stop'tan geliyor. Geç stop bu sefer şans eseri iyi çıktı (fiyat sıçradı); gerçek bir çöküşte kötü olabilir.
+
+Yavaş test: `FTLAB_SLOW=1 python3 scripts/ft.py test tests/test_replay.py` (normalde atlanır).
+
 ## Hâlâ bilinenler (ilk demo çalıştırmasından önce bilinmeli)
+
+- Stop, saatlik turda kontrol ediliyor: düşük fiyat ancak mum kapanınca görülüyor, yani stop en fazla ~1 saat gecikebilir. Backtest'te bu gecikme yok.
 
 - Emir beklerken (en fazla 10 dakika) bot diğer coinlere geçmez. Saatte bir çalışan bot için sorun değil, ama 5 coin üst üste beklerse tur uzar.
 - BNB ile ödenen komisyon USDT'ye çevrilmiyor; demo hesapta "BNB ile komisyon öde" kapalı tutulmalı.

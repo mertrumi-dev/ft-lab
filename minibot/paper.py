@@ -12,6 +12,11 @@ STOPLOSS = -0.08
 RISK_PER_TRADE = 0.01
 MAX_STAKE_RATIO = 0.25
 KILL_SWITCH_DRAWDOWN = 0.20
+# Same as the Freqtrade bot (config.json max_open_trades, TrendEma.protections):
+MAX_OPEN_TRADES = 3
+COOLDOWN_HOURS = 2  # CooldownPeriod: after a trade closes, that pair waits 2 candles
+GUARD_LOOKBACK_HOURS, GUARD_STOPS, GUARD_LOCK_HOURS = 24, 3, 12  # StoplossGuard: 3 stops in 24h -> 12h pause
+HOUR_MS = 3_600_000
 
 
 def new_account(cash: float = 1000.0) -> dict:
@@ -102,3 +107,28 @@ def close_from_fill(acc: dict, pair: str, filled: float, price: float, fee_usdt:
         pos["amount"] -= filled
         pos["stake"] -= stake_part
     return f"SELL {pair} {filled:.6f} @ {price:.4f} ({reason}{', partial' if part < 0.999 else ''}) profit {profit:+.2f}"
+
+
+# --- Entry gates shared by the paper and the demo bot (same rules as Freqtrade's) -------------
+
+
+def entry_blocked(acc: dict, pair: str, now_ms: int) -> str | None:
+    """Why a new entry on `pair` is not allowed right now, or None."""
+    if len(acc["positions"]) >= MAX_OPEN_TRADES:
+        return "max open trades"
+    # A lock covers its end hour too (<=): matches Freqtrade's backtest (replay check, 2025-04-27 BTC).
+    if now_ms <= acc.get("cooldown", {}).get(pair, -1):
+        return "cooldown"
+    if now_ms <= acc.get("guard_until", -1):
+        return "stoploss guard"
+    return None
+
+
+def after_close(acc: dict, pair: str, now_ms: int, reason: str) -> None:
+    """Start the pair's cooldown; after 3 stops within 24h lock every pair for 12h."""
+    acc.setdefault("cooldown", {})[pair] = now_ms + COOLDOWN_HOURS * HOUR_MS
+    if reason == "stoploss":
+        stops = [t for t in acc.get("stop_times", []) if t > now_ms - GUARD_LOOKBACK_HOURS * HOUR_MS] + [now_ms]
+        acc["stop_times"] = stops
+        if len(stops) >= GUARD_STOPS:
+            acc["guard_until"] = now_ms + GUARD_LOCK_HOURS * HOUR_MS

@@ -128,6 +128,11 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         return [*build, ["docker", "run", "--rm", "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo",
                          TEST_IMAGE, "-m", "pytest", "-q", *args.pytest_args]]  # fmt: skip
 
+    if args.command == "replay":
+        return [["docker", "compose", "run", "--rm",
+                 "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro", "-v", f"{ROOT / 'minibot'}:/freqtrade/minibot:ro",
+                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/replay.py", "--slice", args.slice]]  # fmt: skip
+
     if args.command == "deflated":
         import trials  # stdlib; docs/ is not mounted in the container, so N is read here on the host
 
@@ -355,7 +360,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -391,6 +396,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     te = sub.add_parser("test", help="run the test suite in Docker (the Mac's python3 has no pandas/freqtrade)")
     te.add_argument("--build", action="store_true", help="(re)build the test image from tests/Dockerfile first")
     te.add_argument("pytest_args", nargs="*", help="extra pytest arguments, e.g. tests/test_minibot.py")
+
+    rp = sub.add_parser("replay", help="minibot demo loop over stored candles vs the Freqtrade backtest (no keys)")
+    rp.add_argument("--slice", choices=["fresh", "validation"], required=True)
 
     sub.add_parser("deflated", help="Deflated Sharpe Ratio of VolTarget/TrendEma; N = trials in docs/trials.csv")
 
