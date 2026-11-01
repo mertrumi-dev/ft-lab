@@ -346,3 +346,16 @@ def test_pyramid_btc_adds_only_in_bull_market():
 def test_pyramid_btc_keeps_entries_of_trend_ema():
     # no BTC filter on entries: same entry function as TrendEma
     assert tv.TrendEmaPyramidBtc.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+
+
+@pytest.mark.parametrize("cls", VARIANTS, ids=lambda c: c.__name__)
+def test_every_variant_runs_all_three_populate_steps(cls):
+    """Catches crashes Freqtrade would hit at backtest start (e.g. a broken super() chain)."""
+    rng = np.random.default_rng(0)
+    close = 100 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, 2500)))
+    df = candles(close, high=close * 1.005, low=close * 0.995)
+    s = cls({})
+    df = s.populate_indicators(df, {"pair": "BTC/USDT"})
+    df = s.populate_entry_trend(df, {"pair": "BTC/USDT"})
+    df = s.populate_exit_trend(df, {"pair": "BTC/USDT"})
+    assert len(df) == 2500

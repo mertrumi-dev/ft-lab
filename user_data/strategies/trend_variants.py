@@ -250,6 +250,20 @@ class TrendEmaMulti(TrendEma):
         return dataframe
 
 
+def add_btc_bull(strategy, dataframe: DataFrame) -> DataFrame:
+    """Column btc_bull: is BTC above its EMA200 on this candle? (True without Freqtrade's dp.)"""
+    dataframe["btc_bull"] = True
+    dp = getattr(strategy, "dp", None)  # set by Freqtrade; missing in plain unit tests
+    if dp is not None:
+        btc = dp.get_pair_dataframe("BTC/USDT", strategy.timeframe)
+        if not btc.empty:
+            btc = btc[["date", "close"]].copy()
+            btc["btc_bull"] = btc["close"] > ema(btc["close"], 200)
+            merged = dataframe[["date"]].merge(btc[["date", "btc_bull"]], on="date", how="left")
+            dataframe["btc_bull"] = merged["btc_bull"].fillna(False).astype(bool).to_numpy()
+    return dataframe
+
+
 class TrendEmaBtc(TrendEma):
     """Market filter: altcoins usually fall with Bitcoin, so only buy when BTC is in an uptrend."""
 
@@ -257,17 +271,7 @@ class TrendEmaBtc(TrendEma):
         return [("BTC/USDT", self.timeframe)]
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe = super().populate_indicators(dataframe, metadata)
-        dataframe["btc_bull"] = True
-        dp = getattr(self, "dp", None)  # set by Freqtrade; missing in plain unit tests
-        if dp is not None:
-            btc = dp.get_pair_dataframe("BTC/USDT", self.timeframe)
-            if not btc.empty:
-                btc = btc[["date", "close"]].copy()
-                btc["btc_bull"] = btc["close"] > ema(btc["close"], 200)
-                merged = dataframe[["date"]].merge(btc[["date", "btc_bull"]], on="date", how="left")
-                dataframe["btc_bull"] = merged["btc_bull"].fillna(False).astype(bool).to_numpy()
-        return dataframe
+        return add_btc_bull(self, super().populate_indicators(dataframe, metadata))
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_entry_trend(dataframe, metadata)
@@ -504,8 +508,11 @@ class Pyramid6(TrendEmaPyramid):
 class TrendEmaPyramidBtc(TrendEmaPyramid):
     """TrendEmaPyramid, but add to a winner only while BTC is in an uptrend."""
 
-    informative_pairs = TrendEmaBtc.informative_pairs
-    populate_indicators = TrendEmaBtc.populate_indicators
+    def informative_pairs(self):
+        return [("BTC/USDT", self.timeframe)]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        return add_btc_bull(self, super().populate_indicators(dataframe, metadata))
 
     def _btc_bull_now(self, pair: str) -> bool:
         dp = getattr(self, "dp", None)
