@@ -466,7 +466,7 @@ def test_chart_turkish_render_and_tiny_prices():
          "low60": 2245.54, "support": None, "resistance": 2359.68, "vol30": 0.36, "volume_ratio": 0.92}
     b = {"short_up": True, "above_trend": False, "entry_now": False, "vol1h": 0.45, "size_scale": 1.0, "candle": "x"}
     t = chart.render_tr("ETH/USDT", r, b)
-    for must in ("Fiyat 50 günlük ortalamanın %7,1 altında: orta vadede zayıf.", "2.255,66$", "yok, fiyat 60 günün en dibinde",
+    for must in ("Fiyat 50 günlük ortalamanın %7,1 altında: orta vadede zayıf.", "2.255,66$", "fiyatın altında dönülmüş bir dip yok",
                  "2.359,68$", "normalin (90 günlük ortalama) 0,9 katı", "Bot şu an almaz, çünkü saatlik grafikte fiyat 200 saatlik",
                  "Geçmişin okunması, tahmin değil, yatırım tavsiyesi değil."):
         assert must in t, must

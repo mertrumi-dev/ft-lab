@@ -150,9 +150,9 @@ def render_tr(pair: str, r: dict, b: dict) -> str:
         f"- Hareket: {move_tr(r['ret7'], 7)}, {move_tr(r['ret30'], 30)}, {move_tr(r['ret90'], 90)}.",
         f"- Son 60 günün aralığı: en düşük {px_tr(r['low60'])}$, en yüksek {px_tr(r['high60'])}$.",
         "- En yakın destek (fiyatın son düştüğü dip): "
-        + (f"{px_tr(r['support'])}$." if r["support"] is not None else "yok, fiyat 60 günün en dibinde."),
+        + (f"{px_tr(r['support'])}$." if r["support"] is not None else "yok: son 60 günde fiyatın altında dönülmüş bir dip yok (fiyat aralığın en altına yakın)."),
         "- En yakın direnç (fiyatın son döndüğü tepe): "
-        + (f"{px_tr(r['resistance'])}$." if r["resistance"] is not None else "yok, fiyat 60 günün zirvesinde."),
+        + (f"{px_tr(r['resistance'])}$." if r["resistance"] is not None else "yok: son 60 günde fiyatın üstünde dönülmüş bir tepe yok (fiyat aralığın en üstüne yakın)."),
         f"- Oynaklık: yıllık {pct_tr(r['vol30'])} (son 30 gün).",
         f"- Son 30 günde işlem hacmi normalin (90 günlük ortalama) {r['volume_ratio']:.1f} katı.".replace(".", ",", 1)
         if not np.isnan(r["volume_ratio"]) else "- Hacim: veri yetersiz.",
