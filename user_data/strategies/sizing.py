@@ -851,3 +851,42 @@ class TrendEmaVolTargetMinHold24(TrendEmaVolTarget):
         if last["ema_fast"] < last["ema_slow"]:
             return "ema_below_after_minhold"
         return None
+
+
+# --- Cross-sectional momentum gate (pre-registered 2026-11-01, inspired by the rotation bot) ---
+# Enter only coins whose 30-day return (720 hourly closes, up to the previous candle) is in the
+# top half of the group (rank <= ceil(n/2) among coins with data) AND above zero (absolute
+# momentum, Antonacci). 30 days from the rotation rule, "half" a natural split; not tuned.
+
+MOM_WINDOW = 24 * 30
+
+
+def momentum_half_flags(frames: dict[str, DataFrame], window: int = MOM_WINDOW) -> DataFrame:
+    """date x pair: True where the pair's past-window return is positive and in the top half."""
+    ret = {}
+    for pair, df in frames.items():
+        c = df["close"].set_axis(pd.DatetimeIndex(df["date"]))
+        ret[pair] = (c / c.shift(window) - 1).shift(1)  # known at the previous candle's close
+    table = pd.DataFrame(ret).sort_index()
+    n = table.notna().sum(axis=1)
+    ranks = table.rank(axis=1, ascending=False, method="first")
+    return ranks.le(np.ceil(n / 2), axis=0) & (table > 0)
+
+
+class TrendEmaVolTargetMomHalf(TrendEmaVolTargetTopVol):
+    """VolTarget entering only coins in the stronger half of the group (and rising over 30 days)."""
+
+    _flags_cache: dict = {}
+
+    def _flags(self) -> DataFrame | None:
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        pairs = tuple(sorted(dp.current_whitelist()))
+        frames = {p: df for p in pairs if (df := dp.get_pair_dataframe(p, self.timeframe)) is not None and not df.empty}
+        if not frames:
+            return None
+        key = (pairs, max(len(f) for f in frames.values()), max(f["date"].iloc[-1] for f in frames.values()))
+        if key not in self._flags_cache:
+            type(self)._flags_cache = {key: momentum_half_flags(frames)}
+        return self._flags_cache[key]

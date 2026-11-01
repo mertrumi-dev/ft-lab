@@ -489,3 +489,18 @@ def test_minhold24_refuses_young_signal_exits_and_exits_when_old_and_below():
     assert s.custom_exit("X/USDT", trade, old, 1.0, 0.0) == "ema_below_after_minhold"
     s.dp.state = "above"
     assert s.custom_exit("X/USDT", trade, old, 1.0, 0.0) is None
+
+
+def test_momentum_half_flags_rank_top_half_and_positive_only():
+    dates = pd.date_range("2030-01-01", periods=6, freq="1h", tz="UTC")
+    mk = lambda vals: pd.DataFrame({"date": dates, "close": vals})  # noqa: E731
+    frames = {"A": mk([100, 110, 120, 130, 140, 150]), "B": mk([100, 101, 102, 103, 104, 105]),
+              "C": mk([100, 99, 98, 97, 96, 95]), "D": mk([100, 100, 100, 100, 100, 100])}  # fmt: skip
+    f = sizing.momentum_half_flags(frames, window=2)
+    last = f.iloc[-1]
+    assert bool(last["A"]) and bool(last["B"])  # top half of 4 = 2, both rising
+    assert not bool(last["C"]) and not bool(last["D"])  # bottom half (and not rising)
+    assert not f.iloc[:3].any().any()  # no full window yet (2 back + shift 1)
+    frames2 = {"A": frames["C"], "B": frames["D"]}
+    assert not sizing.momentum_half_flags(frames2, window=2).iloc[-1].any()  # top half but falling/flat -> no
+    assert sizing.TrendEmaVolTargetMomHalf.populate_entry_trend is sizing.TrendEmaVolTargetTopVol.populate_entry_trend
