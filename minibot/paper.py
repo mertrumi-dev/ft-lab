@@ -1,0 +1,69 @@
+"""Paper broker: a fake account that buys and sells with imaginary money.
+
+It keeps cash and positions, pays a fee on every fill, and applies the same
+risk rules as the real strategy (docs/risk-rules.md):
+    1% risk per trade with a -8% stop, at most 25% of capital in one trade,
+    no new trades after a 20% fall of realized equity from its peak.
+State is a plain dict so it can be saved to / loaded from JSON.
+"""
+
+FEE = 0.0015  # 0.1% commission + 0.05% slippage, per side (same as backtests)
+STOPLOSS = -0.08
+RISK_PER_TRADE = 0.01
+MAX_STAKE_RATIO = 0.25
+KILL_SWITCH_DRAWDOWN = 0.20
+
+
+def new_account(cash: float = 1000.0) -> dict:
+    return {"cash": cash, "start": cash, "positions": {}, "closed": [], "peak": cash, "realized": cash}
+
+
+def capital(acc: dict, prices: dict[str, float]) -> float:
+    """Cash + current value of every open position."""
+    return acc["cash"] + sum(p["amount"] * prices.get(pair, p["entry"]) for pair, p in acc["positions"].items())
+
+
+def kill_switch_hit(acc: dict) -> bool:
+    """Realized equity (start + closed profits) fell 20% from its highest point."""
+    return (acc["peak"] - acc["realized"]) / acc["peak"] >= KILL_SWITCH_DRAWDOWN
+
+
+def stake_for(acc: dict, prices: dict[str, float]) -> float:
+    """How much cash to put in: losing 8% of it must cost at most 1% of capital."""
+    cap = capital(acc, prices)
+    return min(cap * RISK_PER_TRADE / abs(STOPLOSS), cap * MAX_STAKE_RATIO, acc["cash"])
+
+
+def buy(acc: dict, pair: str, price: float, prices: dict[str, float], time: str) -> str | None:
+    """Open a position. Returns a short note, or None if the buy was refused."""
+    if pair in acc["positions"]:
+        return None  # one position per coin
+    if kill_switch_hit(acc):
+        return f"KILL SWITCH: no new trades ({pair} refused)"
+    stake = stake_for(acc, prices)
+    if stake < 10:
+        return None  # Binance's minimum order is about 5-10 USDT
+    amount = stake * (1 - FEE) / price  # the fee is taken from what we get
+    acc["cash"] -= stake
+    acc["positions"][pair] = {"amount": amount, "entry": price, "stake": stake, "time": time}
+    return f"BUY {pair} {amount:.6f} @ {price:.4f} (stake {stake:.2f})"
+
+
+def sell(acc: dict, pair: str, price: float, time: str, reason: str) -> str | None:
+    """Close a position, book its profit and update the kill-switch peak."""
+    pos = acc["positions"].pop(pair, None)
+    if pos is None:
+        return None
+    proceeds = pos["amount"] * price * (1 - FEE)
+    profit = proceeds - pos["stake"]
+    acc["cash"] += proceeds
+    acc["realized"] += profit
+    acc["peak"] = max(acc["peak"], acc["realized"])
+    acc["closed"].append({"pair": pair, "open": pos["time"], "close": time, "profit": profit, "reason": reason})
+    return f"SELL {pair} @ {price:.4f} ({reason}) profit {profit:+.2f}"
+
+
+def stop_hit(acc: dict, pair: str, low: float) -> bool:
+    """Did the candle's lowest price touch the -8% stop?"""
+    pos = acc["positions"].get(pair)
+    return pos is not None and low <= pos["entry"] * (1 + STOPLOSS)

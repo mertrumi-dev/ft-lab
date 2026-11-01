@@ -63,7 +63,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (173)
+.venv/bin/python -m pytest          # tüm testler (186)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)
@@ -82,5 +82,5 @@ FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).
 - [x] Faz 1: benchmark + veri bölme (2026-11-01: benchmark, splits, ft.py kilitleri, report, saatlik düşüş, yıl yıl, Monte Carlo)
 - [ ] Faz 2: 3 strateji (EMA cross, RSI+ATR, DCA)
 - [ ] Faz 3: robustluk (walk-forward, hassasiyet, Monte Carlo, kill switch)
-- [ ] Faz 4: ccxt ile sıfırdan mini bot (grid burada denenir)
+- [ ] Faz 4: ccxt ile sıfırdan mini bot (grid burada denenir). 2026-11-01: `minibot/` (sadece kağıt üstünde işlem, anahtarsız, TrendEma kuralı Freqtrade ile birebir aynı)
 - [ ] Faz 5: Binance demo, 4 hafta
