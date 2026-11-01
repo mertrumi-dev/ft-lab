@@ -67,7 +67,13 @@ def early_slice() -> Slice:
 WINDOW24 = Slice("window24", date(2024, 1, 1), date(2025, 8, 7))
 WINDOW24_UNIVERSES = ("alt2024b",)
 
-SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice(), "window24": WINDOW24}
+# Reserved judges (scripts/universe.py JUDGE_OLD / JUDGE_2025A): one look per pre-registered
+# trial, logged. Each slice is allowed ONLY with its own judge universe and ends before the test slice.
+JUDGE21 = Slice("judge21", date(2021, 1, 1), date(2025, 8, 7))
+JUDGE25 = Slice("judge25", date(2025, 1, 1), date(2025, 8, 7))
+RESTRICTED_SLICES = {"window24": ("alt2024b",), "judge21": ("judge_old",), "judge25": ("judge_2025a",)}
+
+SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice(), "window24": WINDOW24, "judge21": JUDGE21, "judge25": JUDGE25}
 SLICE_NAMES = list(SLICES)  # for argparse choices
 
 

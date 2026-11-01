@@ -30,7 +30,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from splits import DATA_START, SLICES, WINDOW24_UNIVERSES  # noqa: E402
+from splits import DATA_START, RESTRICTED_SLICES, SLICES  # noqa: E402
 from universe import UNIVERSES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -126,8 +126,10 @@ def third_party_args(strategies: list[str]) -> list[str]:
 
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
-    if getattr(args, "slice", None) == "window24" and getattr(args, "universe", "core") not in WINDOW24_UNIVERSES:
-        raise SystemExit("Refusing: window24 reuses dates of our old groups; it is allowed only with --universe alt2024b.")
+    sl = getattr(args, "slice", None)
+    if sl in RESTRICTED_SLICES and getattr(args, "universe", "core") not in RESTRICTED_SLICES[sl]:
+        raise SystemExit(f"Refusing: {sl} is a reserved/restricted slice, allowed only with --universe "
+                         f"{' or '.join(RESTRICTED_SLICES[sl])} (window24 reuses old dates; judge slices are one-look judges).")
     if args.command == "test":
         # The Mac's python3 has no pandas/freqtrade: tests run in the test image (tests/Dockerfile).
         build = [["docker", "build", "-q", "-t", TEST_IMAGE, str(ROOT / "tests")]] if args.build else []
@@ -452,7 +454,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sub.add_parser("ai-score", help="score the AI chart views after 7 days (docs/fresh/ai-scores.csv)")
     sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
     du = sub.add_parser("durations", help="trade duration vs P/L and fees from existing results (read-only)")
-    du.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24"], required=True)
+    du.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     du.add_argument("--universe", choices=UNIVERSES, default="core")
     du.add_argument("--no-kill-switch", action="store_true")
     du.add_argument("--strategy", nargs="+", default=["TrendEmaVolTarget"])
@@ -466,7 +468,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sc.add_argument("--csv", action="store_true", help="also print a breadth_csv line (daily.py records it)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
-    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
+    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
@@ -476,12 +478,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
-    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
+    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     bm.add_argument("--universe", choices=UNIVERSES, default="core")
     bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
-    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
+    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
@@ -501,7 +503,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
     bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")

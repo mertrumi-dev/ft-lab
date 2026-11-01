@@ -496,3 +496,15 @@ def test_reserved_judges_never_overlap_used_groups():
         coins = [p.split("/")[0] for p in judge]
         assert not set(coins) & used and len(coins) == len(set(coins))
     assert not set(JUDGE_OLD) & set(JUDGE_2025A)
+
+
+def test_judge_slices_only_with_their_own_universe_and_before_the_test_slice():
+    from splits import SLICES
+
+    for sl, uni, other in (("judge21", "judge_old", "core"), ("judge25", "judge_2025a", "alt2024b")):
+        with pytest.raises(SystemExit, match="reserved"):
+            ft.build_commands(ft.parse_args(["backtest", "--slice", sl, "--universe", other, "--strategy", "TrendEma"]))
+        cmd = ft.build_commands(ft.parse_args(["backtest", "--slice", sl, "--universe", uni, "--no-kill-switch", "--strategy", "TrendEmaVolTarget"]))[0]
+        assert SLICES[sl].timerange in cmd
+        assert SLICES[sl].end <= SLICES["test"].start  # never touches the test slice
+    assert SLICES["judge21"].timerange == "20210101-20250807" and SLICES["judge25"].timerange == "20250101-20250807"
