@@ -144,6 +144,13 @@ def main() -> None:
             combo = with_years(half_and_half(curve["equity"], rows[2][1]["equity"]),
                                r["trades"] + rows[2][1]["trades"])  # fmt: skip
             rows.append(("TrendEma 50% + Grid 50%", combo))
+        if name == "TrendEmaBtcRisingGap":
+            # Portfolio idea (pre-registered 2026-11-01, research only, no tuning):
+            # the DCA bot earns in up/sideways markets, the Gap rule protects in
+            # down markets, so two separate half accounts may be steadier than either.
+            dca = rows[3][1]
+            combo = with_years(half_and_half(dca["equity"], curve["equity"]), r["trades"] + dca["trades"])
+            rows.append(("DCA bot 50% + Gap 50%", combo))
 
     warn = window_warning(s.start, bh["index"])
     if warn:
