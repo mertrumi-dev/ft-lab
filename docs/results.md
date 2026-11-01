@@ -753,3 +753,19 @@ Komut: `ft.py backtest --slice validation --universe wide|alt2023 --strategy Tre
 | alt2023, fresh Ekim 2026 (getiri) | -21,1% | -17,1% | -12,9% | -6,7% | -7,2% | **-4,8%** (25 işlem) |
 
 Okuma (dürüst): Aday, train'de üç coin grubunun üçünde de TrendEma'yı geçmişti; ama **validation döneminde (Haz 2024 – Ağu 2025) yeni gruplarda geçemedi**. wide'da TrendEma ve DCA bot'un biraz gerisinde, alt2023'te hafif zararda. Adayın üstünlüğü büyük ölçüde 2022 ayı piyasasında koruma sağlamasından geliyordu; 2024-25'in yükselen-sonra-yatay piyasasında bir katkısı görünmüyor. Ekim 2026 taze veride yine en az kaybeden (işlem sayısı az).
+
+## 2026-11-01 · NFI X8 validation (5 coin, kıyas için)
+
+`ft.py backtest --slice validation --strategy NostalgiaForInfinityX8` (5m, kill switch açık) + `ft.py bots --slice validation --strategy TrendEma NostalgiaForInfinityX8`, `--timerange 20240613-20250807`.
+
+| Bot | İşlem | Getiri | Saatlik DD | Calmar |
+|---|---|---|---|---|
+| Al-tut | - | +122,6% | 47,8% | 2,11 |
+| Haftalık DCA | - | +60,6% | 36,5% | 1,40 |
+| Grid | 1955 | +56,7% | 24,3% | 1,97 |
+| DCA bot | 1020 | +41,3% | 19,9% | 1,76 |
+| TrendEma | 217 | +31,5% | 17,3% | 1,56 |
+| Grid + DCA bot + TrendEma (1/3) | 3192 | +43,1% | 15,9% | 2,31 |
+| NFI X8 | 25 | +15,2% | 1,5% | 8,60 (<50 işlem) |
+
+NFI 25 işlemin hepsini kazandı, paranın ortalama ~%0'ı coinde (çok seçici). Düşüş çok küçük ama getiri de al-tut'un 1/8'i; 25 işlem istatistik için az. Train'deki gibi: "az al, stop koyma, dönmesini bekle" profili.
