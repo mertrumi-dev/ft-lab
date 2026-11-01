@@ -30,3 +30,14 @@ def test_nfi_is_opt_in():
 
 def test_candidates_include_the_live_bot_strategy():
     assert daily.CANDIDATES[0] == "TrendEma"
+
+
+def test_watch_rows_are_tracked_on_fresh_only():
+    steps = daily.plan(with_nfi=False, download=True)
+    flat = [a for _, args, _ in steps for a in args]
+    assert "TrendEmaVolTarget2h" in flat
+    gold = [args for t, args, _ in steps if "core_gold" in args]
+    assert any(a[0] == "backtest" for a in gold) and any(a[0] == "bots" for a in gold)
+    assert all(a[a.index("--slice") + 1] == "fresh" for _, a, _ in steps if "--slice" in a)
+    titles = [t for t, _, _ in steps]
+    assert {"download alt2022", "download alt2023", "download alt2024", "download core_gold"} <= set(titles)

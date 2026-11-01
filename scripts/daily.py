@@ -28,6 +28,10 @@ OUT_DIR = ROOT / "docs" / "fresh"
 # candles and takes much longer, so it is opt-in (--with-nfi).
 CANDIDATES = ["TrendEma", "TrendEmaBtcRising", "TrendEmaBtcRisingGap", "TrendEmaVolTarget"]
 UNIVERSES = ["core", "wide", "alt2022", "alt2023", "alt2024"]
+# "Watch" rows: rules that FAILED their pre-registered tests but looked good on validation.
+# Tracked forward for judging only; never tuned on fresh (docs/journal.md 2026-11-01).
+WATCH = ["TrendEmaVolTarget2h"]
+WATCH_UNIVERSES = {"core_gold": ["TrendEmaVolTarget"]}
 
 
 def run(args: list[str], capture: bool = False) -> tuple[int, str]:
@@ -45,19 +49,25 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
     """(title, ft.py arguments, capture output for the report?) in run order."""
     steps: list[tuple[str, list[str], bool]] = []
     if download:
-        steps += [("download core", ["download"], False), ("download wide", ["download", "--universe", "wide"], False)]
+        steps.append(("download core", ["download"], False))
+        for universe in [u for u in UNIVERSES if u != "core"] + list(WATCH_UNIVERSES):
+            steps.append((f"download {universe}", ["download", "--universe", universe], False))
         if with_nfi:
             steps.append(("download 5m", ["download", "--fine"], False))
     for universe in UNIVERSES:
         extra = [] if universe == "core" else ["--universe", universe]
-        steps.append((f"backtest {universe}", ["backtest", "--slice", "fresh", *extra, "--strategy", *CANDIDATES], False))
+        steps.append((f"backtest {universe}", ["backtest", "--slice", "fresh", *extra, "--strategy", *CANDIDATES, *WATCH], False))
+    for universe, names in WATCH_UNIVERSES.items():
+        steps.append((f"backtest {universe} (watch)", ["backtest", "--slice", "fresh", "--universe", universe, "--strategy", *names], False))
     if with_nfi:
         steps.append(("backtest NFI", ["backtest", "--slice", "fresh", "--strategy", "NostalgiaForInfinityX8"], False))
     shown = CANDIDATES + (["NostalgiaForInfinityX8"] if with_nfi else [])
     for universe in UNIVERSES:
         extra = [] if universe == "core" else ["--universe", universe]
         names = shown if universe == "core" else CANDIDATES
-        steps.append((f"bots {universe}", ["bots", "--slice", "fresh", *extra, "--strategy", *names], True))
+        steps.append((f"bots {universe}", ["bots", "--slice", "fresh", *extra, "--strategy", *names, *WATCH], True))
+    for universe, names in WATCH_UNIVERSES.items():
+        steps.append((f"bots {universe} (watch)", ["bots", "--slice", "fresh", "--universe", universe, "--strategy", *names], True))
     return steps
 
 
