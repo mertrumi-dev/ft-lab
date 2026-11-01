@@ -45,6 +45,31 @@ def buy_and_hold_equity(closes: dict[str, pd.Series], fee: float) -> pd.Series:
     return equity
 
 
+def dca_equity(closes: dict[str, pd.Series], fee: float, every: str = "W") -> pd.Series:
+    """DCA (regular buying): same starting money, but spent in equal parts over the slice.
+
+    The capital (1.0) starts as cash. On the first candle of each `every` period
+    (default: each calendar week, Monday) an equal part is spent, split equally across the pairs.
+    The last part is spent in the last period, so at the end everything is in
+    coins. Like buy-and-hold, everything is sold at the last candle (fee paid).
+    Cash earns nothing here; a savings account would add interest on it.
+    """
+    frame = pd.DataFrame(closes).dropna()
+    if frame.empty:
+        raise ValueError("no overlapping data for these pairs in this slice")
+    # Calendar periods ("W" = Monday-Sunday weeks), not 7-day blocks from 1970.
+    periods = frame.index.tz_localize(None).to_period(every)
+    buy_rows = ~periods.duplicated()  # first candle of every period
+    n_buys = int(buy_rows.sum())
+    per_pair = 1.0 / n_buys / frame.shape[1]  # cash spent on each pair per buy
+    bought = (per_pair * (1 - fee) / frame).mul(buy_rows.astype(float), axis=0)
+    units = bought.cumsum()  # coins owned after each candle
+    cash = 1.0 - pd.Series(buy_rows.astype(float), index=frame.index).cumsum() / n_buys
+    equity = (frame * units).sum(axis=1) + cash
+    equity.iloc[-1] = (frame.iloc[-1] * units.iloc[-1]).sum() * (1 - fee) + cash.iloc[-1]
+    return equity
+
+
 def max_drawdown(equity: pd.Series) -> float:
     """Largest fall from a peak, as a positive ratio (0.5 = -50%)."""
     return float((1 - equity / equity.cummax()).max())
@@ -127,6 +152,7 @@ def main() -> None:
     args = parser.parse_args()
 
     r = run(args.slice, args.timeframe, args.fee, universe=args.universe)
+    dca = summarize(dca_equity(r["closes"], args.fee))
     print(f"Buy-and-hold benchmark, {r['slice']} slice (--timerange {r['timerange']})")
     print(f"Pairs: {', '.join(r['pairs'])}  equal weight, fee {r['fee']:.2%} per side")
     print(f"Period:        {r['start']} -> {r['end']}")
@@ -134,6 +160,12 @@ def main() -> None:
     print(f"CAGR:          {r['cagr']:+.1%}  (yearly growth rate)")
     print(f"Max drawdown:  {r['max_drawdown']:.1%}  (worst fall from a peak)")
     print(f"Calmar:        {r['calmar']:.2f}  (CAGR / max drawdown)")
+    print()
+    print("DCA: same money, spent in equal weekly parts over the slice")
+    print(f"Total return:  {dca['total_return']:+.1%}")
+    print(f"CAGR:          {dca['cagr']:+.1%}")
+    print(f"Max drawdown:  {dca['max_drawdown']:.1%}")
+    print(f"Calmar:        {dca['calmar']:.2f}")
 
 
 if __name__ == "__main__":

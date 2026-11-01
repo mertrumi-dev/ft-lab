@@ -357,3 +357,34 @@ def test_montecarlo_command_runs_in_docker_and_never_on_test_slice():
     assert "/freqtrade/scripts/montecarlo.py" in c
     with pytest.raises(SystemExit):
         cmds("montecarlo", "--slice", "test", "--strategy", "TrendEma")
+
+
+def _hourly(values, start="2024-01-01"):
+    return pd.Series(values, index=pd.date_range(start, periods=len(values), freq="1h", tz="UTC"), dtype=float)
+
+
+def test_dca_flat_price_keeps_money_without_fee():
+    eq = benchmark.dca_equity({"A": _hourly([100.0] * 24 * 21)}, fee=0.0)
+    assert eq.iloc[0] == pytest.approx(1.0)
+    assert eq.iloc[-1] == pytest.approx(1.0)
+
+
+def test_dca_spends_everything_by_the_end():
+    # 3 weeks -> 3 buys; price doubles in week 3, only coins gain
+    prices = [100.0] * (24 * 14) + [200.0] * (24 * 7)
+    eq = benchmark.dca_equity({"A": _hourly(prices)}, fee=0.0)
+    # 2/3 bought at 100 (now worth 2x), 1/3 bought at 200 (1x) -> 4/3 + 1/3
+    assert eq.iloc[-1] == pytest.approx(2 * 2 / 3 + 1 / 3)
+
+
+def test_dca_falls_less_than_buy_and_hold_in_an_early_crash():
+    prices = [100.0] + [50.0] * (24 * 28)
+    closes = {"A": _hourly(prices)}
+    dca = benchmark.max_drawdown(benchmark.dca_equity(closes, fee=0.0))
+    bh = benchmark.max_drawdown(benchmark.buy_and_hold_equity(closes, fee=0.0))
+    assert dca < bh
+
+
+def test_dca_pays_fee_on_buys_and_final_sale():
+    eq = benchmark.dca_equity({"A": _hourly([100.0] * 24 * 14)}, fee=0.01)
+    assert eq.iloc[-1] == pytest.approx(0.99 * 0.99)
