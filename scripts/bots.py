@@ -202,6 +202,11 @@ def main() -> None:
             ts = next(r_ for n_, r_ in rows if n_.startswith("TSMOM"))
             mix = with_years(equal_mix(curve["equity"], ts["equity"]), r["trades"] + ts["trades"])
             rows.append(("VolTarget 50% + TSMOM 50%", mix))
+    # Speed ensemble (pre-registered 2026-11-01): 1h and 2h VolTarget, two half accounts.
+    curves = {n: r_ for n, r_ in rows}
+    if "TrendEmaVolTarget" in curves and "TrendEmaVolTarget2h" in curves:
+        a, b = curves["TrendEmaVolTarget"], curves["TrendEmaVolTarget2h"]
+        rows.append(("VolTarget 1h+2h 50/50", with_years(equal_mix(a["equity"], b["equity"]), a["trades"] + b["trades"])))
 
     warn = window_warning(s.start, bh["index"])
     if warn:

@@ -227,3 +227,8 @@ def test_equal_mix_three_accounts_and_half_and_half_unchanged():
 def test_voltarget_tsmom_row_is_wired():
     src = (Path(__file__).resolve().parent.parent / "scripts" / "bots.py").read_text()
     assert '"VolTarget 50% + TSMOM 50%"' in src and "equal_mix(curve[\"equity\"], ts[\"equity\"])" in src
+
+
+def test_speed_ensemble_row_is_wired():
+    src = (Path(__file__).resolve().parent.parent / "scripts" / "bots.py").read_text()
+    assert '"VolTarget 1h+2h 50/50"' in src and 'curves["TrendEmaVolTarget2h"]' in src
