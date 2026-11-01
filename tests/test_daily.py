@@ -46,3 +46,19 @@ def test_watch_rows_are_tracked_on_fresh_only():
 def test_speed_ensemble_legs_are_both_tracked():
     flat = [a for _, args, _ in daily.plan(False, True) for a in args]
     assert "TrendEmaVolTarget" in flat and "TrendEmaVolTarget2h" in flat
+
+
+def test_append_breadth_is_idempotent_per_date(tmp_path):
+    p = tmp_path / "b.csv"
+    daily.append_breadth(p, "2026-11-01,61,0.130,8,0,below,below,below,below,below")
+    daily.append_breadth(p, "2026-11-02,61,0.200,9,1,trend,below,below,below,below")
+    daily.append_breadth(p, "2026-11-01,61,0.150,8,0,below,below,below,below,below")  # rerun same day
+    lines = p.read_text().splitlines()
+    assert lines[0] == daily.BREADTH_HEADER
+    assert lines[1:] == ["2026-11-01,61,0.150,8,0,below,below,below,below,below",
+                         "2026-11-02,61,0.200,9,1,trend,below,below,below,below"]
+
+
+def test_daily_runs_scan_with_csv_last():
+    t, args, capture = daily.plan(False, True)[-1]
+    assert args == ["scan", "--csv"] and capture

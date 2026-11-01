@@ -100,13 +100,32 @@ def render(df: pd.DataFrame, skipped: list[str]) -> str:
     return "\n".join(lines)
 
 
+CSV_HEADER = "date,n_coins,breadth,n_in_trend,n_entry_now," + ",".join(c.split("/")[0] for c in CORE_5)
+SHORT = {"ENTRY NOW": "entry", "in trend": "trend", "above EMA200, short trend down": "above_down", "below EMA200": "below"}
+
+
+def breadth_line(df: pd.DataFrame) -> str:
+    """One CSV row (see CSV_HEADER) describing the market on the scan's last candle."""
+    date = str(pd.Timestamp(df["candle"].max()).date())
+    states = dict(zip(df["pair"], df["state"]))
+    core = [SHORT.get(states.get(c, ""), "na") for c in CORE_5]
+    return ",".join([
+        date, str(len(df)), f"{(df['vs_ema200'] > 0).mean():.3f}",
+        str(int((df["state"] == STATES[1]).sum())), str(int((df["state"] == STATES[0]).sum())), *core,
+    ])  # fmt: skip
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--universe", choices=[u for u in UNIVERSES if UNIVERSES[u]] + ["core"], default="pool")
     p.add_argument("--data-dir", type=Path, default=DATA_DIR)
+    p.add_argument("--csv", action="store_true", help="also print one 'breadth_csv: ...' line (for daily.py)")
     a = p.parse_args()
     pairs = UNIVERSES[a.universe] or CORE_5
-    print(render(*scan(pairs, a.data_dir)))
+    df, skipped = scan(pairs, a.data_dir)
+    print(render(df, skipped))
+    if a.csv and not df.empty:
+        print(f"breadth_csv: {breadth_line(df)}")
 
 
 if __name__ == "__main__":

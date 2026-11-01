@@ -23,6 +23,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 FT = [sys.executable, str(ROOT / "scripts" / "ft.py")]
 OUT_DIR = ROOT / "docs" / "fresh"
+BREADTH_CSV = OUT_DIR / "breadth.csv"
+BREADTH_HEADER = "date,n_coins,breadth,n_in_trend,n_entry_now,BTC,ETH,SOL,BNB,XRP"
 
 # The strategy the dry-run bot runs + the current candidate(s). NFI runs on 5m
 # candles and takes much longer, so it is opt-in (--with-nfi).
@@ -43,6 +45,15 @@ def table_lines(text: str) -> str:
     """Keep the result lines, drop docker noise."""
     keep = [line for line in text.splitlines() if not line.startswith(("$ docker", " Container"))]
     return "\n".join(keep).strip()
+
+
+def append_breadth(path: Path, line: str, header: str = BREADTH_HEADER) -> None:
+    """Add today's breadth row; a second run on the same date replaces that date's row."""
+    date = line.split(",", 1)[0]
+    rows = path.read_text().splitlines()[1:] if path.exists() else []
+    rows = [r for r in rows if not r.startswith(date + ",")] + [line]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join([header, *sorted(rows)]) + "\n")
 
 
 def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
@@ -68,6 +79,7 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
         steps.append((f"bots {universe}", ["bots", "--slice", "fresh", *extra, "--strategy", *names, *WATCH], True))
     for universe, names in WATCH_UNIVERSES.items():
         steps.append((f"bots {universe} (watch)", ["bots", "--slice", "fresh", "--universe", universe, "--strategy", *names], True))
+    steps.append(("scan pool", ["scan", "--csv"], True))  # record only: market breadth per day
     return steps
 
 
@@ -88,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
             return code
         if capture:
             print(out)
+            for ln in out.splitlines():
+                if ln.startswith("breadth_csv: "):
+                    append_breadth(BREADTH_CSV, ln.removeprefix("breadth_csv: ").strip())
             report += [f"## {title}", "", "```", table_lines(out), "```", ""]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"{today}.md"

@@ -197,6 +197,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
                 "--entrypoint", "python",
                 "freqtrade", "/freqtrade/scripts/scan.py", "--universe", args.universe,
+                *(["--csv"] if getattr(args, "csv", False) else []),
             ],
         ]  # fmt: skip
 
@@ -321,6 +322,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     sc = sub.add_parser("scan", help="what our rule sees on many coins right now (downloads 1h first)")
     sc.add_argument("--universe", choices=UNIVERSES, default="pool")
+    sc.add_argument("--csv", action="store_true", help="also print a breadth_csv line (daily.py records it)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
     bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)

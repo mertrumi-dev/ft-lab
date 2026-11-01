@@ -442,3 +442,16 @@ def test_core_gold_universe_is_core_plus_paxg():
 
     assert UNIVERSES["core_gold"][:5] == ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
     assert UNIVERSES["core_gold"][5] == "PAXG/USDT" and len(UNIVERSES["core_gold"]) == 6
+
+
+def test_scan_breadth_line_and_ft_passthrough():
+    pytest.importorskip("pandas")
+    import scan
+
+    df = pd.DataFrame({"pair": ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "ADA/USDT"],
+                       "state": ["in trend", "below EMA200", "ENTRY NOW", "below EMA200", "above EMA200, short trend down", "below EMA200"],
+                       "vs_ema200": [0.01, -0.02, 0.03, -0.01, 0.005, -0.04], "candle": [pd.Timestamp("2026-11-01 12:00", tz="UTC")] * 6})
+    assert scan.breadth_line(df) == "2026-11-01,6,0.500,1,1,trend,below,entry,below,above_down"
+    assert scan.CSV_HEADER == "date,n_coins,breadth,n_in_trend,n_entry_now,BTC,ETH,SOL,BNB,XRP"
+    c = ft.build_commands(ft.parse_args(["scan", "--csv"]))[-1]
+    assert c[-1] == "--csv"
