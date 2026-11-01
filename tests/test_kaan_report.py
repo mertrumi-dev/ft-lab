@@ -108,11 +108,17 @@ def test_report_points_to_the_checklist_only_when_latched():
 
 
 def test_forward_bots_side_by_side():
-    rows = [{"name": "VolTarget (ana bot)", "running": True, "open": 1, "closed": 3, "profit": -2.5, "worst": 0.01},
-            {"name": "ADX20 (paralel bot)", "running": False}]
+    rows = [{"name": "VolTarget (ana bot)", "running": True, "open": 1, "closed": 3, "profit": -2.5, "worst": 0.01,
+             "status": "ft-lab Up 3 hours", "errors": 0},
+            {"name": "ADX20 (paralel bot)", "running": False, "status": "ft-lab-fwd-adx20 Exited (1) 2 minutes ago"}]
     text = kaan_report.render("2026-11-02", {}, "", [], "", "", "", (0, 0), forward=rows)
-    assert "Sahte para botları yan yana" in text and "| VolTarget (ana bot) | 1 | 3 | -2.50 USDT | %1.0 |" in text
-    assert "| ADX20 (paralel bot) | - | - | henüz başlamadı | - |" in text and "50'den az" in text
+    assert "Sahte para botları yan yana" in text and "| VolTarget (ana bot) | çalışıyor, 0 hata | 1 | 3 | -2.50 USDT | %1.0 |" in text
+    assert "| ADX20 (paralel bot) | DURMUŞ | - | - | henüz başlamadı | - |" in text and "50'den az" in text
+
+
+def test_bot_state_without_docker_info():
+    assert kaan_report._bot_state({}) == "-"
+    assert kaan_report._bot_state({"status": "okunamadı (FileNotFoundError)"}) == "okunamadı"
 
 
 def test_daily_forward_rows_read_each_bot_db():

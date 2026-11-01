@@ -93,6 +93,16 @@ def chart_reading(text: str) -> list[str]:
     return [f"**{body[0]}**", *body[1:]]
 
 
+def _bot_state(f: dict) -> str:
+    """'çalışıyor' / 'DURMUŞ' from the docker status, plus the last-24h error count when known."""
+    status = f.get("status")
+    if status is None:
+        return "-"
+    state = "çalışıyor" if " Up " in f" {status} " else ("okunamadı" if "okunamadı" in status else "DURMUŞ")
+    errors = f.get("errors")
+    return state if errors is None else f"{state}, {errors} hata"
+
+
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
            execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "",
            ai_score_text: str = "", charts: list[str] | None = None, forward_text: str = "",
@@ -159,12 +169,13 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
         lines.append("- ... tamamı: docs/fresh/trades-explained.md")
     if forward:
         lines += ["", "## Sahte para botları yan yana (sadece yargı, kurallar buna göre değişmez)", "",
-                  "| Bot | Açık | Kapanmış | Gerçekleşen K/Z | En kötü düşüş |", "|---|---|---|---|---|"]
+                  "| Bot | Durum | Açık | Kapanmış | Gerçekleşen K/Z | En kötü düşüş |", "|---|---|---|---|---|---|"]
         for f in forward:
+            state = _bot_state(f)
             if not f.get("running"):
-                lines.append(f"| {f['name']} | - | - | henüz başlamadı | - |")
+                lines.append(f"| {f['name']} | {state} | - | - | henüz başlamadı | - |")
                 continue
-            lines.append(f"| {f['name']} | {f['open']} | {f['closed']} | {f['profit']:+.2f} USDT | %{f.get('worst', 0.0) * 100:.1f} |")
+            lines.append(f"| {f['name']} | {state} | {f['open']} | {f['closed']} | {f['profit']:+.2f} USDT | %{f.get('worst', 0.0) * 100:.1f} |")
         lines.append("50'den az kapanmış işlemle bu karşılaştırma henüz anlamlı değil.")
     if prereg:
         lines += ["", "## Ön kayıtlı fikirler (sadece yeni veride, hüküm günü gelmeden karar yok)", ""]

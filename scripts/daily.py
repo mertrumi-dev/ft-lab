@@ -33,7 +33,7 @@ BREADTH_HEADER = "date,n_coins,breadth,n_in_trend,n_entry_now,BTC,ETH,SOL,BNB,XR
 
 # The strategy the dry-run bot runs + the current candidate(s). NFI runs on 5m
 # candles and takes much longer, so it is opt-in (--with-nfi).
-CANDIDATES = ["TrendEma", "TrendEmaBtcRising", "TrendEmaBtcRisingGap", "TrendEmaVolTarget"]
+CANDIDATES = ["TrendEma", "TrendEmaBtcRising", "TrendEmaBtcRisingGap", "TrendEmaVolTarget", "TrendEmaVolTargetAdx"]
 UNIVERSES = ["core", "wide", "alt2022", "alt2023", "alt2024"]
 # "Watch" rows: rules that FAILED their pre-registered tests but looked good on validation.
 # Tracked forward for judging only; never tuned on fresh (docs/journal.md 2026-11-01).
@@ -89,9 +89,16 @@ FORWARD_NAMES = {"freqtrade": "VolTarget (ana bot)", "forward-adx20": "ADX20 (pa
 def forward_rows() -> list[dict]:
     """Each dry-run bot's realized results from its own DB (read-only): judgement only, never tuning."""
     rows = []
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
     for service, db in health.SERVICES.items():
         t = health.trade_summary(db)
-        rows.append({"name": FORWARD_NAMES.get(service, service), "running": db.exists(), **t})
+        row = {"name": FORWARD_NAMES.get(service, service), "running": db.exists(), **t}
+        try:  # container state + last-24h errors from that bot's own log
+            row["status"] = health.container_status(service)
+            row["errors"] = len(health.summarize_log(health.read_log_lines(service), since).other_errors)
+        except Exception as e:  # the report must still be written if docker is unreachable
+            row["status"] = f"okunamadı ({e.__class__.__name__})"
+        rows.append(row)
     return rows
 
 
