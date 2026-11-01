@@ -608,3 +608,17 @@ Komut: `ft.py backtest/report/montecarlo --slice train --no-kill-switch [--unive
 - Monte Carlo'da en kötü senaryo düşüşü %46,5.
 
 Dürüstlük notu: Bu, validation'a baktıktan sonra Pyramid üzerine eklenen ikinci değişiklik. Bu yüzden validation #4'ten önce sağlamlık testi şart: BTC EMA 150/250 ve ekleme eşiği +%3/+%6 komşuları, ayrıca 2 kat komisyon.
+
+### PyramidBtc sağlamlık (train)
+
+| Komşu | Calmar | DD |
+|---|---|---|
+| BTC EMA150 | 3,96 | 19,7% |
+| **BTC EMA200 + %4 (aday)** | **4,16** | 19,4% |
+| BTC EMA250 | 4,00 | 20,0% |
+| Ekleme eşiği +%3 | 3,24 | 23,2% |
+| Ekleme eşiği +%6 | 3,78 | 20,1% |
+
+- Komşuların hepsi TrendEma'yı (2,70) geçiyor. Sonuçlar birbirine yakın, yani tek bir şanslı ayara bağlı değil (plato).
+- 2 kat komisyonla: PyramidBtc 2,99, Pyramid 2,41, TrendEma 1,81.
+- Karar: validation #4'e giriyor.
