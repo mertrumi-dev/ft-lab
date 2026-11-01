@@ -48,4 +48,18 @@ ALT_2024 = [
     "KAS/USDT",
 ]  # fmt: skip
 
-UNIVERSES = {"core": None, "wide": WIDE_2021, "alt2023": ALT_2023, "alt2024": ALT_2024}  # None = pairs from config.json
+# alt2022 (added 2026-11-01, BEFORE any backtest on it; never changed after results):
+# a fifth untouched group. Rule: coins roughly in the top ~60 by market cap around
+# January 2022, minus stablecoins and everything in core, wide, alt2023 or alt2024.
+# Listed in full, including coins that later collapsed or left Binance (LUNA, FTT,
+# WAVES, XMR, HNT): the tools skip pairs without data, so the run says how many
+# survived. That skip is itself survivorship bias; it is reported, not hidden.
+ALT_2022 = [
+    "AXS/USDT", "GALA/USDT", "ENJ/USDT", "KSM/USDT", "ZEC/USDT", "NEO/USDT", "IOTA/USDT",
+    "DASH/USDT", "AR/USDT", "CRV/USDT", "LRC/USDT", "FLOW/USDT", "ONE/USDT", "CAKE/USDT",
+    "CELO/USDT", "LUNA/USDT", "FTT/USDT", "WAVES/USDT", "XMR/USDT", "HNT/USDT",
+]  # fmt: skip
+
+UNIVERSES = {
+    "core": None, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
+}  # None = pairs from config.json

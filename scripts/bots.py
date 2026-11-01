@@ -22,6 +22,7 @@ import dcabot  # noqa: E402
 import grid  # noqa: E402
 import report  # noqa: E402
 import rotation  # noqa: E402
+import tsmom  # noqa: E402
 from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, load_closes, summarize, universe_pairs, window_warning  # noqa: E402
 from benchmark import run as benchmark_run  # noqa: E402
 from equity import build_curve  # noqa: E402
@@ -81,6 +82,33 @@ def equal_mix(*curves: pd.Series) -> pd.Series:
     return (frame / frame.iloc[0]).mean(axis=1)
 
 
+def tsmom_bot(
+    slice_name: str, universe: str, fee: float, data_dir: Path = DATA_DIR, start: pd.Timestamp | None = None
+) -> dict:
+    """Time-series momentum with volatility scaling (scripts/tsmom.py) on the same coins and window.
+
+    Simulated from the first candle of data (so positions that were already on
+    when the window opens are held), then cut to the window and rescaled to
+    start at 1.0, like report.py does with Freqtrade trades.
+    """
+    s = SLICES[slice_name]
+    full = {}
+    for pair in universe_pairs(universe):
+        try:
+            full[pair] = load_closes(pair, "1h", data_dir)
+        except FileNotFoundError:
+            continue
+    end = pd.Timestamp(s.end, tz="UTC")
+    start = max(start, pd.Timestamp(s.start, tz="UTC")) if start is not None else pd.Timestamp(s.start, tz="UTC")
+    hourly = pd.DataFrame(full).sort_index().ffill()
+    hourly = hourly[hourly.index < end]
+    weights = tsmom.target_weights(rotation.daily_closes(full))
+    equity, _ = tsmom.simulate(hourly, weights, fee)
+    window = equity[equity.index >= start]
+    orders = int(sum(1 for d in weights.index if d + pd.Timedelta(days=1) >= start and d + pd.Timedelta(days=1) < end))
+    return with_years(window / window.iloc[0], orders)
+
+
 def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
     """Two separate accounts with half the money each (equal_mix of two)."""
     return equal_mix(a, b)
@@ -130,7 +158,8 @@ def main() -> None:
                 lambda c, cash, fee: grid.simulate_pair(c, cash, fee=fee), args.slice, args.universe, args.fee)),
             ("DCA bot (3Commas-style)", simulate_bot(
                 dcabot.simulate_pair, args.slice, args.universe, args.fee)),
-            ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee, start=bh["index"][0]))]  # fmt: skip
+            ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee, start=bh["index"][0])),
+            ("TSMOM (ours, daily, vol-scaled)", tsmom_bot(args.slice, args.universe, args.fee, start=bh["index"][0]))]  # fmt: skip
     # Research row (ours, pre-registered): DCA bot + BTC start gate + 8% deal stop.
     btc_daily = pd.read_feather(DATA_DIR / "BTC_USDT-1d.feather")
     rows.append(("DCA bot + BTC gate + 8% stop (ours)", simulate_bot(
@@ -178,7 +207,7 @@ def main() -> None:
     print("-" * len(head))
     for name, r in rows:
         print(row(name, r))
-    print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals, rotation = orders.")
+    print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals, rotation = orders, TSMOM = trading days.")
     print()
     print(format_years(rows))
 
