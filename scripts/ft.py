@@ -13,6 +13,12 @@ every run to docs/experiments.md so we can count how many times we tried.
     .venv/bin/python scripts/ft.py backtest --slice validation
     .venv/bin/python scripts/ft.py backtest --slice test --final-test   # once per strategy!
     .venv/bin/python scripts/ft.py hyperopt --epochs 200 --spaces buy sell
+
+    # robustness (Phase 3): other coins, double fee
+    .venv/bin/python scripts/ft.py download --universe wide
+    .venv/bin/python scripts/ft.py backtest --slice train --universe wide --strategy TrendEmaSlow
+    .venv/bin/python scripts/ft.py backtest --slice train --fee-stress --strategy TrendEmaSlow
+    .venv/bin/python scripts/ft.py report --slice train --universe wide
 """
 
 import argparse
@@ -23,11 +29,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from splits import DATA_START, SLICES  # noqa: E402
+from universe import UNIVERSES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 EXPERIMENTS_LOG = ROOT / "docs" / "experiments.md"
 CONFIG = "/freqtrade/user_data/config/config.json"  # path inside the container
 FEE = "0.0015"
+STRESS_FEE = "0.003"  # 2x: does the rule survive much worse costs?
 DEFAULT_STRATEGY = "TrendEma"
 # Extra months before DATA_START so EMA200 has warm-up candles.
 DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
@@ -48,6 +56,16 @@ def timeframe_of(strategy: str) -> str:
     return STRATEGY_TIMEFRAMES.get(strategy, "1h")
 
 
+def pairs_args(args: argparse.Namespace) -> list[str]:
+    """Extra --pairs for a non-default universe; empty = pairs from config.json."""
+    pairs = UNIVERSES[getattr(args, "universe", "core")]
+    return ["--pairs", *pairs] if pairs else []
+
+
+def fee_of(args: argparse.Namespace) -> str:
+    return STRESS_FEE if getattr(args, "fee_stress", False) else FEE
+
+
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
     if args.command == "download":
@@ -55,6 +73,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "download-data", "--config", CONFIG,
             "--timerange", f"{DOWNLOAD_FROM}-",
             "--timeframes", "1h", "4h",
+            *pairs_args(args),
         )]  # fmt: skip
 
     if args.command == "backtest":
@@ -73,9 +92,10 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "--strategy-list", *strategies,
                 "--timeframe", timeframe,
                 "--timerange", SLICES[args.slice].timerange,
-                "--fee", FEE,
+                "--fee", fee_of(args),
                 "--enable-protections",  # include our risk brakes in the simulation
                 "--export", "trades",
+                *pairs_args(args),
             )
             for timeframe, strategies in groups.items()
         ]  # fmt: skip
@@ -84,6 +104,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         # Runs our script inside the Freqtrade container, which already has
         # pandas and freqtrade, so no local Python setup is needed.
         extra = ["--timeframe", "1h"] if args.command == "benchmark" else []
+        extra += ["--universe", args.universe, "--fee", fee_of(args)]
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
@@ -124,26 +145,38 @@ def log_run(args: argparse.Namespace) -> None:
         if strategies == ["all"]:
             strategies = ALL_STRATEGIES
         for strategy in strategies:
-            f.write(f"| {now} | {args.command} | {strategy} | {slice_name} | |\n")
+            note = []
+            if getattr(args, "universe", "core") != "core":
+                note.append(f"universe {args.universe}")
+            if getattr(args, "fee_stress", False):
+                note.append(f"fee {STRESS_FEE}")
+            f.write(f"| {now} | {args.command} | {strategy} | {slice_name} | {', '.join(note)} |\n")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Safe Freqtrade wrapper for ft-lab")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("download", help="download 1h and 4h candles for all pairs")
+    dl = sub.add_parser("download", help="download 1h and 4h candles for all pairs")
+    dl.add_argument("--universe", choices=UNIVERSES, default="core")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
     bt.add_argument("--slice", choices=["train", "validation", "test"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
+    bt.add_argument("--universe", choices=UNIVERSES, default="core", help="which coins (scripts/universe.py)")
+    bt.add_argument("--fee-stress", action="store_true", help=f"fee {STRESS_FEE} instead of {FEE}")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
     bm.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    bm.add_argument("--universe", choices=UNIVERSES, default="core")
+    bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
     rp.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    rp.add_argument("--universe", choices=UNIVERSES, default="core")
+    rp.add_argument("--fee-stress", action="store_true")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)

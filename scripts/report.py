@@ -13,14 +13,34 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import benchmark  # noqa: E402
 from splits import SLICES  # noqa: E402
+from universe import UNIVERSES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "user_data" / "backtest_results"
 MIN_TRADES = 50
 
 
-def latest_stats_per_strategy(timerange: str, results_dir: Path = RESULTS_DIR) -> dict[str, dict]:
-    """Newest result per strategy for this exact timerange."""
+def result_fee(stats: dict) -> float | None:
+    """Fee the backtest used, read from its first trade (None if it made no trades)."""
+    trades = stats.get("trades") or []
+    return trades[0].get("fee_open") if trades else None
+
+
+def matches(stats: dict, timerange: str, pairs: list[str], fee: float) -> bool:
+    """Same slice, same coin universe, same fee: only then are rows comparable."""
+    run_fee = result_fee(stats)
+    return (
+        stats.get("timerange") == timerange
+        and set(stats.get("pairlist", [])) <= set(pairs)
+        and run_fee is not None
+        and abs(run_fee - fee) < 1e-9
+    )
+
+
+def latest_stats_per_strategy(
+    timerange: str, pairs: list[str], fee: float, results_dir: Path = RESULTS_DIR
+) -> dict[str, dict]:
+    """Newest result per strategy for this timerange, universe and fee."""
     from freqtrade.data.btanalysis import load_backtest_stats
     from freqtrade.data.btanalysis.bt_fileutils import _get_backtest_files
 
@@ -28,7 +48,7 @@ def latest_stats_per_strategy(timerange: str, results_dir: Path = RESULTS_DIR) -
     for path in _get_backtest_files(results_dir):  # newest first
         data = load_backtest_stats(path)
         for name, stats in data.get("strategy", {}).items():
-            if name not in found and stats.get("timerange") == timerange:
+            if name not in found and matches(stats, timerange, pairs, fee):
                 found[name] = stats
     return found
 
@@ -79,15 +99,25 @@ def format_table(rows: list[dict], bh: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    parser.add_argument("--universe", choices=UNIVERSES, default="core")
+    parser.add_argument("--fee", type=float, default=benchmark.DEFAULT_FEE)
     args = parser.parse_args()
 
     s = SLICES[args.slice]
-    bh = benchmark.run(args.slice, "1h", benchmark.DEFAULT_FEE)
-    stats = latest_stats_per_strategy(s.timerange)
+    bh = benchmark.run(args.slice, "1h", args.fee, universe=args.universe)
+    stats = latest_stats_per_strategy(s.timerange, benchmark.universe_pairs(args.universe), args.fee)
     if not stats:
-        raise SystemExit(f"No backtest results for --timerange {s.timerange}. Run ft.py backtest first.")
+        raise SystemExit(
+            f"No backtest results for --timerange {s.timerange}, universe {args.universe}, "
+            f"fee {args.fee}. Run ft.py backtest first."
+        )
     rows = [strategy_row(name, st) for name, st in stats.items()]
-    print(f"Slice: {args.slice}  --timerange {s.timerange}  fee 0.15%/side  start 1000 USDT")
+    print(
+        f"Slice: {args.slice}  --timerange {s.timerange}  universe {args.universe} "
+        f"({len(bh['pairs'])} coins)  fee {args.fee:.2%}/side  start 1000 USDT"
+    )
+    if bh["skipped"]:
+        print(f"No data (skipped): {', '.join(bh['skipped'])}")
     print(format_table(rows, bh))
 
 

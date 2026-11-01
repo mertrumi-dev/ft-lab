@@ -195,3 +195,57 @@ def test_table_has_benchmark_and_strategies():
     text = report.format_table(rows, BH)
     names = [line.split()[0] for line in text.splitlines()[2:]]
     assert names == ["BUY", "A", "B"]  # benchmark first, then best Calmar first
+
+
+# --- robustness: other coins, double fee ------------------------------------------
+
+from universe import WIDE_2021  # noqa: E402
+
+
+def test_default_backtest_uses_config_pairs_and_normal_fee():
+    c = cmd("backtest", "--slice", "train")
+    assert "--pairs" not in c
+    assert c[c.index("--fee") + 1] == "0.0015"
+
+
+def test_wide_universe_adds_pairs_and_keeps_slice_lock():
+    c = cmd("backtest", "--slice", "train", "--universe", "wide")
+    assert c[c.index("--pairs") + 1:] == WIDE_2021
+    with pytest.raises(SystemExit):
+        cmds("backtest", "--slice", "test", "--universe", "wide")
+
+
+def test_wide_universe_has_no_core_coins():
+    # core and wide must not overlap, so report never mixes their results
+    assert not {"BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"} & set(WIDE_2021)
+
+
+def test_fee_stress_doubles_fee_only_when_asked():
+    c = cmd("backtest", "--slice", "train", "--fee-stress")
+    assert c[c.index("--fee") + 1] == "0.003"
+    r = cmd("report", "--slice", "train", "--fee-stress")
+    assert r[r.index("--fee") + 1] == "0.003"
+
+
+def test_report_only_compares_same_universe_and_fee():
+    base = {"timerange": "A", "pairlist": ["BTC/USDT"], "trades": [{"fee_open": 0.0015}]}
+    core = ["BTC/USDT", "ETH/USDT"]
+    assert report.matches(base, "A", core, 0.0015)
+    assert not report.matches(base, "B", core, 0.0015)  # other slice
+    assert not report.matches(base, "A", WIDE_2021, 0.0015)  # other coins
+    assert not report.matches(base, "A", core, 0.003)  # other fee
+    assert not report.matches({**base, "trades": []}, "A", core, 0.0015)  # no trades: unknown fee
+
+
+def test_wide_benchmark_skips_coins_without_data(tmp_path):
+    s = SLICES["train"]
+    idx = pd.date_range(s.start, s.end, freq="1h", tz="UTC", inclusive="left")
+    for pair in WIDE_2021[:-1]:  # last coin has no file (e.g. delisted)
+        df = pd.DataFrame({"date": idx, "open": 1.0, "high": 1.0, "low": 1.0,
+                           "close": np.linspace(100, 50, len(idx)), "volume": 1.0})
+        df.to_feather(tmp_path / f"{pair.replace('/', '_')}-1h.feather")
+    r = benchmark.run("train", "1h", fee=0.0, data_dir=tmp_path, universe="wide")
+    assert r["skipped"] == [WIDE_2021[-1]]
+    assert r["total_return"] == pytest.approx(-0.5, rel=1e-3)
+    with pytest.raises(FileNotFoundError):
+        benchmark.run("train", "1h", fee=0.0, data_dir=tmp_path, universe="core")

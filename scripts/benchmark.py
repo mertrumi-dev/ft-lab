@@ -16,6 +16,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from splits import SLICES  # noqa: E402
+from universe import UNIVERSES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = ROOT / "user_data" / "config" / "config.json"
@@ -64,17 +65,32 @@ def summarize(equity: pd.Series) -> dict:
     }
 
 
-def run(slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR) -> dict:
+def universe_pairs(universe: str = "core") -> list[str]:
+    pairs = UNIVERSES[universe]
+    return pairs if pairs else json.loads(CONFIG_FILE.read_text())["exchange"]["pair_whitelist"]
+
+
+def run(
+    slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR, universe: str = "core"
+) -> dict:
     s = SLICES[slice_name]
-    pairs = json.loads(CONFIG_FILE.read_text())["exchange"]["pair_whitelist"]
+    pairs = universe_pairs(universe)
     start = pd.Timestamp(s.start, tz="UTC")
     end = pd.Timestamp(s.end, tz="UTC")
-    closes = {}
+    closes, skipped = {}, []
     for pair in pairs:
-        series = load_closes(pair, timeframe, data_dir)
+        try:
+            series = load_closes(pair, timeframe, data_dir)
+        except FileNotFoundError:
+            if universe == "core":
+                raise  # core coins must always have data
+            skipped.append(pair)  # e.g. delisted from Binance, nothing to download
+            continue
         closes[pair] = series[(series.index >= start) & (series.index < end)]
     result = summarize(buy_and_hold_equity(closes, fee))
-    result.update(slice=slice_name, timerange=s.timerange, pairs=pairs, fee=fee)
+    result.update(
+        slice=slice_name, timerange=s.timerange, pairs=list(closes), skipped=skipped, fee=fee
+    )
     return result
 
 
@@ -83,9 +99,10 @@ def main() -> None:
     parser.add_argument("--slice", choices=["train", "validation", "test"], required=True)
     parser.add_argument("--timeframe", default="1h")
     parser.add_argument("--fee", type=float, default=DEFAULT_FEE)
+    parser.add_argument("--universe", choices=UNIVERSES, default="core")
     args = parser.parse_args()
 
-    r = run(args.slice, args.timeframe, args.fee)
+    r = run(args.slice, args.timeframe, args.fee, universe=args.universe)
     print(f"Buy-and-hold benchmark, {r['slice']} slice (--timerange {r['timerange']})")
     print(f"Pairs: {', '.join(r['pairs'])}  equal weight, fee {r['fee']:.2%} per side")
     print(f"Period:        {r['start']} -> {r['end']}")
