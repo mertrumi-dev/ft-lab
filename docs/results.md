@@ -570,3 +570,24 @@ Sıradaki: sağlamlık testleri. +%3 / +%6 komşuları, 2 kat komisyon, Monte Ca
   - En kötü işlem sermayenin -%1,14'ü. Bunun %1'i aşan kısmı, iki giriş ve bir çıkışın komisyonu. -%1,3'ü aşan işlem yok ✔.
 
 Karar: Validation sınavına giriyor. Bu 3. validation bakışı. Ayrıca kill switch açık sonuç da raporlanacak.
+
+## 2026-11-01 · VALIDATION #3 · TrendEmaPyramid
+
+Komut: `ft.py backtest --slice validation [--no-kill-switch] --strategy TrendEma TrendEmaPyramid`, `report --by-year`, `bots`. Dönem `--timerange 20240613-20250807`, main 131fb59.
+
+| Bot | İşlem | Getiri | Saatlik DD | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|
+| Al-tut | - | +122,6% | 47,8% | 2,11 | - | referans |
+| Haftalık DCA | - | +60,6% | 36,5% | 1,40 | - | |
+| Grid bot | 1955 | +56,7% | 24,3% | 1,97 | - | |
+| DCA bot | 1020 | +41,3% | 19,9% | 1,76 | - | |
+| TrendEma %50 + Grid %50 | 2172 | +44,1% | 18,5% | 2,02 | - | |
+| TrendEma | 217 | +31,4% | 17,3% | 1,55 | 1,62 | FAIL |
+| **TrendEmaPyramid** | 218 | **+60,2%** | 24,1% | **2,10** | 1,80 | **FAIL, kıl payı** |
+
+- Pyramid iki şartı da çok az farkla kaçırıyor: Calmar 2,10'a 2,11 ve düşüş 24,1% (sınır, al-tut'un yarısı olan 23,9%).
+- Kill switch açık ve kapalı sonuçlar aynı. Train'de kill switch açıkken sonuç da aynı çıktı (3,69), yani gerçek işlem sırasında kill switch hiç tetiklenmedi.
+- PF train'de 1,60, validation'da 1,80. Validation'da düşmemesi, aşırı uydurma belirtisi olmadığını gösteriyor.
+- Yıl yıl: 2024 (Haziran-Aralık) +%58,1; 2025 (Ocak-Ağustos) +%1,4.
+
+Karar: Kural kuraldır. Pyramid validation'ı GEÇEMEDİ; canlıya/dry-run'a geçmiyor. Yine de bugüne kadarki en iyi adayımız: validation'da TrendEma'dan açık farkla iyi (1,55 → 2,10) ve al-tut ile neredeyse berabere. Dry-run TrendEma'da kalıyor. Validation 3 kez kullanıldı ve artık yıpranmaya başladı.
