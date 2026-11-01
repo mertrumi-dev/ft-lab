@@ -807,3 +807,17 @@ Okuma: Hiç görülmemiş 2018 çöküşü + toparlanma döneminde bizim trend k
 | early | 2,47 / 9,6% | 1,24 | 1,71 / 15,7% | 0,03 | 0,06 | -0,04 |
 
 Ölçüt: Calmar VolTarget'ten yüksek ≥3/5 (oldu: 1/5), DD daha düşük ≥4/5 (oldu: 1/5), early'de ≥ (olmadı) → **FAIL**. TSMOM yeni dönemlerde VolTarget'ten zayıf; karıştırmak onu aşağı çekiyor.
+
+## 2026-11-01 · VolTarget plato kontrolü (sadece train, sağlamlık)
+
+`ft.py backtest --slice train --no-kill-switch --strategy VTFast15 ... VTVol960` + `ft.py bots --slice train --no-kill-switch` (main 0c7c2f6), `--timerange 20210101-20240613`, 5 coin, fee 0.0015. Temel (VolTarget) Calmar 1,86; eşik: ≥ 1,30 (%70) VE > al-tut 1,69. Ünlü botlar: grid 1,32, DCA bot 0,82, haftalık DCA 0,52, TSMOM 2,90.
+
+| Parametre | Daha hızlı / küçük | **Temel** | Daha yavaş / büyük |
+|---|---|---|---|
+| Hızlı EMA (20) | 15 → **0,67** ✗ | 1,86 | 25 → 1,88 ✓ |
+| Yavaş EMA (50) | 40 → **0,98** ✗ | 1,86 | 60 → 1,57 (≥%70, al-tut altı) ✗ |
+| Trend EMA (200) | 150 → **1,22** ✗ | 1,86 | 250 → 1,91 ✓ |
+| Stop (-%8) | -%6 → 1,95 ✓ | 1,86 | -%10 → 1,86 ✓ |
+| Oynaklık penceresi (720) | 480 → 1,63 (≥%70, al-tut altı) ✗ | 1,86 | 960 → 1,81 ✓ |
+
+Sonuç: **Plato değil.** Stop ve oynaklık penceresi sağlam. EMA uzunlukları **hızlı yönde kırılgan**: 15/40/150 ile Calmar %35-65 düşüyor (daha çok testere işlemi). Yavaş yönde (25/250) aynı ya da biraz iyi. TrendEma'nın train komşularında da aynı desen görülmüştü. Bu bir seçim değil; kural değişmiyor.
