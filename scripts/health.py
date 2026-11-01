@@ -55,6 +55,8 @@ class LogSummary:
     network_by_cause: Counter = field(default_factory=Counter)
     other_errors: list[str] = field(default_factory=list)
     restarts: int = 0
+    longest_gap: timedelta = timedelta(0)  # longest time without a heartbeat (bot or Mac down/asleep)
+    longest_gap_start: datetime | None = None
 
 
 def parse_time(text: str) -> datetime:
@@ -98,6 +100,8 @@ def summarize_log(lines, since: datetime) -> LogSummary:
             gap = s.last_heartbeat is not None and when - s.last_heartbeat > HEARTBEAT_MAX_AGE
             if gap:
                 s.restarts += 1  # a gap = the bot (or the Mac) was down
+                if when >= since and when - s.last_heartbeat > s.longest_gap:
+                    s.longest_gap, s.longest_gap_start = when - s.last_heartbeat, s.last_heartbeat
             if s.first_heartbeat is None or gap:
                 s.first_heartbeat = when  # uptime counts from the latest uninterrupted run
             s.last_heartbeat = when
@@ -187,6 +191,8 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
     out.append(f"Network errors: {total_net}  (normal: a few per hour; a burst = no internet / Mac asleep)" + (f"  ({', '.join(f'{k} {v}' for k, v in s.network_by_cause.most_common())})" if total_net else ""))
     for hour, n in sorted(s.network_by_hour.items()):
         out.append(f"  {hour}h  {n:4d} {'#' * min(n, 50)}")
+    if s.longest_gap:
+        out.append(f"Longest gap:    {hours(s.longest_gap)} without a heartbeat, from {s.longest_gap_start:%Y-%m-%d %H:%M} UTC")
     out.append(f"Other errors:   {len(s.other_errors)}")
     out.extend(f"  {e}" for e in s.other_errors[-10:])
     out.append(f"Faz 0:          {phase0_verdict(s, now)}")

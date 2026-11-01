@@ -39,6 +39,19 @@ def breadth_rows(path: Path, days: int = 7) -> list[dict]:
         return list(csv.DictReader(f))[-days:]
 
 
+BOTS_ROW = re.compile(r"^(.*?)\s{2,}(\S+)\s+([+-]?[\d.]+%)\s+([+-]?[\d.]+%)\s+([\d.]+%)\s+(\S+)(\s+<50 trades)?\s*$")
+TABLE_HEAD = f"{'Bot':<36}{'İşlem':>7}{'Getiri':>10}{'Yıllık':>10}{'MaxDD':>8}{'Calmar':>8}"
+
+
+def tidy_bots_row(line: str) -> str:
+    """Re-align one bots-table row with a wide name column (long names broke the alignment)."""
+    m = BOTS_ROW.match(line)
+    if not m:
+        return line
+    name, trades, ret, cagr, mdd, calmar, few = m.groups()
+    return f"{name.strip():<36}{trades:>7}{ret:>10}{cagr:>10}{mdd:>8}{calmar:>8}" + ("  <50 işlem" if few else "")
+
+
 def bots_rows(bots_text: str) -> list[str]:
     """Only the rows Kaan needs from a `ft.py bots` table (first table; year rows skipped)."""
     out, seen = [], set()
@@ -47,7 +60,7 @@ def bots_rows(bots_text: str) -> list[str]:
             break
         for key in BOT_ROWS:
             if line.startswith(key) and key not in seen:
-                out.append(line.rstrip())
+                out.append(tidy_bots_row(line.rstrip()))
                 seen.add(key)
     return out
 
@@ -69,7 +82,9 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
              "## 1. Bot sağlığı", ""]  # fmt: skip
     lines += [
         f"- Çalışıyor mu: {h.get('status', '?')}",
-        f"- Kendi kodundaki hata: {h.get('other_errors', '?')} (bağlantı hatası: {h.get('network_errors', '?')})",
+        f"- Kendi kodundaki hata: {h.get('other_errors', '?')} (bağlantı hatası: {h.get('network_errors', '?')}"
+        + (f", en çok {h['network_peak']}" if h.get("network_peak") else "") + ")",
+        f"- En uzun bağlantısız süre: {h.get('longest_gap', 'yok')}",
         f"- İşlemler: {h.get('open', 0)} açık, {h.get('closed', 0)} kapanmış, gerçekleşen kâr/zarar {h.get('profit', 0.0):+.2f} USDT",
         f"- Kill switch: zirveden düşüş %{h.get('drawdown', 0.0) * 100:.1f} (sınır %20)",
         f"- Faz 0: {h.get('phase0', '?')}",
@@ -88,12 +103,13 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     else:
         lines.append("- Henüz kayıt yok.")
     lines += ["", "## 4. Taze veri (testten sonraki gerçek fiyatlar), 5 coin", "",
-              "Getiri ve düşüş, taze dilimin başından bugüne. 50'den az işlem = henüz anlamlı değil.", "", "```"]  # fmt: skip
+              "Getiri ve düşüş, taze dilimin başından bugüne. Yıllık = o hızla bir yıl sürseydi."
+              " 50'den az işlem = henüz anlamlı değil.", "", "```", TABLE_HEAD]  # fmt: skip
     lines += bots_rows(bots_core) or ["(tablo yok)"]
     lines += ["```"]
     gold = [r for r in bots_rows(bots_gold) if r.startswith("TrendEmaVolTarget ")]
     if gold:
-        lines += ["", "İzleme (altın dahil 6 coin): ", "```", *gold, "```"]
+        lines += ["", "İzleme (altın dahil 6 coin): ", "```", TABLE_HEAD, *gold, "```"]
     exec_lines = [ln for ln in execution_text.splitlines() if ln.strip() and not ln.startswith(("$ docker", " Container"))]
     lines += ["", "## 5. Emir kalitesi", "", "```", *(exec_lines or ["(rapor yok)"]), "```", "",
               "## 6. Yapay zeka grafik yorumları", ""]  # fmt: skip

@@ -107,3 +107,10 @@ def test_drawdown_matches_strategy_formula():
 def test_never_reads_env():
     source = (Path(__file__).resolve().parent.parent / "scripts" / "health.py").read_text()
     assert ".env" not in source.replace("never reads .env", "")
+
+
+def test_longest_gap_is_recorded():
+    lines = [heartbeat(m) for m in range(0, 30)] + [heartbeat(m) for m in range(150, 160)] + [heartbeat(m) for m in range(200, 210)]
+    s = health.summarize_log(lines, since=T0)
+    assert s.longest_gap == health.timedelta(minutes=121)  # 29 -> 150
+    assert s.longest_gap_start == T0 + health.timedelta(minutes=29)

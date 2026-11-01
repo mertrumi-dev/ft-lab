@@ -57,3 +57,12 @@ def test_daily_plan_has_execution_step():
 
     titles = [t for t, _, _ in daily.plan(False, True)]
     assert "execution" in titles and titles[-1] == "scan pool"
+
+
+def test_tidy_row_aligns_long_names_and_header_present():
+    row = "TSMOM (ours, daily, vol-scaled)      7     -7.7%   -62.3%   11.7%   -5.33  <50 trades"
+    t = kaan_report.tidy_bots_row(row)
+    assert t.startswith("TSMOM (ours, daily, vol-scaled)") and t.endswith("<50 işlem")
+    assert len(t.split("<50")[0].rstrip()) == len(kaan_report.TABLE_HEAD)
+    text = kaan_report.render("d", {"longest_gap": "2.0h", "network_peak": "2026-10-31 18:00 UTC'de 145"}, "", [], BOTS, "", "", (0, 0))
+    assert kaan_report.TABLE_HEAD in text and "En uzun bağlantısız süre: 2.0h" in text and "en çok" in text

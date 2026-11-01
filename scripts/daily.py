@@ -61,6 +61,10 @@ def health_summary() -> dict:
             "status": health.container_status(), "other_errors": len(s.other_errors),
             "network_errors": sum(s.network_by_hour.values()), "open": t["open"], "closed": t["closed"],
             "profit": t["profit"], "drawdown": t["drawdown"], "phase0": health.phase0_verdict(s, now),
+            "network_peak": (lambda hr, n: f"{hr}:00 UTC'de {n}")(*s.network_by_hour.most_common(1)[0])
+            if s.network_by_hour else None,
+            "longest_gap": f"{health.hours(s.longest_gap)} ({s.longest_gap_start:%d.%m %H:%M} UTC'den itibaren;"
+            " Mac uykusu ya da internet kesintisi)" if s.longest_gap_start else "yok",
         }  # fmt: skip
     except Exception as e:  # the report must still be written if docker is unreachable
         return {"status": f"okunamadı ({e.__class__.__name__})"}
