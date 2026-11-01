@@ -609,3 +609,28 @@ def test_loss_guard_refuses_entries_after_three_losing_exits(monkeypatch):
     assert allowed(20) is True
     closed[2] = closed_trade(5, 0.004)  # the winner between them does not count; now only 2 losses
     assert allowed(9) is True
+
+
+def test_volume_confirmed_uses_only_previous_candles():
+    v = pd.Series([1.0] * 20 + [1.5, 0.5, 1.0])
+    out = sizing.volume_confirmed(v)
+    assert not out.iloc[:20].any()  # not enough history yet
+    assert out.iloc[20] and not out.iloc[21]
+    assert not out.iloc[22]  # 1.0 vs mean of previous 20 (= 1.0): not above
+
+
+def test_vol_confirm_only_removes_low_volume_entries():
+    cls = sizing.TrendEmaVolTargetVolConfirm
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    rng = np.random.default_rng(11)
+    close = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, 3000)))
+    df = pd.DataFrame({"close": close, "high": close * 1.004, "low": close * 0.996, "volume": rng.lognormal(0, 0.5, 3000)})
+    base = sizing.TrendEmaVolTarget({})
+    b = base.populate_entry_trend(base.populate_indicators(df.copy(), {}), {})
+    s = cls({})
+    f = s.populate_entry_trend(s.populate_indicators(df.copy(), {}), {})
+    ok = sizing.volume_confirmed(df["volume"])
+    kept = f["enter_long"].fillna(0) == 1
+    removed = (b["enter_long"].fillna(0) == 1) & ~kept
+    assert (b["enter_long"].fillna(0)[kept] == 1).all() and ok[kept].all()
+    assert (~ok[removed]).all() and kept.any() and removed.any()

@@ -1042,3 +1042,23 @@ class TrendEmaVolTargetLossGuard(TrendEmaVolTarget):
             _guard_log.warning("LOSSGUARD: %s refused, %d losing exits in 24h, paused until %s", pair, LOSS_GUARD_LIMIT, until)
             return False
         return True
+
+
+# T114. Textbook volume confirmation (Murphy: volume should confirm the trend): a cross on
+# rising participation is more trustworthy than one on a quiet candle. 20 = the fast EMA's window.
+VOLUME_WINDOW = 20
+
+
+def volume_confirmed(volume: pd.Series, window: int = VOLUME_WINDOW) -> pd.Series:
+    """True where this candle's volume is above the mean of the PREVIOUS `window` candles."""
+    return volume > volume.shift(1).rolling(window).mean()
+
+
+class TrendEmaVolTargetVolConfirm(TrendEmaVolTarget):
+    """VolTarget that only enters when the signal candle's volume beats the previous 20 (T114)."""
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[~volume_confirmed(dataframe["volume"]), ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
