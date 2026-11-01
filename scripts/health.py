@@ -190,6 +190,7 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
     out.append(f"Other errors:   {len(s.other_errors)}")
     out.extend(f"  {e}" for e in s.other_errors[-10:])
     out.append(f"Faz 0:          {phase0_verdict(s, now)}")
+    out.append("Order quality:  python3 scripts/ft.py execution  (fill rate, slippage, fees, missed entries)")
     return "\n".join(out)
 
 

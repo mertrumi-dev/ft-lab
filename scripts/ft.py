@@ -185,6 +185,14 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             ],
         ]  # fmt: skip
 
+    if args.command == "execution":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/execution.py",
+        ]]  # fmt: skip
+
     if args.command == "scan":
         return [
             # fresh 1h candles for every coin of the group (incremental, no --erase). Start 120 days
@@ -284,7 +292,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan", "execution"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -319,6 +327,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
     ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")
+
+    sub.add_parser("execution", help="read-only fill/slippage/fee report from the dry-run DB(s)")
 
     sc = sub.add_parser("scan", help="what our rule sees on many coins right now (downloads 1h first)")
     sc.add_argument("--universe", choices=UNIVERSES, default="pool")
