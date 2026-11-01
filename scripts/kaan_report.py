@@ -96,7 +96,7 @@ def chart_reading(text: str) -> list[str]:
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
            execution_text: str, ai: tuple[int, int], expected_text: str = "", explained: str = "",
            ai_score_text: str = "", charts: list[str] | None = None, forward_text: str = "",
-           prereg: list[str] | None = None) -> str:  # fmt: skip
+           prereg: list[str] | None = None, forward: list[dict] | None = None) -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -157,6 +157,15 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
     lines += body[:15] or ["- Açıklama yok."]
     if len(body) > 15:
         lines.append("- ... tamamı: docs/fresh/trades-explained.md")
+    if forward:
+        lines += ["", "## Sahte para botları yan yana (sadece yargı, kurallar buna göre değişmez)", "",
+                  "| Bot | Açık | Kapanmış | Gerçekleşen K/Z | En kötü düşüş |", "|---|---|---|---|---|"]
+        for f in forward:
+            if not f.get("running"):
+                lines.append(f"| {f['name']} | - | - | henüz başlamadı | - |")
+                continue
+            lines.append(f"| {f['name']} | {f['open']} | {f['closed']} | {f['profit']:+.2f} USDT | %{f.get('worst', 0.0) * 100:.1f} |")
+        lines.append("50'den az kapanmış işlemle bu karşılaştırma henüz anlamlı değil.")
     if prereg:
         lines += ["", "## Ön kayıtlı fikirler (sadece yeni veride, hüküm günü gelmeden karar yok)", ""]
         lines += [f"- {p}" for p in prereg]

@@ -83,6 +83,18 @@ def append_breadth(path: Path, line: str, header: str = BREADTH_HEADER) -> None:
     path.write_text("\n".join([header, *sorted(rows)]) + "\n")
 
 
+FORWARD_NAMES = {"freqtrade": "VolTarget (ana bot)", "forward-adx20": "ADX20 (paralel bot)"}
+
+
+def forward_rows() -> list[dict]:
+    """Each dry-run bot's realized results from its own DB (read-only): judgement only, never tuning."""
+    rows = []
+    for service, db in health.SERVICES.items():
+        t = health.trade_summary(db)
+        rows.append({"name": FORWARD_NAMES.get(service, service), "running": db.exists(), **t})
+    return rows
+
+
 def prereg_lines() -> list[str]:
     """Fresh-only pre-registered ideas and their progress (never judged before their judge date)."""
     try:
@@ -163,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         captured.get("bots core", ""), captured.get("bots core_gold (watch)", ""), captured.get("execution", ""),
         kaan_report.ai_counts(OUT_DIR / "ai-views.md"), captured.get("expected", ""), explained,
         captured.get("ai-score", ""), [captured.get(f"chart {c}", "") for c in CHART_COINS],
-        captured.get("forward-risk", ""), prereg_lines(),
+        captured.get("forward-risk", ""), prereg_lines(), forward_rows(),
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
     return 0

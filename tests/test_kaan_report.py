@@ -105,3 +105,18 @@ def test_report_points_to_the_checklist_only_when_latched():
     assert "TETİKLENDİ" in hit and "docs/proposals/kill-switch-restart.md" in hit and "14 gün" in hit
     ok = kaan_report.render("2026-11-02", {"drawdown": 0.02, "worst": 0.05}, "", [], "", "", "", (0, 0))
     assert "kill-switch-restart" not in ok and "TETİKLENDİ" not in ok
+
+
+def test_forward_bots_side_by_side():
+    rows = [{"name": "VolTarget (ana bot)", "running": True, "open": 1, "closed": 3, "profit": -2.5, "worst": 0.01},
+            {"name": "ADX20 (paralel bot)", "running": False}]
+    text = kaan_report.render("2026-11-02", {}, "", [], "", "", "", (0, 0), forward=rows)
+    assert "Sahte para botları yan yana" in text and "| VolTarget (ana bot) | 1 | 3 | -2.50 USDT | %1.0 |" in text
+    assert "| ADX20 (paralel bot) | - | - | henüz başlamadı | - |" in text and "50'den az" in text
+
+
+def test_daily_forward_rows_read_each_bot_db():
+    import daily
+
+    names = [r["name"] for r in daily.forward_rows()]
+    assert names == ["VolTarget (ana bot)", "ADX20 (paralel bot)"]
