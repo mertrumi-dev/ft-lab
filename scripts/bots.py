@@ -196,6 +196,12 @@ def main() -> None:
             dca = rows[3][1]
             combo = with_years(half_and_half(dca["equity"], curve["equity"]), r["trades"] + dca["trades"])
             rows.append(("DCA bot 50% + Gap 50%", combo))
+        if name == "TrendEmaVolTarget":
+            # Two rule families (pre-registered 2026-11-01): hourly MA cross with vol sizing +
+            # daily 28-day momentum. Weakly related signals may smooth the curve together.
+            ts = next(r_ for n_, r_ in rows if n_.startswith("TSMOM"))
+            mix = with_years(equal_mix(curve["equity"], ts["equity"]), r["trades"] + ts["trades"])
+            rows.append(("VolTarget 50% + TSMOM 50%", mix))
 
     warn = window_warning(s.start, bh["index"])
     if warn:

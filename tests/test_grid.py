@@ -222,3 +222,8 @@ def test_equal_mix_three_accounts_and_half_and_half_unchanged():
     assert list(mix) == pytest.approx([1.0, (2 + 1 + 0.5) / 3, (3 + 1 + 0) / 3])
     assert list(bots.half_and_half(a, b)) == pytest.approx(list(bots.equal_mix(a, b)))
     assert list(bots.half_and_half(a, b)) == pytest.approx([1.0, 1.5, 2.0])
+
+
+def test_voltarget_tsmom_row_is_wired():
+    src = (Path(__file__).resolve().parent.parent / "scripts" / "bots.py").read_text()
+    assert '"VolTarget 50% + TSMOM 50%"' in src and "equal_mix(curve[\"equity\"], ts[\"equity\"])" in src
