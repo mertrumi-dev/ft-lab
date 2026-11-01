@@ -164,6 +164,20 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             for timeframe, strategies in groups.items()
         ]  # fmt: skip
 
+    if args.command == "chart":
+        pair = args.pair.upper() if "/" in args.pair else f"{args.pair.upper()}/USDT"
+        return [
+            # fresh candles for this one coin (1h for our bot's view, 1d for the chart)
+            docker_cmd("download-data", "--config", CONFIG, "--timerange", f"{DAILY_FROM}-",
+                       "--timeframes", "1h", "1d", "--pairs", pair),
+            [
+                "docker", "compose", "run", "--rm",
+                "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+                "--entrypoint", "python",
+                "freqtrade", "/freqtrade/scripts/chart.py", "--pair", pair,
+            ],
+        ]  # fmt: skip
+
     if args.command == "montecarlo":
         return [[
             "docker", "compose", "run", "--rm",
@@ -247,7 +261,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -279,6 +293,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     dl.add_argument("--universe", choices=UNIVERSES, default="core")
     dl.add_argument("--fine", action="store_true", help="also 5m and 15m (for the NFI benchmark bot)")
     dl.add_argument("--early", action="store_true", help="also candles from 2017-08 (for the 'early' 2018-2020 slice)")
+
+    ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
+    ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
     bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
