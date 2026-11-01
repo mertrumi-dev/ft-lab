@@ -11,7 +11,7 @@ Bu rehber **sadece sahte parayla (dry-run)** çalışan botu taşır. Gerçek pa
 ## Sunucu ne olmalı?
 
 - Linux, tercihen **Ubuntu 22.04 veya 24.04**.
-- En az **2 GB RAM, 20 GB disk**. Bot az kaynak yer; backtest'leri yine Mac'te yaparız.
+- En az **2 GB RAM (rahatı 4 GB), 20 GB disk**. İki bot birlikte ~0,85 GB RAM kullanıyor (ölçüm 2026-11-02); backtest'leri yine Mac'te yaparız. Geçiş sırası: `deploy/MIGRATION.md`.
 - Sunucuya **SSH** ile bağlanabiliyor olmalısın. SSH, başka bir bilgisayarın terminaline güvenli şekilde girmek demek.
 
 ## Adım adım

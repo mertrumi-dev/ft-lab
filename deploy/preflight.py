@@ -14,6 +14,9 @@ What it checks and why:
   .env present, mode 600, ignored    secrets exist, only you can read them, never pushed
   docker / docker compose present    the bot runs in Docker
   disk >= 5 GB free, RAM >= 1.5 GB   candles + logs + sqlite grow over time
+  each bot's sqlite DB present       a missing DB = a NEW empty dry-run wallet (history restarts)
+  clock within 1 s of Binance        exchange requests carry a timestamp; a drifting clock breaks them
+  docker log rotation                Linux docker's default json-file log never stops growing
 """
 
 import json
@@ -32,6 +35,9 @@ ENV = ROOT / ".env"
 SECRET_FIELDS = [("exchange", "key"), ("exchange", "secret"), ("exchange", "password"), ("exchange", "uid")]
 MIN_DISK_GB = 5
 MIN_RAM_GB = 1.5
+MAX_CLOCK_OFFSET_S = 1.0
+BINANCE_TIME = "https://api.binance.com/api/v3/time"  # public, no key
+DB_URL = re.compile(r"sqlite:////freqtrade/(user_data/\S+?\.sqlite)")
 
 
 def check_all_configs(config_dir: Path) -> list[tuple[str, str]]:
@@ -198,6 +204,60 @@ def check_resources() -> list[tuple[str, str]]:
     return out
 
 
+def check_state_dbs(compose_text: str, root: Path = ROOT) -> list[tuple[str, str]]:
+    """Every --db-url in docker-compose.yml: present = the dry-run wallet continues, missing = starts empty."""
+    out = []
+    for rel in DB_URL.findall(compose_text):
+        db = root / rel
+        if db.exists():
+            out.append(("PASS", f"{rel} present ({db.stat().st_size // 1024} KB): this bot continues its dry-run history"))
+        else:
+            out.append(("WARN", f"{rel} missing: this bot starts a NEW empty dry-run wallet "
+                                "(to continue: stop the old bot first, then copy the file, see deploy/MIGRATION.md)"))  # fmt: skip
+    return out
+
+
+def check_clock(offset_s: float | None) -> list[tuple[str, str]]:
+    """offset = this machine's clock minus Binance's (seconds); None = could not ask."""
+    if offset_s is None:
+        return [("WARN", "could not read Binance server time (no internet?); check the clock: timedatectl")]
+    if abs(offset_s) <= MAX_CLOCK_OFFSET_S:
+        return [("PASS", f"clock within {abs(offset_s):.2f} s of Binance")]
+    return [("WARN", f"clock is {offset_s:+.1f} s off Binance; turn on time sync: sudo timedatectl set-ntp true")]
+
+
+def clock_offset() -> float | None:  # pragma: no cover - network
+    import time
+    import urllib.request
+
+    try:
+        t0 = time.time()
+        with urllib.request.urlopen(BINANCE_TIME, timeout=10) as r:
+            server_ms = json.load(r)["serverTime"]
+        t1 = time.time()
+    except (OSError, ValueError, KeyError):
+        return None
+    return (t0 + t1) / 2 - server_ms / 1000  # midpoint of the request: half the round trip each way
+
+
+def check_log_rotation(driver: str | None, daemon_json: str) -> list[tuple[str, str]]:
+    """'local' rotates by itself (20 MB x 5); 'json-file' only with a max-size in /etc/docker/daemon.json."""
+    if driver is None:
+        return [("WARN", "could not read docker's log driver")]
+    if driver == "local" or (driver == "json-file" and "max-size" in daemon_json):
+        return [("PASS", f"docker logs rotate (driver {driver})")]
+    return [("WARN", f"docker log driver {driver} without rotation: the log grows forever; "
+                     "set it once, see deploy/MIGRATION.md step 2")]  # fmt: skip
+
+
+def log_driver() -> str | None:  # pragma: no cover - docker
+    try:
+        r = subprocess.run(["docker", "info", "--format", "{{.LoggingDriver}}"], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return r.stdout.strip() or None if r.returncode == 0 else None
+
+
 def main() -> int:
     results = []
     results += check_config(json.loads(CONFIG.read_text()))
@@ -210,6 +270,10 @@ def main() -> int:
     results += check_env(ENV, (ROOT / ".gitignore").read_text())
     results += check_tools()
     results += check_resources()
+    results += check_state_dbs(COMPOSE.read_text())
+    results += check_clock(clock_offset())
+    daemon = Path("/etc/docker/daemon.json")
+    results += check_log_rotation(log_driver(), daemon.read_text() if daemon.exists() else "")
     for level, message in results:
         print(f"{level:<5} {message}")
     failed = sum(level == "FAIL" for level, _ in results)

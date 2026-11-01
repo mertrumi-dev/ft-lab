@@ -116,3 +116,29 @@ def test_minibot_demo_check_real_and_broken():
     no_guard = src.replace("assert_demo_urls(exchange)", "pass")
     assert "FAIL" in levels(preflight.check_minibot_demo(no_guard, ignore))
     assert "FAIL" in levels(preflight.check_minibot_demo(src, ignore.replace("minibot/state.demo.json", "")))
+
+
+def test_state_dbs_from_compose(tmp_path):
+    compose = "--db-url sqlite:////freqtrade/user_data/a.sqlite\n--db-url sqlite:////freqtrade/user_data/b.sqlite\n"
+    (tmp_path / "user_data").mkdir()
+    (tmp_path / "user_data" / "a.sqlite").write_bytes(b"x" * 2048)
+    out = preflight.check_state_dbs(compose, tmp_path)
+    assert levels(out) == ["PASS", "WARN"] and "NEW empty" in out[1][1]
+
+
+def test_real_compose_dbs_are_found():
+    out = preflight.check_state_dbs((ROOT / "docker-compose.yml").read_text(), Path("/nonexistent"))
+    assert [m.split()[0] for _, m in out] == ["user_data/tradesv3.voltarget.dryrun.sqlite", "user_data/tradesv3.adx20.dryrun.sqlite"]
+
+
+def test_clock_offset_levels():
+    assert levels(preflight.check_clock(0.3)) == ["PASS"]
+    assert levels(preflight.check_clock(-2.5)) == ["WARN"]
+    assert levels(preflight.check_clock(None)) == ["WARN"]
+
+
+def test_log_rotation():
+    assert levels(preflight.check_log_rotation("local", "")) == ["PASS"]
+    assert levels(preflight.check_log_rotation("json-file", '{"log-opts": {"max-size": "20m"}}')) == ["PASS"]
+    assert levels(preflight.check_log_rotation("json-file", "")) == ["WARN"]
+    assert levels(preflight.check_log_rotation(None, "")) == ["WARN"]
