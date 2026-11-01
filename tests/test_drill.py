@@ -26,6 +26,8 @@ def test_drill_data_is_made_up_and_shaped_as_described():
     fall = btc["close"].iloc[i + 120] / btc["close"].iloc[i] - 1
     assert fall == pytest.approx(-0.35, abs=0.005)  # -35% over 5 days
     assert (btc["low"] <= btc[["open", "close"]].min(axis=1)).all() and (btc["high"] >= btc[["open", "close"]].max(axis=1)).all()
+    # realistic price levels: real exchange minimums (XRP 0.1 coin) must not bind (research 08)
+    assert c["XRP/USDT"]["close"].max() < 20 and btc["close"].iloc[0] == 50_000.0
 
 
 def test_kill_point_uses_the_first_20_percent_fall():

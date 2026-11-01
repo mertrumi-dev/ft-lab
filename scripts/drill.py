@@ -26,6 +26,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
+# Realistic price LEVELS: the backtest applies the real Binance market limits (min quantity),
+# and e.g. XRP's 0.1 minimum at a made-up price of 440 means a 46 USDT minimum order, which
+# silently skipped small VolTarget entries (docs/research/08). The shape of the path is the same.
+BASE_PRICE = {"BTC/USDT": 50_000.0, "ETH/USDT": 3_000.0, "SOL/USDT": 150.0, "BNB/USDT": 500.0, "XRP/USDT": 1.0}
 START = "2029-10-01"  # warm-up starts here; the drill window starts at TIMERANGE
 TIMERANGE = "20291215-20300601"
 WARMUP_H = 24 * 75  # calm uptrend until mid-December 2029
@@ -74,7 +78,7 @@ def make_candles():
 
     out = {}
     for k, pair in enumerate(PAIRS):
-        close = path_for(offset=OFFSET_H * k)
+        close = path_for(offset=OFFSET_H * k) * BASE_PRICE[pair] / 100.0
         n = len(close)
         open_ = np.r_[close[0], close[:-1]]
         high = np.maximum(open_, close) * 1.001
