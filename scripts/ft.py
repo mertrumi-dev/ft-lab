@@ -95,6 +95,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "download-data", "--config", CONFIG,
                 "--timerange", f"{DAILY_FROM}-",
                 "--timeframes", "1d",
+                "--erase",  # daily files are small; re-download whole history so it starts in 2019
                 *pairs_args(args),
             ),
         ]  # fmt: skip
