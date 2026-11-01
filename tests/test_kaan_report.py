@@ -66,3 +66,9 @@ def test_tidy_row_aligns_long_names_and_header_present():
     assert len(t.split("<50")[0].rstrip()) == len(kaan_report.TABLE_HEAD)
     text = kaan_report.render("d", {"longest_gap": "2.0h", "network_peak": "2026-10-31 18:00 UTC'de 145"}, "", [], BOTS, "", "", (0, 0))
     assert kaan_report.TABLE_HEAD in text and "En uzun bağlantısız süre: 2.0h" in text and "en çok" in text
+
+
+def test_expected_line_shown():
+    text = kaan_report.render("d", {}, "", [], BOTS, "", "", (0, 0),
+                              "x\nexpected_line: 31 gün, getiri -3.3% (beklenen aralık) -> beklenen aralıkta\n")
+    assert "VolTarget beklenen aralıkta mı? 31 gün" in text

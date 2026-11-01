@@ -75,7 +75,7 @@ def ai_counts(path: Path) -> tuple[int, int]:
 
 
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,
-           execution_text: str, ai: tuple[int, int]) -> str:  # fmt: skip
+           execution_text: str, ai: tuple[int, int], expected_text: str = "") -> str:  # fmt: skip
     h = health
     lines = [f"# Günlük rapor {date}", "",
              "Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiyesi değildir.", "",
@@ -107,6 +107,9 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
               " 50'den az işlem = henüz anlamlı değil.", "", "```", TABLE_HEAD]  # fmt: skip
     lines += bots_rows(bots_core) or ["(tablo yok)"]
     lines += ["```"]
+    exp = [ln.removeprefix("expected_line: ") for ln in expected_text.splitlines() if ln.startswith("expected_line: ")]
+    if exp:
+        lines += ["", f"VolTarget beklenen aralıkta mı? {exp[0]}"]
     gold = [r for r in bots_rows(bots_gold) if r.startswith("TrendEmaVolTarget ")]
     if gold:
         lines += ["", "İzleme (altın dahil 6 coin): ", "```", TABLE_HEAD, *gold, "```"]
