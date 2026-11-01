@@ -477,3 +477,6 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 17:23 | backtest | TrendEmaVolTargetMomHalf | train | no kill switch (research) |
 | 2026-11-01 17:24 | backtest | TrendEmaVolTargetMomHalf | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 17:24 | backtest | TrendEmaVolTargetMomHalf | early | universe early, no kill switch (research) |
+| 2026-11-01 17:27 | backtest | TrendEmaVolTargetAdx | train | no kill switch (research) |
+| 2026-11-01 17:27 | backtest | TrendEmaVolTargetAdx | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 17:30 | backtest | TrendEmaVolTargetAdx | early | universe early, no kill switch (research) |
