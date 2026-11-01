@@ -144,6 +144,17 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--strategy", *args.strategy,
         ]]  # fmt: skip
 
+    if args.command == "walkforward":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/walkforward.py",
+            "--slice", args.slice, "--universe", args.universe, "--fixed", args.fixed,
+            *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+            "--strategy", *args.strategy,
+        ]]  # fmt: skip
+
     if args.command in ("benchmark", "report"):
         # Runs our script inside the Freqtrade container, which already has
         # pandas and freqtrade, so no local Python setup is needed.
@@ -181,7 +192,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -240,6 +251,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mc.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY])
     mc.add_argument("--universe", choices=UNIVERSES, default="core")
     mc.add_argument("--no-kill-switch", action="store_true")
+
+    wf = sub.add_parser("walkforward", help="pick best on past 12 months, trade next 6 (train only)")
+    wf.add_argument("--slice", choices=["train"], required=True)
+    wf.add_argument("--strategy", nargs="+", default=["TrendEma", *EMA_SENSITIVITY])
+    wf.add_argument("--fixed", default=DEFAULT_STRATEGY)
+    wf.add_argument("--universe", choices=UNIVERSES, default="core")
+    wf.add_argument("--no-kill-switch", action="store_true")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)
