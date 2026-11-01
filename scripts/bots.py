@@ -55,6 +55,26 @@ def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
     return 0.5 * frame.iloc[:, 0] / frame.iloc[0, 0] + 0.5 * frame.iloc[:, 1] / frame.iloc[0, 1]
 
 
+def with_years(equity: pd.Series, trades) -> dict:
+    out = summarize(equity)
+    out.update(trades=trades, years=by_year(equity), equity=equity)
+    return out
+
+
+def format_years(rows: list[tuple[str, dict]]) -> str:
+    """Return / worst fall inside each calendar year, one line per bot."""
+    years = sorted({y for _, r in rows for y in r.get("years", {})})
+    head = f"{'Year by year':<24}" + "".join(f"{y:>16}" for y in years)
+    lines = [head, "-" * len(head)]
+    for name, r in rows:
+        cells = []
+        for y in years:
+            v = r.get("years", {}).get(y)
+            cells.append(f"{v['return']:>+8.1%} DD{v['max_drawdown']:>4.0%}" if v else f"{'-':>16}")
+        lines.append(f"{name:<24}" + "".join(f"{c:>16}" for c in cells))
+    return "\n".join(lines)
+
+
 def row(name: str, r: dict) -> str:
     trades = "-" if r.get("trades") is None else str(r["trades"])
     warn = "  <50 trades" if isinstance(r.get("trades"), int) and r["trades"] < report.MIN_TRADES else ""
@@ -74,7 +94,7 @@ def main() -> None:
     s = SLICES[args.slice]
     bh = benchmark_run(args.slice, "1h", args.fee, universe=args.universe)
     rows = [("Buy & hold", {**bh, "trades": None}),
-            ("Weekly DCA (savings)", {**summarize(dca_equity(bh["closes"], args.fee)), "trades": None}),
+            ("Weekly DCA (savings)", with_years(dca_equity(bh["closes"], args.fee), None)),
             ("Grid bot (Pionex-style)", simulate_bot(
                 lambda c, cash, fee: grid.simulate_pair(c, cash, fee=fee), args.slice, args.universe, args.fee)),
             ("DCA bot (3Commas-style)", simulate_bot(
@@ -88,15 +108,14 @@ def main() -> None:
             print(f"(no backtest result for {name} on this slice/universe/fee: backtest it first)")
             continue
         curve = build_curve(st.get("trades", []), bh["closes"], st.get("starting_balance", 1000.0), bh["index"])
-        r = summarize(curve["equity"])
-        r["trades"] = st["total_trades"]
+        r = with_years(curve["equity"], st["total_trades"])
         rows.append((name, r))
         if name == "TrendEma":
             # Combination idea (decided before seeing it): trend rule + grid bot, 50/50.
             # They earn in different markets (trends vs sideways), so together the
             # curve may be smoother. Counted as one trial in docs/journal.md.
-            combo = summarize(half_and_half(curve["equity"], rows[2][1]["equity"]))
-            combo["trades"] = r["trades"] + rows[2][1]["trades"]
+            combo = with_years(half_and_half(curve["equity"], rows[2][1]["equity"]),
+                               r["trades"] + rows[2][1]["trades"])  # fmt: skip
             rows.append(("TrendEma 50% + Grid 50%", combo))
 
     print(f"Famous bot types vs our rule, --timerange {s.timerange}, universe {args.universe}, "
@@ -107,6 +126,8 @@ def main() -> None:
     for name, r in rows:
         print(row(name, r))
     print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals.")
+    print()
+    print(format_years(rows))
 
 
 if __name__ == "__main__":

@@ -131,3 +131,12 @@ def test_half_and_half_fills_gaps_with_last_value():
     a = pd.Series([1.0, 1.0, 1.0, 1.0], index=idx)
     b = pd.Series([1.0, 2.0], index=idx[[0, 2]])
     assert list(bots.half_and_half(a, b)) == pytest.approx([1.0, 1.0, 1.5, 1.5])
+
+
+def test_format_years_lists_every_bot_and_year():
+    import bots
+
+    idx = pd.date_range("2021-12-31", periods=48, freq="1h", tz="UTC")
+    r = bots.with_years(pd.Series(np.linspace(1, 2, 48), index=idx), 3)
+    text = bots.format_years([("A", r), ("B", {"years": {}})])
+    assert "2021" in text and "2022" in text and text.count("\n") == 3
