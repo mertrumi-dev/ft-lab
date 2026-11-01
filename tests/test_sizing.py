@@ -86,3 +86,27 @@ def test_voltarget_btc_combines_exactly_two_parents():
                        "open": close, "high": close, "low": close, "close": close, "volume": 100.0})
     out = cls({}).populate_indicators(df, {"pair": "X"})
     assert {"btc_rising", "rvol", "ema_trend"} <= set(out.columns)
+
+
+def test_portfolio_room():
+    assert sizing.portfolio_room([]) == pytest.approx(0.15)
+    assert sizing.portfolio_room([0.075, 0.05]) == pytest.approx(0.025)
+    assert sizing.portfolio_room([0.1, 0.1]) == 0.0
+
+
+def test_portfolio_shrinks_or_blocks_never_grows(monkeypatch):
+    class _T:
+        def __init__(self, pair, stake):
+            self.pair, self.stake_amount = pair, stake
+
+    s = sizing.TrendEmaVolTargetPortfolio({})
+    s.wallets, s.dp = _Wallets(), _Dp(0.6)  # every coin 60% vol -> VolTarget stake 125
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: []))
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(125)
+    # two full trades open: load 2 x 0.125 x 0.6 = 0.15 -> no room
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: [_T("A", 125), _T("B", 125)]))
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(0)
+    # one trade open: load 0.075 -> room 0.075 -> 0.075/0.6 = 12.5% = 125, same as VolTarget
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda **kw: [_T("A", 125)]))
+    assert s.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long") == pytest.approx(125)
+    assert sizing.TrendEmaVolTargetPortfolio.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry

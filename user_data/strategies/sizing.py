@@ -158,3 +158,54 @@ class TrendEmaVolTargetTopVol(TrendEmaVolTarget):
         if "enter_long" in dataframe:
             dataframe.loc[~dataframe["in_top"], ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# --- Round 16 (pre-registered 2026-11-01): portfolio-level volatility budget --------
+# Coins move together (when BTC falls, they all fall), so three open trades are
+# closer to one big bet than to three small ones. Rule: the open trades'
+# "volatility load" sum(stake / capital x coin volatility), counting the new trade,
+# may not exceed 15% (round number). Correlation is assumed to be 1 (worst case).
+# A new stake can only shrink because of it, so R2/R4 still hold.
+
+from freqtrade.persistence import Trade  # noqa: E402
+
+PORTFOLIO_VOL_BUDGET = 0.15
+
+
+def portfolio_room(open_loads: list[float], budget: float = PORTFOLIO_VOL_BUDGET) -> float:
+    """How much volatility load is still free for a new trade (never negative)."""
+    return max(0.0, budget - sum(open_loads))
+
+
+class TrendEmaVolTargetPortfolio(TrendEmaVolTarget):
+    """VolTarget, plus a 15% cap on the summed volatility load of all open trades."""
+
+    vol_budget = PORTFOLIO_VOL_BUDGET
+
+    def _vol_now(self, pair: str) -> float:
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return float("nan")
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+        if dataframe is None or dataframe.empty or "rvol" not in dataframe:
+            return float("nan")
+        return float(dataframe["rvol"].iloc[-1])
+
+    def custom_stake_amount(
+        self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+        min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+        side: str, **kwargs,
+    ) -> float:  # fmt: skip
+        stake = super().custom_stake_amount(
+            pair, current_time, current_rate, proposed_stake, min_stake, max_stake, leverage, entry_tag, side, **kwargs
+        )
+        vol = self._vol_now(pair)
+        if not np.isfinite(vol) or vol <= 0:
+            return stake  # no reading: behave like VolTarget
+        capital = self.wallets.get_total_stake_amount()
+        loads = []
+        for t in Trade.get_trades_proxy(is_open=True):
+            v = self._vol_now(t.pair)
+            loads.append(t.stake_amount / capital * (v if np.isfinite(v) else vol))
+        room = portfolio_room(loads, self.vol_budget)
+        return min(stake, capital * room / vol)
