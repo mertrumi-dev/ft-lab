@@ -16,7 +16,7 @@ import trend_variants as tv  # noqa: E402
 VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
-    *tv.SLOW_NEIGHBOURS,
+    *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend,
 ]  # fmt: skip
 
 
@@ -150,3 +150,43 @@ def test_btc_filter_blocks_entries_when_btc_is_down():
     df = strat.populate_entry_trend(df, {"pair": "ETH/USDT"})
     assert not df["btc_bull"].iloc[-300:].any()
     assert (df["enter_long"].fillna(0) == 0).all()
+
+
+# --- Round 3 -----------------------------------------------------------------
+
+
+def test_adx_high_in_steady_trend_low_in_chop():
+    n = 400
+    trend = np.linspace(100, 200, n)
+    df_trend = candles(trend, high=trend + 0.5, low=trend - 0.5)
+    chop = 100 + 2 * np.sin(np.arange(n))  # back and forth every candle
+    df_chop = candles(chop, high=chop + 1, low=chop - 1)
+    assert tv.adx(df_trend).iloc[-1] > 50
+    assert tv.adx(df_chop).iloc[-1] < 20
+
+
+def _entries(cls, df):
+    s = cls({})
+    df = s.populate_indicators(df.copy(), {"pair": "BTC/USDT"})
+    return s.populate_entry_trend(df, {"pair": "BTC/USDT"})
+
+
+@pytest.mark.parametrize("cls", [tv.TrendEmaAdx, tv.TrendEmaLongTrend], ids=lambda c: c.__name__)
+def test_round3_filters_only_remove_entries(cls):
+    # a filter may block TrendEma's entries but never add new ones
+    t = np.arange(3000)
+    close = 100 + t * 0.02 + 15 * np.sin(t / 15)
+    df = candles(close, high=close + 1, low=close - 1)
+    base = _entries(trend_ema.TrendEma, df)["enter_long"].fillna(0)
+    mine = _entries(cls, df)["enter_long"].fillna(0)
+    assert base.sum() > 0
+    assert ((mine == 1) <= (base == 1)).all()
+
+
+def test_long_trend_blocks_entries_below_long_average():
+    # long fall then short bounce: EMA200 may turn but price stays under EMA1000
+    close = np.concatenate([np.linspace(300, 100, 2500), np.linspace(100, 140, 400)])
+    df = candles(close, high=close + 0.5, low=close - 0.5)
+    out = _entries(tv.TrendEmaLongTrend, df)
+    blocked = out["close"] <= out["ema_long"]
+    assert (out.loc[blocked, "enter_long"].fillna(0) == 0).all()

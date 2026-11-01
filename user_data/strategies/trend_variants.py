@@ -16,6 +16,11 @@ Round 2 (after the first train results, docs/results.md):
     TrendEmaMulti     3 averages pairs vote; buy when 2 of 3 say "up"
     TrendEmaBtc       only buy when Bitcoin itself is above its EMA200
 
+Round 3 (after the year-by-year view):
+
+    TrendEmaAdx       only buy when the trend is strong (ADX > 20)
+    TrendEmaLongTrend only buy when price is above its ~6-week average too
+
 None of these run live. The live bot stays on TrendEma until a variant wins
 on the train AND validation slices.
 """
@@ -268,4 +273,67 @@ class TrendEmaBtc(TrendEma):
         dataframe = super().populate_entry_trend(dataframe, metadata)
         if "enter_long" in dataframe:
             dataframe.loc[~dataframe["btc_bull"], ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+# --- Round 3: "read the chart better" filters (2026-11-01) -------------------
+# Each adds ONE extra condition to TrendEma's entry. Exit and risk unchanged.
+
+ADX_LENGTH = 14
+ADX_MIN = 20  # common textbook threshold: below 20 = no real trend
+LONG_TREND_EMA = 1000  # ~42 days of 1h candles, roughly a daily EMA42
+
+
+def adx(dataframe: DataFrame, length: int = ADX_LENGTH) -> pd.Series:
+    """Average Directional Index: how STRONG the trend is (0-100), not its direction.
+
+    +DM = how much today's high is above yesterday's high (if that is the bigger move)
+    -DM = how much today's low is below yesterday's low (if that is the bigger move)
+    Both are divided by ATR, smoothed (Wilder), and ADX is the smoothed
+    |+DI - -DI| / (+DI + -DI). High ADX = price is moving clearly one way.
+    """
+    up = dataframe["high"].diff()
+    down = -dataframe["low"].diff()
+    plus_dm = up.where((up > down) & (up > 0), 0.0)
+    minus_dm = down.where((down > up) & (down > 0), 0.0)
+    alpha = 1 / length
+    atr_ = atr(dataframe, length)
+    plus_di = 100 * plus_dm.ewm(alpha=alpha, adjust=False).mean() / atr_
+    minus_di = 100 * minus_dm.ewm(alpha=alpha, adjust=False).mean() / atr_
+    total = (plus_di + minus_di).replace(0, float("nan"))
+    dx = 100 * (plus_di - minus_di).abs() / total
+    return dx.ewm(alpha=alpha, adjust=False).mean()
+
+
+class TrendEmaAdx(TrendEma):
+    """Only buy when the trend is strong (ADX > 20): skips sideways, choppy markets."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["adx"] = adx(dataframe)
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            weak = ~(dataframe["adx"] > ADX_MIN)
+            dataframe.loc[weak, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+class TrendEmaLongTrend(TrendEma):
+    """Only buy when price is also above a ~6-week average: the coin's own big-picture trend."""
+
+    startup_candle_count = 2000
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["ema_long"] = ema(dataframe["close"], LONG_TREND_EMA)
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            below = ~(dataframe["close"] > dataframe["ema_long"])
+            dataframe.loc[below, ["enter_long", "enter_tag"]] = (0, None)
         return dataframe

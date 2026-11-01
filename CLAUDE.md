@@ -49,7 +49,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 - Claude'un bulut ortamı Binance API'ye erişemez; veri indirme, backtest ve bot Kaan'ın makinesinde çalışır. Geçmiş veri Kaan'ın Mac'inde indirildi (2026-10-31, 2020-10'dan beri 1h + 4h).
 - Başlangıç pair'leri: BTC, ETH, SOL, BNB, XRP / USDT. Ana timeframe: 1h.
 - Hazır/örnek strateji kullanılmaz; botta sadece kendi kurallarımız var. Aktif strateji: `TrendEma` (`user_data/strategies/trend_ema.py`).
-- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları). TrendEmaSlow train + validation (#2) PASS ama 14 coinde (kill switch kapalı) FAIL; dry-run geçişi ertelendi. Canlıya sadece train + validation'da kazanan geçer.
+- Deneme stratejileri: `user_data/strategies/trend_variants.py` (tur 1: TrendEmaAtr, TrendEmaAtrTrail, TrendEma4h, TrendBreakout; tur 2: TrendEmaAtrWide, TrendEmaSlow, TrendEmaMulti, TrendEmaBtc; Slow* = TrendEmaSlow sayı sağlamlığı komşuları; tur 3: TrendEmaAdx, TrendEmaLongTrend). TrendEmaSlow train + validation (#2) PASS ama 14 coinde (kill switch kapalı) FAIL; dry-run geçişi ertelendi. Canlıya sadece train + validation'da kazanan geçer.
 - Risk kuralları: `docs/risk-rules.md`. Bir risk sayısını değiştirmek = Kaan'a sor + tabloyu ve testi güncelle. Testi gevşeterek kural gevşetmek yasak.
 - Demo borsa (Faz 5): Binance. Telegram: Faz 5'te.
 
@@ -61,7 +61,7 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (110)
+.venv/bin/python -m pytest          # tüm testler (116)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)
