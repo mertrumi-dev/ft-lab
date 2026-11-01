@@ -99,3 +99,16 @@ def test_btc_rising_pyramid_combines_exactly_two_parents():
     assert cls.position_adjustment_enable is True and cls.max_entry_position_adjustment == 1
     assert cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
     assert cls.stoploss == trend_ema.STOPLOSS
+
+
+def test_gap_only_removes_entries():
+    close = np.concatenate([np.linspace(100, 200, 600), np.linspace(200, 185, 60), np.linspace(185, 260, 340)])
+    df = pd.DataFrame({"date": pd.date_range("2024-01-01", periods=len(close), freq="1h", tz="UTC"),
+                       "open": close, "high": close, "low": close, "close": close, "volume": 100.0})
+    base, gap = regime.TrendEmaBtcRising({}), regime.TrendEmaBtcRisingGap({})
+    a = base.populate_entry_trend(base.populate_indicators(df.copy(), {"pair": "X"}), {})
+    b = gap.populate_entry_trend(gap.populate_indicators(df.copy(), {"pair": "X"}), {})
+    assert (b["enter_long"].fillna(0) <= a["enter_long"].fillna(0)).all()
+    hits = b.index[b["enter_long"] == 1]
+    assert all(b["close"][i] >= b["ema_trend"][i] * 1.01 for i in hits)
+    assert regime.TrendEmaBtcRisingGap.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend

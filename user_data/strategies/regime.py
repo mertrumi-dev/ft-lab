@@ -117,3 +117,37 @@ from trend_variants import TrendEmaPyramid  # noqa: E402
 
 class TrendEmaBtcRisingPyramid(TrendEmaBtcRising, TrendEmaPyramid):
     """BtcRising entries + TrendEmaPyramid's single add to winners (unchanged)."""
+
+
+# --- Round 13: no entries hugging the trend line ------------------------------------
+# Train analysis of TrendEmaBtcRising's entries (core, 381 trades), by how far the
+# close was above EMA200 at the signal: bottom quartile (0.04-1.17% above) lost
+# -123 USDT (win 25%); the next quartiles won +204, +1,523, +1,371. An entry right
+# at the trend line is often a cross that fails straight back below it.
+# Round number fixed BEFORE the backtest: at least 1% above EMA200.
+
+MIN_GAP_ABOVE_TREND = 0.01
+
+
+class TrendEmaBtcRisingGap(TrendEmaBtcRising):
+    """BtcRising, but the close must be at least 1% above EMA200 to buy."""
+
+    min_gap = MIN_GAP_ABOVE_TREND
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            hugging = dataframe["close"] < dataframe["ema_trend"] * (1 + self.min_gap)
+            dataframe.loc[hugging, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+class BtcRisingGap05(TrendEmaBtcRisingGap):
+    min_gap = 0.005
+
+
+class BtcRisingGap2(TrendEmaBtcRisingGap):
+    min_gap = 0.02
+
+
+GAP_NEIGHBOURS = [BtcRisingGap05, BtcRisingGap2]

@@ -48,3 +48,18 @@ Ekim'de neden kapanmadı? BTC 86 bin dolardan 78 bine yavaşça düştü (−%10
 - **Fikri bulduğun veride fikri test edemezsin.** Train'de 2,70 → 5,18 etkileyici görünüyor, ama fikir zaten oradan çıktı. Asıl bilgi 14 coin sonucunda: 0,76 → 1,10.
 - **Yavaş göstergeler geç uyanır.** SMA50 gibi bir ortalama büyük düşüşlerden korur, ama yavaş ve sinsi düşüşlerde geç kalır.
 - **Zaman birimlerine dikkat.** Aynı görünen iki tarih sütunu farklı tipte olabilir; birleştirmeden önce tipleri eşitle.
+
+## Ek (tur 13): trend çizgisine yapışık girişler
+
+Aynı yöntemle (sadece train) BtcRising'in 381 girişine baktık: kapanış EMA200'ün en fazla %1,2 üstündeyken açılan girişler toplamda zarar etmiş (kazanma %25). Fiyat trend çizgisine bu kadar yakınken gelen sinyal çoğu zaman hemen geri düşüyor.
+
+`TrendEmaBtcRisingGap`: kapanış EMA200'ün en az **%1** üstünde değilse alım yok (yuvarlak sayı, testten önce seçildi).
+
+| | 5 coin | 14 coin (fikre bakılmamış) |
+|---|---|---|
+| BtcRising | 5,18 | 1,10 |
+| Gap %0,5 (komşu) | 5,74 | 1,17 |
+| **Gap %1** | **5,72** | **1,27** |
+| Gap %2 (komşu) | 3,89 | 0,97 |
+
+%0,5 ile %1 arası bir plato; %2'de bot çok seçici olup iyi trendleri de kaçırıyor. Ders: filtre "biraz" iyi, "çok" kötü. Bu yüzden her sayının iki komşusunu da ölçüyoruz.
