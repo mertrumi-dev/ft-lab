@@ -1116,3 +1116,42 @@ class VTVote4x2(TrendEmaVolTargetVote9):
 
 class VTVote6x4(TrendEmaVolTargetVote9):
     vote_enter, vote_exit = 6, 4
+
+
+# T135. LeBeau's chandelier exit (highest price since entry - 3 x ATR(22)), but only once the
+# trade has been +1R in profit (1R = the 8% stop distance): T003 trailed from the entry and was
+# cut by chop; here the trail only protects winners. EMA exit and the -8% stop are unchanged.
+CHANDELIER_ATR = 22
+CHANDELIER_MULT = 3.0
+
+
+def chandelier_exit(open_rate: float, max_rate: float, close: float, atr_value: float,
+                    stop: float, mult: float = CHANDELIER_MULT) -> bool:  # fmt: skip
+    """True when the trade has reached +1R (= |stop|) and the close fell below max - mult x ATR."""
+    if not (atr_value > 0) or max_rate < open_rate * (1 + abs(stop)):
+        return False
+    return close < max_rate - mult * atr_value
+
+
+class TrendEmaVolTargetChandelier(TrendEmaVolTarget):
+    """VolTarget + a chandelier trailing exit that only starts after +1R (T135)."""
+
+    chandelier_mult = CHANDELIER_MULT
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["atr22"] = atr(dataframe, CHANDELIER_ATR)
+        return dataframe
+
+    def custom_exit(self, pair: str, trade, current_time: datetime, current_rate: float, current_profit: float, **kwargs):
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)  # trimmed to now in backtests
+        if dataframe is None or dataframe.empty:
+            return None
+        last = dataframe.iloc[-1]
+        high = max(trade.max_rate or trade.open_rate, trade.open_rate)
+        if chandelier_exit(trade.open_rate, high, float(last["close"]), float(last["atr22"]), self.stoploss, self.chandelier_mult):
+            return "chandelier"
+        return None

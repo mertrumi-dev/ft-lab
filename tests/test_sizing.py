@@ -664,3 +664,26 @@ def test_vote9_neighbours_only_move_thresholds():
     assert (sizing.VTVote4x2.vote_enter, sizing.VTVote4x2.vote_exit) == (4, 2)
     assert (sizing.VTVote6x4.vote_enter, sizing.VTVote6x4.vote_exit) == (6, 4)
     assert sizing.VTVote4x2.populate_entry_trend is sizing.TrendEmaVolTargetVote9.populate_entry_trend
+
+
+def test_chandelier_only_after_one_r():
+    ce = sizing.chandelier_exit
+    # +7% so far: not yet +1R (8%), never exits even on a deep pullback
+    assert not ce(100.0, 107.0, 90.0, 2.0, -0.08)
+    # +10% seen, line = 110 - 3 x 2 = 104
+    assert ce(100.0, 110.0, 103.9, 2.0, -0.08) and not ce(100.0, 110.0, 104.1, 2.0, -0.08)
+    assert not ce(100.0, 110.0, 50.0, float("nan"), -0.08)  # no ATR yet: no decision
+    cls = sizing.TrendEmaVolTargetChandelier
+    assert cls.stoploss == -0.08 and cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+
+
+def test_chandelier_custom_exit_reads_last_candle():
+    s = sizing.TrendEmaVolTargetChandelier({})
+    df = pd.DataFrame({"close": [103.0], "atr22": [2.0]})
+    s.dp = SimpleNamespace(get_analyzed_dataframe=lambda pair, tf: (df, None))
+    trade = SimpleNamespace(open_rate=100.0, max_rate=110.0)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    assert s.custom_exit("BTC/USDT", trade, now, 103.0, 0.03) == "chandelier"
+    trade.max_rate = 107.0
+    assert s.custom_exit("BTC/USDT", trade, now, 103.0, 0.03) is None
