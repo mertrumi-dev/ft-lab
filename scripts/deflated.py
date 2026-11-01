@@ -75,7 +75,9 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
     from equity import build_curve
     from splits import SLICES
 
-    n_trials = int(sys.argv[1]) if len(sys.argv) > 1 else 76
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: deflated.py N   (python3 scripts/ft.py deflated reads N from docs/trials.csv)")
+    n_trials = int(sys.argv[1])
     nk = Path("/freqtrade/user_data/backtest_results/no_kill_switch")
     cases = [("validation", "core", nk), ("validation", "wide", nk), ("early", "early", report.RESULTS_DIR)]
     for sl, uni, d in cases:

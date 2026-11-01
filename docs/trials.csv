@@ -1,0 +1,95 @@
+id,date,name,family,idea,criterion,verdict,train_core_calmar,validation_core_calmar,early_calmar,slices,notes
+T001,2026-10-31,TrendEma,entry,"EMA20/50 kesişimi + EMA200 üstü, -%8 stop, %1 risk","Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,2.70,1.55,1.71,train core+wide; validation core; test (bir kez); early; fresh,"Train PASS (2,99 kapanmış DD → 2,70 saatlik); validation 1,55 < al-tut 2,11; final test -%20,1 kill switch. Dry-run'da çalışan bot."
+T002,2026-10-31,TrendEmaAtr,exit,Stop ATR tabanlı,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,0.63,,,train core,
+T003,2026-10-31,TrendEmaAtrTrail,exit,ATR takip eden stop çıkışı,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,0.63,,,train core,
+T004,2026-10-31,TrendEma4h,timeframe,Aynı kural 4 saatlik mumda,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,1.61,,,train core,"kill switch kapalı ölçüm; açıkken 1,13"
+T005,2026-10-31,TrendBreakout,entry,Kırılım girişi,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,1.48,,,train core,"kill switch kapalı ölçüm; açıkken 1,03"
+T006,2026-10-31,TrendEmaAtrWide,exit,Stop 5×ATR (geniş),train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,1.79,,,train core,kill switch kapalı; TrendEma'yı geçmedi
+T007,2026-10-31,TrendEmaSlow,entry,Yavaş ortalamalar EMA50/200 + EMA600,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,1.82,1.62,,train core+wide; validation core,"Validation 3,32 PASS sanıldı; saatlik DD ile 1,62 < 2,11 FAIL; wide 0,41 FAIL"
+T008,2026-10-31,TrendEmaMulti,entry,3 ortalama çifti oylaması,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,2.31,,,train core,"kill switch kapalı, DD %23"
+T009,2026-10-31,TrendEmaBtc,regime,BTC EMA200 üstündeyken al,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,1.76,,,train core+wide,"wide 0,74 (saatlik)"
+T010,2026-11-01,SlowFast40,robustness,hızlı EMA 40,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.25,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T011,2026-11-01,SlowFast60,robustness,hızlı EMA 60,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.96,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T012,2026-11-01,SlowSlow150,robustness,yavaş EMA 150,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,1.25,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T013,2026-11-01,SlowSlow250,robustness,yavaş EMA 250,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.02,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T014,2026-11-01,SlowTrend450,robustness,trend EMA 450,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.69,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T015,2026-11-01,SlowTrend750,robustness,trend EMA 750,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,1.85,,,train core,TrendEmaSlow komşusu; kapanmış işlem DD ile
+T016,2026-11-01,TrendEmaAdx,entry,ADX trend gücü filtresi,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,1.28,,,train core+wide,"wide 0,84"
+T017,2026-11-01,TrendEmaLongTrend,entry,Uzun trend filtresi,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,2.25,,1.44,train core+wide+alt2023+alt2024; validation wide/alt2023/alt2024 (kıyas); early,"wide 0,98 en iyi; aday olmadı"
+T018,2026-11-01,TrendEmaRisk2,sizing,İşlem başına %2 risk (sadece backtest),train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,3.06,,,train core,"kill switch kapalı; açıkken 2,68 (2022-01'de durdu); canlı risk %1 kalıyor"
+T019,2026-11-01,TrendDonchianEnsemble,entry,Günlük 9 pencere Donchian oylaması + oynaklık hedefi,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,0.50,,,train core+wide,
+T020,2026-11-01,TrendDonchianEnsembleFull,entry,Donchian topluluğu tam boyut,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,1.46,,,train core+wide,
+T021,2026-11-01,TrendEmaFng,regime,Fear&Greed ≥75 iken alma,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,1.48,,,train core+wide,"wide 0,27"
+T022,2026-11-01,TrendEmaCalm,entry,ATR% son 30 günün %80'i üstündeyse alma,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,1.95,,,train core+wide,"wide 0,74"
+T023,2026-11-01,TrendEmaHold,exit,EMA200 altında sat,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,1.76,,,train core+wide,Mac dalı mac/auto-lab
+T024,2026-11-01,TrendEmaExitPrice,exit,EMA50 altında sat,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,0.57,,,train core+wide,Mac dalı mac/auto-lab
+T025,2026-11-01,TrendEmaExitTrend,exit,Trend çıkışı varyantı,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),ELIMINATED,,,,train,Mac dalı mac/auto-lab; sonucu kayıtlarda yok
+T026,2026-11-01,EmaFast15,robustness,hızlı EMA 15,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T027,2026-11-01,EmaFast25,robustness,hızlı EMA 25,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T028,2026-11-01,EmaSlow40,robustness,yavaş EMA 40,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T029,2026-11-01,EmaSlow60,robustness,yavaş EMA 60,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T030,2026-11-01,EmaTrend150,robustness,trend EMA 150,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T031,2026-11-01,EmaTrend250,robustness,trend EMA 250,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core,"TrendEma komşusu; 6 komşunun 4'ü PASS, tek tek sayı kayıtlı değil"
+T032,2026-11-01,DipRsi,entry,"Düşüşte alım: RSI(2)<10, EMA200 üstü, SMA5 çıkış (1h)","Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,-0.42,,,train core+wide,
+T033,2026-11-01,DipRsi4h,entry,"Düşüşte alım, 4 saatlik","Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,-0.31,,,train core+wide,
+T034,2026-11-01,TrendEma 50% + Grid 50%,mix,İki ayrı hesap: trend kuralı + grid bot,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,1.99,2.02,,"train core; validation core; test (bir kez, kıyas)",
+T035,2026-11-01,TrendEmaExitConfirm,exit,Çıkış 3 mum onaylı,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,2.01,,,train core+wide,
+T036,2026-11-01,TrendEmaSlope,entry,EMA50 1 günde yükseliyorsa al,train'de TrendEma'yı geçmek (genel ölçüt + taban kural),FAIL,1.86,,,train core+wide,"wide -0,00"
+T037,2026-11-01,TrendEmaEntryConfirm,entry,Giriş 3 mum onaylı,train'de TrendEma'yı geçmek + plato,ELIMINATED,3.03,,,train core+wide; fee-stress,"komşular 2,60 / 2,14 → sivri tepe, gürültü sayıldı"
+T038,2026-11-01,EntryConfirm2,robustness,Giriş 2 mum onaylı,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.60,,,train core,
+T039,2026-11-01,EntryConfirm4,robustness,Giriş 4 mum onaylı,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.14,,,train core,
+T040,2026-11-01,NostalgiaForInfinityX8,reference,"Ünlü açık kaynak bot (NFI X8, GPL-3.0), sadece kıyas","kıyas satırı, deneme değil",REFERENCE,1.52,8.60,,train core; validation core; fresh,validation <50 işlem
+T041,2026-11-01,TrendEmaPyramid,sizing,Kazanana +%4'te bir kez ekle,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,3.69,2.10,,train core+wide; validation core,"validation kıl payı FAIL (DD 24,1 > 23,9); wide DD %56"
+T042,2026-11-01,Pyramid3,robustness,Ekleme eşiği +%3,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.21,,,train core,
+T043,2026-11-01,Pyramid6,robustness,Ekleme eşiği +%6,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.14,,,train core,
+T044,2026-11-01,TrendEmaPyramidBtc,sizing,Ekleme sadece BTC EMA200 üstündeyken,"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,4.16,2.32,0.27,train core+wide; validation core; test (bir kez); early,"Validation #4 PASS (4. bakış); final test -%20,4 kill switch → FAIL"
+T045,2026-11-01,PyramidBtc150,robustness,BTC EMA150,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.96,,,train core,
+T046,2026-11-01,PyramidBtc250,robustness,BTC EMA250,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,4.00,,,train core,
+T047,2026-11-01,PyramidBtc3,robustness,Ekleme eşiği +%3,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.24,,,train core,
+T048,2026-11-01,PyramidBtc6,robustness,Ekleme eşiği +%6,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.78,,,train core,
+T049,2026-11-01,TrendSmaDaily,entry,Günlük kapanış SMA200 üstü (Faber 2007),"Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,1.16,-0.60,,train core+wide; validation core,
+T050,2026-11-01,Rotation (weekly),selection,"Haftalık momentum, ilk 4 coin, BTC<SMA100 nakit","Calmar al-tut'tan yüksek, DD al-tut'un yarısından az, ≥50 işlem (CLAUDE.md genel ölçüt)",FAIL,3.72,,0.79,train core+wide; fresh; early,"DD %39; wide 0,69 (DD %67)"
+T051,2026-11-01,TrendEmaBtcRising,regime,BTC günlük SMA50 yükselirken al,train wide'da TrendEma'yı geçmek; aday → validation,FAIL,5.18,,1.30,train core+wide+alt2023+alt2024; validation wide/alt2023/alt2024; early; fresh,5 coin sayısı fikrin kaynağı (aşırı uydurma); validation'da tutmadı
+T052,2026-11-01,BtcRisingSma40,robustness,BTC SMA40,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.95,,,train core+wide,
+T053,2026-11-01,BtcRisingSma60,robustness,BTC SMA60,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.68,,,train core+wide,
+T054,2026-11-01,BtcRisingDays5,robustness,Eğim 5 gün,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core+wide,
+T055,2026-11-01,BtcRisingDays15,robustness,Eğim 15 gün,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,,,,train core+wide,
+T056,2026-11-01,TrendEmaBtcRisingPyramid,sizing,BtcRising + Pyramid ek alımı,"train'de BtcRising'i geçmek, DD sınırı",FAIL,4.99,,,train core+wide; fresh,"wide DD %56,7"
+T057,2026-11-01,TrendEmaBtcRisingGap,entry,BtcRising + kapanış EMA200'ün ≥%1 üstünde,aday → validation yeni gruplarda,FAIL,5.72,,1.77,train core+wide+alt2022+alt2023+alt2024; validation wide/alt2022/alt2023/alt2024; early; fresh,Validation'da (wide/alt2023/alt2024) TrendEma'dan kötü; aday statüsü düşürüldü
+T058,2026-11-01,BtcRisingGap05,robustness,"Boşluk %0,5","komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,5.74,,,train core+wide,
+T059,2026-11-01,BtcRisingGap2,robustness,Boşluk %2,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,3.89,,,train core+wide,
+T060,2026-11-01,TrendEmaGapBreakeven,exit,"+%5'ten sonra stop girişe +%0,5",train'de Gap'i geçmek,FAIL,3.23,,,train core+wide,"wide 0,44"
+T061,2026-11-01,GapBreakeven3,robustness,Tetik +%3,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,0.68,,,train core+wide,
+T062,2026-11-01,GapBreakeven8,robustness,Tetik +%8,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,4.32,,,train core+wide,
+T063,2026-11-01,DCA bot 50% + Gap 50%,mix,İki ayrı hesap: DCA bot + Gap,validation wide ve alt2023'te her iki parçayı geçmek,FAIL,2.74,,,train core+wide+alt2023; validation wide/alt2023,"wide 0,88 ✓, alt2023 0,02 ✗"
+T064,2026-11-01,TrendEmaBtcRisingGapRisk2,sizing,"Gap, işlem başına %2 risk (sadece backtest)",validation'da Gap'i geçmek,FAIL,7.29,,,train core+wide+alt2023; validation wide/alt2023,"wide 1,89 / alt2023 -0,88 (kill switch)"
+T065,2026-11-01,DCA bot + BTC gate + 8% stop,mix,DCA bota BTC kapısı ve %8 anlaşma stop'u,düz DCA botu geçmek,FAIL,0.57,,,train core+wide+alt2023; validation wide/alt2023,
+T066,2026-11-01,TrendEmaBtcRisingGap4h,timeframe,Gap kuralı 4 saatlik mumda,1h Gap'i geçmek,FAIL,,,,train wide+alt2023,"wide 0,40 / alt2023 0,99"
+T067,2026-11-01,Grid + DCA bot + TrendEma (1/3 each),mix,Rejim çeşitlendirilmiş üç hesap,validation: al-tut ve ortancayı geçmek + DD her parçadan düşük,FAIL,1.55,2.31,,train core/wide/alt2023/alt2024; validation wide/alt2023/alt2024/core,DD hiçbir grupta TrendEma'dan düşük değil
+T068,2026-11-01,TrendEmaVolTarget,sizing,"Pozisyon %12,5 × min(1, %60 / 30 günlük oynaklık)",train 4 grubun ≥3'ü VE validation 3 grubun ≥2'sinde TrendEma'dan yüksek Calmar,WATCH,1.86,1.93,2.47,train 5 grup; validation 5 grup; early; fresh,"Ön kayıtlı ölçüt FAIL (train 2/4); validation 3/3 + alt2022 + early en iyi; DSR < 0,95. 2026-11-01 akşamı dry-run'a geçiyor"
+T069,2026-11-01,VolTarget45,robustness,Hedef oynaklık %45,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,1.74,,2.51,train core+wide; validation 4 grup; early,
+T070,2026-11-01,VolTarget80,robustness,Hedef oynaklık %80,"komşu: plato kontrolü (sağlamlık, seçim değil)",NEIGHBOUR,2.19,,2.27,train core+wide; validation 4 grup; early,
+T071,2026-11-01,TSMOM,entry,"Günlük 28 günlük momentum, %40 oynaklık hedefi",validation 4 grubun ≥3'ünde al-tut ve TrendEma'yı geçmek,FAIL,2.90,1.21,1.24,train 5 grup; validation 5 grup; early,"train 5/5, validation 2/4"
+T072,2026-11-01,TrendEmaVolTargetBtc,regime,VolTarget + BtcRising kapısı,validation ≥3/4 VE train ≥3/5 Calmar ≥ VolTarget,FAIL,3.23,,,train 5 grup; validation wide/alt2022/alt2023/alt2024,validation 1/4
+T073,2026-11-01,TrendEmaVolTargetTopVol,selection,71 coinlik havuzdan hacimde ilk 15,"train ve validation'da VolTarget-core'u geçmek, DD sınırı",FAIL,,,,train pool; validation pool; fresh,"train pool 2,25; validation pool 0,76 (VolTarget core 2,38)"
+T074,2026-11-01,TrendEmaVolTargetPortfolio,sizing,Toplam oynaklık yükü ≤ %15,validation ≥3/4 VE early'de Calmar ≥ VolTarget,FAIL,1.33,,2.26,train core+wide; validation 4 grup; early,validation 0/4
+T075,2026-11-01,TrendEmaVolTargetPool2,selection,Ana 5 + ilk 20 hacim ve kendi SMA200 üstü,"train ve validation'da Calmar ≥ VolTarget-core, DD ≤ +5 puan",FAIL,,,,train pool; validation pool; early; fresh,"train pool 2,46 ✓; validation pool 1,93 < 2,38 ✗"
+T076,2026-11-01,VolTarget 50% + TSMOM 50%,mix,İki ayrı hesap: VolTarget + TSMOM,validation Calmar ≥3/5 VE DD ≥4/5 daha iyi; early ≥ VolTarget,FAIL,,1.59,1.71,validation 5 grup; early,1/5 grup
+T077,2026-11-01,TrendEmaVolTargetPullback,entry,Sinyalden sonra 12 mum içinde EMA20'ye dönüşte al,"train core, validation ≥3/4 ve early'de Calmar ≥ VolTarget",FAIL,0.79,,0.80,train core; validation 4 grup; early,validation 1/4
+T078,2026-11-01,TrendEmaVolTarget@core_gold,selection,Ana 5 + PAXG (tokenize altın),validation Calmar ↑ ve DD ↓; train en fazla %10 düşük,WATCH,1.32,,,train core_gold; validation core_gold; fresh,"Ön kayıtlı ölçüt FAIL (train -%29); validation 2,69 vs core 1,93; taze veride izleniyor"
+T079,2026-11-01,TrendEmaVolTarget2h,timeframe,VolTarget 2 saatlik mumda,"train core, validation ≥3/4 ve early'de Calmar ≥ 1h",WATCH,1.63,0.57,1.88,train core; validation 5 grup; early; fresh,"Ön kayıtlı ölçüt FAIL (1/3 şart); validation core kill switch kapalı 0,57; taze veride izleniyor"
+T080,2026-11-01,TrendEmaVolTargetDerisk,sizing,Gerçekleşmiş düşüş %10'u geçince pozisyon yarıya,validation DD ≥4/5 ↓ VE Calmar ≥3/5 ↓ değil; train/early sınırları,FAIL,1.80,1.43,2.46,train core; validation 5 grup; early,
+T081,2026-11-01,VolTarget 1h+2h 50/50,mix,İki ayrı hesap: 1h ve 2h VolTarget,"validation Calmar ≥3/5, DD ≥3/5; train/early en fazla %10 düşük",WATCH,1.79,1.36,2.22,train core; validation 5 grup; early; fresh,"Ön kayıtlı ölçüt FAIL (early -%10,2, kıl payı); taze veride izleniyor"
+T082,2026-11-01,TrendEmaVolTargetAtrStop,exit,"Stop 3×ATR (%3-%8 arası), pozisyon %1 risk",validation Calmar ≥3/5 ve DD ≥3/5; train/early sınırları,FAIL,2.11,2.33,2.77,train core; validation 5 grup; early,validation DD 0/5
+T083,2026-11-01,TrendEmaVolTargetBreadth,regime,Genişlik setinden ≥3/5 coin EMA200 üstündeyse al,validation Calmar ≥3/5 ve DD ≥3/5; train/early sınırları,FAIL,1.43,0.59,1.99,train core; validation 5 grup; early,
+T084,2026-11-01,VTFast15,robustness,hızlı EMA 15,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,0.67,,,train core,kırılgan
+T085,2026-11-01,VTFast25,robustness,hızlı EMA 25,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.88,,,train core,
+T086,2026-11-01,VTSlow40,robustness,yavaş EMA 40,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,0.98,,,train core,kırılgan
+T087,2026-11-01,VTSlow60,robustness,yavaş EMA 60,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.57,,,train core,
+T088,2026-11-01,VTTrend150,robustness,trend EMA 150,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.22,,,train core,kırılgan
+T089,2026-11-01,VTTrend250,robustness,trend EMA 250,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.91,,,train core,
+T090,2026-11-01,VTStop6,robustness,stop -%6,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.95,,,train core,
+T091,2026-11-01,VTStop10,robustness,stop -%10,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.86,,,train core,
+T092,2026-11-01,VTVol480,robustness,oynaklık penceresi 480,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.63,,,train core,
+T093,2026-11-01,VTVol960,robustness,oynaklık penceresi 960,komşu: Calmar ≥ temelin %70'i ve al-tut'u geçmek (sadece train),NEIGHBOUR,1.81,,,train core,
+T094,2026-11-01,TrendEmaVolTargetBullVol,sizing,"BTC boğa rejiminde hedef oynaklık %80, değilse %60",validation Calmar ≥3/5 ve DD ≥3/5; train/early en fazla %10 düşük,FAIL,2.08,1.69,2.22,train core; validation 5 grup; early,validation 0/5 + 0/5; araştırma 06'dan
