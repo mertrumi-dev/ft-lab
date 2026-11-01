@@ -53,3 +53,17 @@ def test_ft_scan_downloads_1h_for_the_group_then_scans():
     assert cmds[1][-2:] == ["--universe", "alt2023"]
     default = ft.parse_args(["scan"])
     assert default.universe == "pool"
+
+
+def test_scan_download_starts_120_days_back():
+    from datetime import date
+    assert ft.scan_from(date(2026, 11, 1)) == "20260703"
+    cmds = ft.build_commands(ft.parse_args(["scan"]))
+    assert f"{ft.scan_from()}-" in cmds[0]
+
+
+def test_reborn_coins_are_flagged(tmp_path):
+    n = 24 * 40
+    _write(tmp_path, "LUNA/USDT", np.linspace(100, 200, n))
+    text = scan.render(*scan.scan(["LUNA/USDT"], data_dir=tmp_path))
+    assert "LUNA/USDT" in text and " !" in text and "Terra 2.0" in text

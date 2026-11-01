@@ -24,6 +24,12 @@ from benchmark import DATA_DIR  # noqa: E402
 from chart import bot_view, ema  # noqa: E402
 from universe import CORE_5, UNIVERSES  # noqa: E402
 
+# coins whose Binance ticker today is not the coin the list was made for (thin, speculative markets)
+CAVEATS = {
+    "LUNA/USDT": "Terra 2.0, a new coin after the May 2022 crash",
+    "FTT/USDT": "FTX token after the exchange went bankrupt (Nov 2022)",
+}
+
 # state labels, best first: the table is sorted by this order
 STATES = ["ENTRY NOW", "in trend", "above EMA200, short trend down", "below EMA200"]
 
@@ -77,7 +83,7 @@ def render(df: pd.DataFrame, skipped: list[str]) -> str:
         return "no coins with 1h data"
     lines = [f"{'pair':<12} {'state':<32} {'vs EMA200':>9} {'30d':>8} {'size':>5}"]
     for r in df.itertuples():
-        mark = " *" if r.pair in CORE_5 else ""
+        mark = " *" if r.pair in CORE_5 else (" !" if r.pair in CAVEATS else "")
         lines.append(f"{r.pair:<12} {r.state:<32} {r.vs_ema200:>+9.1%} {r.ret30:>+8.1%} {r.size:>5.0%}{mark}")
     counts = df["state"].value_counts()
     lines.append("")
@@ -87,6 +93,9 @@ def render(df: pd.DataFrame, skipped: list[str]) -> str:
     if skipped:
         lines.append(f"skipped (no or too little data): {', '.join(skipped)}")
     lines.append("* = one of the bot's 5 coins. size = VolTarget share of the normal stake.")
+    for pair, why in CAVEATS.items():
+        if pair in set(df["pair"]):
+            lines.append(f"! {pair}: {why}; read with care")
     lines.append("A reading of the past, not a forecast. Not investment advice.")
     return "\n".join(lines)
 

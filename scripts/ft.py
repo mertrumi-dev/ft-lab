@@ -26,7 +26,7 @@ every run to docs/experiments.md so we can count how many times we tried.
 import argparse
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -86,6 +86,12 @@ def docker_cmd(*args: str) -> list[str]:
 
 def timeframe_of(strategy: str) -> str:
     return STRATEGY_TIMEFRAMES.get(strategy, "1h")
+
+
+def scan_from(today: date | None = None) -> str:
+    """Download start for `scan`: 120 days before today (UTC)."""
+    today = today or datetime.now(timezone.utc).date()
+    return (today - timedelta(days=120)).strftime("%Y%m%d")
 
 
 def pairs_args(args: argparse.Namespace) -> list[str]:
@@ -181,8 +187,10 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
     if args.command == "scan":
         return [
-            # fresh 1h candles for every coin of the group (incremental, no --erase)
-            docker_cmd("download-data", "--config", CONFIG, "--timerange", f"{DAILY_FROM}-",
+            # fresh 1h candles for every coin of the group (incremental, no --erase). Start 120 days
+            # back: enough for EMA200 + 30-day volatility, and no "--prepend" warnings for coins
+            # whose stored history starts later than 2019
+            docker_cmd("download-data", "--config", CONFIG, "--timerange", f"{scan_from()}-",
                        "--timeframes", "1h", *pairs_args(args)),
             [
                 "docker", "compose", "run", "--rm",
