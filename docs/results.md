@@ -690,3 +690,14 @@ Neden kaldı:
 - Train kârının çoğu, dönem sonunda hâlâ açık olan 3 işlemden geliyor (+2765 USDT).
 
 Faber'in kuralı sıkı bir stop olmadan tasarlanmış. Bizim %1 risk / -%8 stop kurallarımızla birleşince başka ve daha kötü bir kurala dönüşüyor. Elendi.
+
+## İleriye dönük kontrol #1 (fresh, 2026-11-01)
+
+`ft.py backtest --slice fresh` (kill switch açık) + `ft.py bots --slice fresh`, `--timerange 20261001-20261101`, fee 0.0015. Sadece yargı için; kurallar bu veriye bakılarak değiştirilmez.
+
+| Coin grubu | Al-tut | TrendEma | PyramidBtc | LongTrend | Haftalık DCA | Grid | DCA bot |
+|---|---|---|---|---|---|---|---|
+| core (5) | -13,5% (DD 17,3%) | -3,3% (DD 3,8%, 17 işlem) | -3,3% (aynı, ekleme olmadı) | -3,1% (16 işlem) | -10,0% | -3,9% | -3,3% |
+| wide (14) | -19,6% (DD 24,8%) | -10,7% (36 işlem) | -14,4% | -7,5% (25 işlem) | | | |
+
+50'den az işlem: istatistiksel olarak anlamsız. Okuma: düşen ayda kurallar çoğunlukla nakitte kaldı, ama açılan işlemlerin neredeyse hepsi zararla kapandı (testere).
