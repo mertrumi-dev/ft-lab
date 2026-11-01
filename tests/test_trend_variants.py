@@ -17,6 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope,
 ]  # fmt: skip
 
 
@@ -208,3 +209,33 @@ def test_hold_exits_only_when_close_crosses_below_trend_line():
     ref = base.populate_entry_trend(base.populate_indicators(candles(close, close + 1, close - 1), {}), {})
     mine = s.populate_entry_trend(df, {})
     assert (ref["enter_long"].fillna(0) == mine["enter_long"].fillna(0)).all()
+
+
+def _cross_frame(fast, slow):
+    df = candles([100.0] * len(fast))
+    df["ema_fast"], df["ema_slow"], df["ema_trend"] = fast, slow, 50.0
+    return df
+
+
+def test_exit_confirm_ignores_a_two_hour_dip():
+    fast = [11, 9, 9, 11, 11, 11]  # below for only 2 candles
+    df = tv.TrendEmaExitConfirm({}).populate_exit_trend(_cross_frame(fast, [10] * 6), {})
+    assert df.get("exit_long", pd.Series(0, index=df.index)).fillna(0).sum() == 0
+
+
+def test_exit_confirm_sells_on_the_third_candle_below():
+    fast = [11, 9, 9, 9, 9, 9]
+    df = tv.TrendEmaExitConfirm({}).populate_exit_trend(_cross_frame(fast, [10] * 6), {})
+    assert list(df["exit_long"].fillna(0)) == [0, 0, 0, 1, 0, 0]
+
+
+def test_slope_blocks_cross_up_while_ema50_falls():
+    n = 30
+    fast = [9.0] * (n - 1) + [11.0]
+    falling = list(np.linspace(12, 10, n))
+    rising = list(np.linspace(8, 10, n))
+    s = tv.TrendEmaSlope({})
+    down = s.populate_entry_trend(_cross_frame(fast, falling), {})
+    up = s.populate_entry_trend(_cross_frame(fast, rising), {})
+    assert down["enter_long"].fillna(0).iloc[-1] == 0
+    assert up["enter_long"].fillna(0).iloc[-1] == 1

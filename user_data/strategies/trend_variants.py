@@ -357,3 +357,38 @@ class TrendEmaHold(TrendEma):
             ["exit_long", "exit_tag"],
         ] = (1, "below_trend")
         return dataframe
+
+
+# --- Round 7: fight whipsaw (from the trade analysis, docs/results.md) -------
+# 443 of 638 trades closed within 3 days, nearly all at a loss: the EMAs cross
+# back soon after entry. Two independent fixes, numbers chosen before testing.
+EXIT_CONFIRM_CANDLES = 3  # the cross-down must still hold after 3 hours
+SLOPE_LOOKBACK = 24  # EMA50 must be higher than 24 hours (1 day) ago
+
+
+class TrendEmaExitConfirm(TrendEma):
+    """Same entry. Sell only when EMA20 has stayed below EMA50 for 3 candles in a row.
+
+    A short dip that crosses back within 3 hours no longer sells the coin.
+    The -8% stop still protects every trade."""
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        below = (dataframe["ema_fast"] < dataframe["ema_slow"]).astype(int)
+        held = below.rolling(EXIT_CONFIRM_CANDLES).sum() == EXIT_CONFIRM_CANDLES
+        dataframe.loc[
+            held & ~held.shift(1, fill_value=False) & (dataframe["volume"] > 0),
+            ["exit_long", "exit_tag"],
+        ] = (1, "ema_cross_down_confirmed")
+        return dataframe
+
+
+class TrendEmaSlope(TrendEma):
+    """Same exit. Buy the cross-up only if EMA50 itself is rising (higher than 1 day ago).
+
+    A cross-up while the medium trend is still falling is often a bounce, not a trend."""
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        falling = dataframe["ema_slow"] <= dataframe["ema_slow"].shift(SLOPE_LOOKBACK)
+        dataframe.loc[falling, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe

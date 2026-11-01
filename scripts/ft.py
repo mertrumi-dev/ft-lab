@@ -60,6 +60,7 @@ ROUND3 = ["TrendEmaAdx", "TrendEmaLongTrend"]
 ROUND4 = ["TrendDonchianEnsemble", "TrendDonchianEnsembleFull"]
 ROUND5 = ["TrendEmaHold"]
 ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
+ROUND7 = ["TrendEmaExitConfirm", "TrendEmaSlope"]  # whipsaw fixes from the trade analysis
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
 SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "SlowTrend450", "SlowTrend750"]
 # Famous third-party bots, run ONLY as research benchmarks next to our rule.
@@ -67,7 +68,7 @@ SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "S
 THIRD_PARTY = ["NostalgiaForInfinityX8"]
 THIRD_PARTY_PATH = "/freqtrade/user_data/strategies/thirdparty"
 BOTS_CONFIG = "/freqtrade/user_data/config/research-bots.json"
-ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6, *ROUND7]
 
 
 def docker_cmd(*args: str) -> list[str]:
