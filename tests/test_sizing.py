@@ -687,3 +687,33 @@ def test_chandelier_custom_exit_reads_last_candle():
     assert s.custom_exit("BTC/USDT", trade, now, 103.0, 0.03) == "chandelier"
     trade.max_rate = 107.0
     assert s.custom_exit("BTC/USDT", trade, now, 103.0, 0.03) is None
+
+
+def test_letrun_refuses_cross_exit_only_after_one_r():
+    assert sizing.reached_one_r(100.0, 108.0, -0.08) and not sizing.reached_one_r(100.0, 107.9, -0.08)
+    assert not sizing.reached_one_r(100.0, None, -0.08)
+    s = sizing.TrendEmaVolTargetLetRun({})
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    young = SimpleNamespace(open_rate=100.0, max_rate=105.0)
+    winner = SimpleNamespace(open_rate=100.0, max_rate=112.0)
+    args = ("limit", 1.0, 100.0, "GTC")
+    assert s.confirm_trade_exit("BTC/USDT", young, *args, "ema_cross_down", now) is True
+    assert s.confirm_trade_exit("BTC/USDT", winner, *args, "ema_cross_down", now) is False
+    assert s.confirm_trade_exit("BTC/USDT", winner, *args, "stop_loss", now) is True  # the stop always works
+    df = pd.DataFrame({"close": [104.0], "ema_letrun": [105.0]})
+    s.dp = SimpleNamespace(get_analyzed_dataframe=lambda pair, tf: (df, None))
+    assert s.custom_exit("BTC/USDT", winner, now, 104.0, 0.04) == "letrun_ema100"
+    assert s.custom_exit("BTC/USDT", young, now, 104.0, 0.04) is None
+    df.loc[0, "close"] = 106.0
+    assert s.custom_exit("BTC/USDT", winner, now, 106.0, 0.06) is None
+
+
+def test_letrun_neighbours_and_indicator():
+    from trend_ema import ema
+
+    assert (sizing.TrendEmaVolTargetLetRun.letrun_ema, sizing.VTLetRun75.letrun_ema, sizing.VTLetRun150.letrun_ema) == (100, 75, 150)
+    rng = np.random.default_rng(2)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 1200))))
+    df = pd.DataFrame({"close": close, "high": close, "low": close, "volume": 1.0})
+    out = sizing.VTLetRun150({}).populate_indicators(df, {})
+    assert np.allclose(out["ema_letrun"], ema(close, 150))

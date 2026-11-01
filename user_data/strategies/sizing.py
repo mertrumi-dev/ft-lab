@@ -1155,3 +1155,57 @@ class TrendEmaVolTargetChandelier(TrendEmaVolTarget):
         if chandelier_exit(trade.open_rate, high, float(last["close"]), float(last["atr22"]), self.stoploss, self.chandelier_mult):
             return "chandelier"
         return None
+
+
+# T136. T060/T109/T135 showed that cutting winners early hurts this rule; this tests the opposite.
+# Until the trade has been +1R (+8%, the stop distance) the exit is the normal EMA20/EMA50 cross.
+# After that the cross is refused and the trade runs until a close below a slower EMA (100).
+# The -8% stop never changes. Neighbours 75/150 are part of the same pre-registration.
+LETRUN_EMA = 100
+
+
+def reached_one_r(open_rate: float, max_rate: float | None, stop: float) -> bool:
+    """Has the price been at least |stop| above the entry since the trade opened?"""
+    return max(max_rate or open_rate, open_rate) >= open_rate * (1 + abs(stop))
+
+
+class TrendEmaVolTargetLetRun(TrendEmaVolTarget):
+    """VolTarget that lets +1R winners run to a close below EMA100 instead of the EMA cross (T136)."""
+
+    letrun_ema = LETRUN_EMA
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import ema
+
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["ema_letrun"] = ema(dataframe["close"], self.letrun_ema)
+        return dataframe
+
+    def confirm_trade_exit(self, pair: str, trade, order_type: str, amount: float, rate: float, time_in_force: str,
+                           exit_reason: str, current_time: datetime, **kwargs) -> bool:  # fmt: skip
+        if exit_reason == "ema_cross_down" and reached_one_r(trade.open_rate, trade.max_rate, self.stoploss):
+            return False  # a +1R winner: only the slower EMA (or the stop) ends it
+        return True
+
+    def custom_exit(self, pair: str, trade, current_time: datetime, current_rate: float, current_profit: float, **kwargs):
+        if not reached_one_r(trade.open_rate, trade.max_rate, self.stoploss):
+            return None
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)  # trimmed to now in backtests
+        if dataframe is None or dataframe.empty:
+            return None
+        last = dataframe.iloc[-1]
+        if last["close"] < last["ema_letrun"]:
+            return f"letrun_ema{self.letrun_ema}"
+        return None
+
+
+# T136 neighbours (part of the pre-registration, not candidates): only the slow EMA moves.
+class VTLetRun75(TrendEmaVolTargetLetRun):
+    letrun_ema = 75
+
+
+class VTLetRun150(TrendEmaVolTargetLetRun):
+    letrun_ema = 150
