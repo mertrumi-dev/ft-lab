@@ -1,6 +1,8 @@
 """Tests for round 15: TrendEmaVolTarget (volatility-scaled position size)."""
 
 import sys
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from pathlib import Path
 
 import numpy as np
@@ -576,3 +578,34 @@ def test_lowcorr_refuses_a_coin_too_correlated_with_an_open_one(monkeypatch):
     # the kill switch still comes first: a 21% realized fall refuses even an uncorrelated coin
     closed.append(SimpleNamespace(close_profit_abs=-210.0, close_date_utc=datetime(2030, 1, 1, tzinfo=timezone.utc)))
     assert s.confirm_trade_entry("OTHER/USDT", *args) is False
+
+
+def test_loss_guard_until_same_meaning_as_stoploss_guard():
+    h = lambda n: datetime(2030, 1, 1, tzinfo=timezone.utc) + timedelta(hours=n)  # noqa: E731
+    assert sizing.loss_guard_until([]) is None
+    assert sizing.loss_guard_until([h(0), h(10)]) is None  # only 2 losses
+    assert sizing.loss_guard_until([h(0), h(10), h(30)]) is None  # 3 losses, but not within 24h
+    assert sizing.loss_guard_until([h(0), h(10), h(24)]) == h(36)  # window edge counts, pause from the 3rd
+    assert sizing.loss_guard_until([h(5), h(0), h(6), h(7)]) == h(19)  # unsorted input; a 4th loss extends
+
+
+def test_loss_guard_refuses_entries_after_three_losing_exits(monkeypatch):
+    s = sizing.TrendEmaVolTargetLossGuard({})
+    s.dp = SimpleNamespace(runmode=SimpleNamespace(value="backtest"))
+    s.wallets = SimpleNamespace(get_starting_balance=lambda: 1000.0)
+    t0 = datetime(2030, 1, 1, tzinfo=timezone.utc)
+
+    def closed_trade(hours, profit):
+        return SimpleNamespace(close_date_utc=t0 + timedelta(hours=hours), close_profit=profit, close_profit_abs=profit * 100)
+
+    closed = [closed_trade(0, -0.01), closed_trade(3, 0.02), closed_trade(5, -0.004), closed_trade(8, -0.02)]
+    monkeypatch.setattr(sizing.Trade, "get_trades_proxy", staticmethod(lambda is_open=False: [] if is_open else closed))
+
+    def allowed(at_hours):
+        return s.confirm_trade_entry("BTC/USDT", "limit", 1.0, 100.0, "GTC", t0 + timedelta(hours=at_hours), None, "long")
+
+    assert allowed(9) is False  # 3 losing exits (signal exits too) in 24h -> paused until 8 + 12 = 20h
+    assert allowed(19.9) is False
+    assert allowed(20) is True
+    closed[2] = closed_trade(5, 0.004)  # the winner between them does not count; now only 2 losses
+    assert allowed(9) is True

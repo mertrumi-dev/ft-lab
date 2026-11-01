@@ -16,7 +16,7 @@ Success criterion, fixed in advance: Calmar above TrendEma on at least 3 of the
 4 train coin groups AND at least 2 of the 3 validation groups.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -998,4 +998,47 @@ class TrendEmaVolTargetLowCorr(TrendEmaVolTarget):
             if np.isfinite(c) and c >= self.corr_max:
                 _corr_log.warning("LOWCORR: %s refused, correlation %.2f with open %s", pair, c, trade.pair)
                 return False
+        return True
+
+
+# T113. R9 ("losing-streak brake") is Freqtrade's StoplossGuard, which counts STOP exits only;
+# the final-test post-mortem found 174 of 176 exits were signal exits, so in chop the brake
+# hardly ever fires. Same numbers as R9 (3 trades in 24 candles -> 12 candles no new entries,
+# all coins), but every trade closed at a loss counts, whatever the exit reason.
+LOSS_GUARD_LOOKBACK = timedelta(hours=24)
+LOSS_GUARD_LIMIT = 3
+LOSS_GUARD_PAUSE = timedelta(hours=12)
+_guard_log = logging.getLogger(__name__)
+
+
+def loss_guard_until(loss_times: list[datetime], lookback: timedelta = LOSS_GUARD_LOOKBACK,
+                     limit: int = LOSS_GUARD_LIMIT, pause: timedelta = LOSS_GUARD_PAUSE) -> datetime | None:  # fmt: skip
+    """Close times of losing trades -> end of the latest pause, or None if the brake never fired.
+
+    Same meaning as StoplossGuard: when a losing trade closes at t and the window [t - lookback, t]
+    holds >= limit losing closes, no new entries until t + pause.
+    """
+    times = sorted(loss_times)
+    until = None
+    for i, t in enumerate(times):
+        in_window = sum(1 for u in times[: i + 1] if u >= t - lookback)
+        if in_window >= limit and (until is None or t + pause > until):
+            until = t + pause
+    return until
+
+
+class TrendEmaVolTargetLossGuard(TrendEmaVolTarget):
+    """VolTarget + R9's numbers counting every losing exit, not only stops (T113)."""
+
+    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float, time_in_force: str,
+                            current_time: datetime, entry_tag: str | None, side: str, **kwargs) -> bool:  # fmt: skip
+        if not super().confirm_trade_entry(pair, order_type, amount, rate, time_in_force, current_time, entry_tag, side, **kwargs):
+            return False  # kill switch / stale data first
+        since = current_time - LOSS_GUARD_LOOKBACK - LOSS_GUARD_PAUSE  # older losses cannot lock now
+        losses = [t.close_date_utc for t in Trade.get_trades_proxy(is_open=False)
+                  if (t.close_profit or 0.0) < 0 and t.close_date_utc >= since]  # fmt: skip
+        until = loss_guard_until(losses)
+        if until is not None and current_time < until:
+            _guard_log.warning("LOSSGUARD: %s refused, %d losing exits in 24h, paused until %s", pair, LOSS_GUARD_LIMIT, until)
+            return False
         return True
