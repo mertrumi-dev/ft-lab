@@ -567,3 +567,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:37 | backtest | TrendEmaVolTargetVote9 | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
 | 2026-11-01 23:38 | backtest | TrendEmaVolTarget | early | universe early, fee 0.003, no kill switch (research) |
 | 2026-11-01 23:38 | backtest | TrendEmaVolTargetVote9 | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:41 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:41 | backtest | TrendEmaVolTargetChandelier | train | no kill switch (research) |
+| 2026-11-01 23:42 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-01 23:42 | backtest | TrendEmaVolTargetChandelier | validation | no kill switch (research) |
+| 2026-11-01 23:43 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:43 | backtest | TrendEmaVolTargetChandelier | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:43 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:43 | backtest | TrendEmaVolTargetChandelier | early | universe early, no kill switch (research) |
