@@ -428,3 +428,54 @@ class EntryConfirm4(TrendEmaEntryConfirm):
     """Sensitivity neighbour: 4 candles (not a candidate)."""
 
     confirm_candles = 4
+
+
+# --- Round 8: pyramiding (add to winners), the opposite of NFI's averaging down ----
+# Trade analysis: the best 10% of trades make 201% of the profit, but only ~17%
+# of the money is ever in coins. Classic trend followers (the Turtles) add to a
+# position that is already winning. We add ONCE, and tighten the stop so the
+# WHOLE position still loses at most 1% of capital (R2), never more than -8% (R1),
+# and the position stays under the 25% cap (R4). Numbers set before testing.
+PYRAMID_TRIGGER = 0.04  # add when the trade is +4% (half of the 8% stop distance)
+
+
+def pyramid_stop_price(avg_price: float, amount: float, capital: float, risk: float, max_loss: float) -> float:
+    """Stop price at which the whole position loses `risk` x capital, and at most `max_loss` per coin."""
+    by_risk = avg_price - risk * capital / amount
+    by_cap = avg_price * (1 - max_loss)
+    return max(by_risk, by_cap)
+
+
+class TrendEmaPyramid(TrendEma):
+    """TrendEma + one extra buy of the same size when the trade is +4%.
+
+    After the extra buy the stop moves up so the total risk stays 1% of capital."""
+
+    position_adjustment_enable = True
+    max_entry_position_adjustment = 1
+    use_custom_stoploss = True
+
+    def adjust_trade_position(
+        self, trade: Trade, current_time: datetime, current_rate: float, current_profit: float,
+        min_stake: float | None, max_stake: float, current_entry_rate: float,
+        current_exit_rate: float, current_entry_profit: float, current_exit_profit: float,
+        **kwargs,
+    ) -> float | None:  # fmt: skip
+        if trade.nr_of_successful_entries != 1 or current_profit < PYRAMID_TRIGGER:
+            return None
+        capital = self.wallets.get_total_stake_amount()
+        room = capital * MAX_STAKE_RATIO - trade.stake_amount  # R4: whole position <= 25%
+        add = min(trade.stake_amount, room, max_stake)
+        if add <= 0 or (min_stake is not None and add < min_stake):
+            return None
+        return add
+
+    def custom_stoploss(
+        self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
+        current_profit: float, after_fill: bool, **kwargs,
+    ) -> float | None:  # fmt: skip
+        if trade.nr_of_successful_entries < 2:
+            return None  # single buy: the normal -8% stop
+        capital = self.wallets.get_total_stake_amount()
+        stop = pyramid_stop_price(trade.open_rate, trade.amount, capital, RISK_PER_TRADE, abs(STOPLOSS))
+        return stoploss_from_absolute(stop, current_rate)

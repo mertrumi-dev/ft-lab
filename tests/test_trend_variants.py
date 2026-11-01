@@ -17,7 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
-    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid,
 ]  # fmt: skip
 
 
@@ -262,3 +262,56 @@ def test_entry_confirm_needs_trend_filter():
 
 def test_entry_confirm_neighbours():
     assert (tv.EntryConfirm2.confirm_candles, tv.EntryConfirm4.confirm_candles) == (2, 4)
+
+
+class _Wallets:
+    def __init__(self, capital):
+        self.capital = capital
+
+    def get_total_stake_amount(self):
+        return self.capital
+
+
+class _Trade:
+    def __init__(self, entries, stake, open_rate=100.0, amount=1.25):
+        self.nr_of_successful_entries, self.stake_amount = entries, stake
+        self.open_rate, self.amount = open_rate, amount
+
+
+def _pyramid(capital=1000.0):
+    s = tv.TrendEmaPyramid({})
+    s.wallets = _Wallets(capital)
+    return s
+
+
+def _adjust(s, trade, profit):
+    return s.adjust_trade_position(trade, None, 104.0, profit, 5.0, 10_000.0, 104.0, 104.0, profit, profit)
+
+
+def test_pyramid_adds_same_size_once_at_plus_4_percent():
+    s = _pyramid()
+    assert _adjust(s, _Trade(1, 125.0), 0.039) is None
+    assert _adjust(s, _Trade(1, 125.0), 0.04) == pytest.approx(125.0)
+    assert _adjust(s, _Trade(2, 250.0), 0.10) is None  # only one add
+
+
+def test_pyramid_respects_25_percent_cap():
+    assert _adjust(_pyramid(), _Trade(1, 200.0), 0.05) == pytest.approx(50.0)  # 250 - 200
+    assert _adjust(_pyramid(), _Trade(1, 250.0), 0.05) is None
+
+
+def test_pyramid_stop_keeps_total_risk_at_one_percent():
+    # 2.4 coins at avg 102 (~245 USDT), capital 1000: 1% = 10 USDT -> stop 10/2.4 below avg
+    stop = tv.pyramid_stop_price(102.0, 2.4, 1000.0, 0.01, 0.08)
+    assert stop == pytest.approx(102.0 - 10 / 2.4)
+    assert (102.0 - stop) * 2.4 == pytest.approx(10.0)
+
+
+def test_pyramid_stop_never_wider_than_8_percent():
+    # tiny position: the 1% budget would allow a huge fall, the 8% cap wins
+    assert tv.pyramid_stop_price(100.0, 0.1, 1000.0, 0.01, 0.08) == pytest.approx(92.0)
+
+
+def test_pyramid_single_entry_keeps_normal_stop():
+    s = _pyramid()
+    assert s.custom_stoploss("X", _Trade(1, 125.0), None, 100.0, 0.0, False) is None
