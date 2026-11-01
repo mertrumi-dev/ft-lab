@@ -287,3 +287,26 @@ Komut (RC): `ft.py backtest --slice train --no-kill-switch --strategy TrendEma T
 - Uzun trend filtresi 14 zayıf coinde en iyisi (0,98, düşüş %41 → %35), ama 5 coinde kazancı kesiyor (2023: +%7,6 vs +%23,5).
 - ADX 2022'de tek pozitif kural (+%3,7) ama yükseliş yıllarında çok geride.
 - **Desen:** Giriş filtresi eklemek güçlü coinlerde hep kazancı kesiyor. Asıl kaldıraç (sözün gelişi) giriş değil, paranın ne kadarının coinde olduğu (%16). Bu risk kuralı → Kaan'ın kararı bekleniyor.
+
+## 2026-11-01 · Train · %2 risk araştırması (TrendEmaRisk2, sadece backtest)
+
+Komut (RC): `ft.py backtest --slice train [--no-kill-switch] --strategy TrendEmaRisk2`; `report --slice train [--no-kill-switch] --strategy TrendEma TrendEmaRisk2`. `--timerange 20210101-20240613`, `--fee 0.0015`.
+
+| | Getiri | Yıllık | Düşüş (saatlik) | Calmar | Coinde | Not |
+|---|---|---|---|---|---|---|
+| TrendEma (%1) | +254,3% | +44,3% | 16,5% | 2,69 | %16 | |
+| TrendEmaRisk2, kill switch kapalı | +876,4% | +93,6% | 30,6% | 3,06 | %30 | gerçek bot %20'de dururdu |
+| TrendEmaRisk2, kill switch açık | +471,7% | +65,8% | 24,6% | 2,68 | %10 | 2022-01-21'de durdu |
+
+- Riski 2 katına çıkarmak kazancı ve düşüşü birlikte büyütüyor; risk başına kalite (Calmar) neredeyse aynı.
+- %20 kill switch ile birlikte %2 risk uyumsuz: bot Ocak 2022'de kalıcı duruyor.
+- **Karar: canlı risk %1 kalıyor.** Daha fazla getiri, kuralın kendisini iyileştirerek aranacak, riski büyüterek değil.
+
+## Araştırma notu: "Catching Crypto Trends" (Zarattini, Pagani, Barbon, 2025)
+
+Kaynak: https://concretumgroup.com/catching-crypto-trends-a-tactical-approach-for-bitcoin-and-altcoins/ (makale PDF'i ve https://abarbon.com/papers/catching-crypto-trends özeti).
+- Günlük mum, Donchian kırılımı; 9 farklı pencere (5-360 gün) eşit ağırlıklı topluluk (ensemble); çıkış: kanal ortasında, sadece yukarı kayan stop.
+- Pozisyon: oynaklık hedefleme (yıllık %25 hedef, 90 günlük oynaklıkla), makalede %200'e kadar (bizde kaldıraç yok → tavan %100).
+- Coin seçimi: her ay hacme göre ilk 20 (1 yıldan eski, stablecoin değil), hayatta kalan yanılgısından arındırılmış veri.
+- Sonuç (makale, Tablo 4, %0,1 komisyon): ilk 20 coin portföyü yıllık %18, Sharpe 1,57, en büyük düşüş %11 (2015-2025). Backtest; bağımsız doğrulama yok.
+- Bizim için çıkarım: (1) tek pencere yerine çok pencereli topluluk, (2) günlük mum, (3) oynaklığa göre pozisyon, (4) hacme göre aylık coin seçimi. Sıradaki deneme bunlardan.
