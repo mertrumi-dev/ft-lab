@@ -125,3 +125,69 @@ def test_minibot_source_never_sets_keys():
         text = path.read_text()
         for word in ("apiKey\":", "secret\":", "'apiKey'", "\"secret\"", "dry_run"):
             assert word not in text, f"{path.name} mentions {word}"
+
+
+def test_realized_vol_matches_pandas_and_sizing():
+    rng = np.random.default_rng(11)
+    close = list(100 * np.exp(np.cumsum(rng.normal(0, 0.01, 900))))
+    expected = np.log(pd.Series(close)).diff().rolling(signals.VOL_WINDOW).std() * np.sqrt(signals.HOURS_PER_YEAR)
+    assert signals.realized_vol(close) == pytest.approx(expected.iloc[-1])
+    assert np.isnan(signals.realized_vol(close[:720]))  # 719 returns: not enough yet
+    assert signals.vol_scale(float("nan")) == 1.0 and signals.vol_scale(1.2) == pytest.approx(0.5)
+    assert signals.vol_scale(0.3) == 1.0  # never above the normal stake
+
+
+def test_voltarget_parity_with_the_freqtrade_strategy():
+    """Same candles -> same entries, exits AND stake as TrendEmaVolTarget (populate_* + custom_stake_amount)."""
+    pytest.importorskip("freqtrade")
+    sys.path.insert(0, str(ROOT / "user_data" / "strategies"))
+    import sizing
+
+    rng = np.random.default_rng(7)
+    sigma = np.r_[np.full(1500, 0.005), np.full(1500, 0.012)]  # calm coin, then a wild one
+    close = 100 * np.exp(np.cumsum(rng.normal(0.0003, sigma)))
+    strat = sizing.TrendEmaVolTarget({})
+    df = strat.populate_indicators(pd.DataFrame({"close": close, "volume": 1.0}), {})
+    df = strat.populate_exit_trend(strat.populate_entry_trend(df, {}), {})
+
+    class Wallets:
+        def get_total_stake_amount(self):
+            return 1000.0
+
+    class Dp:
+        i = 0
+
+        def get_analyzed_dataframe(self, pair, timeframe):
+            return df.iloc[: self.i + 1], None
+
+    strat.wallets, strat.dp = Wallets(), Dp()
+    scales, entries = set(), 0
+    for i in range(400, len(close)):
+        prefix = list(close[: i + 1])
+        sig = signals.signal(prefix)
+        assert (sig == "buy") == (df["enter_long"].iloc[i] == 1)
+        assert (sig == "sell") == (df["exit_long"].iloc[i] == 1)
+        if sig == "buy" or i % 50 == 0:  # every entry plus a sample of other hours
+            scale = signals.vol_scale(signals.realized_vol(prefix))
+            strat.dp.i = i
+            ft_stake = strat.custom_stake_amount("X", None, 1, 0, None, 10_000, 1, None, "long")
+            assert paper.stake_for(paper.new_account(1000), {}, scale) == pytest.approx(ft_stake)
+            scales.add(round(scale, 2))
+            entries += sig == "buy"
+    assert entries > 5 and min(scales) < 0.8 and max(scales) == 1.0  # both full and shrunk sizes were checked
+
+
+def test_step_voltarget_sizes_the_buy_and_trendema_mode_does_not():
+    rng = np.random.default_rng(7)
+    full = list(100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, 4000))))
+    # the first 1000-candle window (what the bot fetches) whose last closed candle is a buy
+    close = next(full[i - 999 : i + 1] for i in range(999, len(full)) if signals.signal(full[i - 999 : i + 1]) == "buy")
+    rows = rows_from(close)
+    now = rows[-1][0] + HOUR
+    a, b = paper.new_account(1000), paper.new_account(1000)
+    bot.step(a, FakeExchange(rows), now, pairs=["BTC/USDT"])
+    bot.step(b, FakeExchange(rows), now, pairs=["BTC/USDT"], rule="trendema")
+    expected = 125.0 * signals.vol_scale(signals.realized_vol(close))
+    assert expected < 125.0  # a wild coin (sigma 1.2%/h ~ 110%/yr): smaller than the normal stake
+    assert a["positions"]["BTC/USDT"]["stake"] == pytest.approx(expected)
+    assert b["positions"]["BTC/USDT"]["stake"] == pytest.approx(125.0)

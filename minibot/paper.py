@@ -28,25 +28,26 @@ def kill_switch_hit(acc: dict) -> bool:
     return (acc["peak"] - acc["realized"]) / acc["peak"] >= KILL_SWITCH_DRAWDOWN
 
 
-def stake_for(acc: dict, prices: dict[str, float]) -> float:
-    """How much cash to put in: losing 8% of it must cost at most 1% of capital."""
+def stake_for(acc: dict, prices: dict[str, float], scale: float = 1.0) -> float:
+    """How much cash to put in: losing 8% of it must cost at most 1% of capital (max 25%),
+    times the VolTarget `scale` (1 = TrendEma; it can only shrink the stake)."""
     cap = capital(acc, prices)
-    return min(cap * RISK_PER_TRADE / abs(STOPLOSS), cap * MAX_STAKE_RATIO, acc["cash"])
+    return min(min(cap * RISK_PER_TRADE / abs(STOPLOSS), cap * MAX_STAKE_RATIO) * min(scale, 1.0), acc["cash"])
 
 
-def buy(acc: dict, pair: str, price: float, prices: dict[str, float], time: str) -> str | None:
+def buy(acc: dict, pair: str, price: float, prices: dict[str, float], time: str, scale: float = 1.0) -> str | None:
     """Open a position. Returns a short note, or None if the buy was refused."""
     if pair in acc["positions"]:
         return None  # one position per coin
     if kill_switch_hit(acc):
         return f"KILL SWITCH: no new trades ({pair} refused)"
-    stake = stake_for(acc, prices)
+    stake = stake_for(acc, prices, scale)
     if stake < 10:
         return None  # Binance's minimum order is about 5-10 USDT
     amount = stake * (1 - FEE) / price  # the fee is taken from what we get
     acc["cash"] -= stake
     acc["positions"][pair] = {"amount": amount, "entry": price, "stake": stake, "time": time}
-    return f"BUY {pair} {amount:.6f} @ {price:.4f} (stake {stake:.2f})"
+    return f"BUY {pair} {amount:.6f} @ {price:.4f} (stake {stake:.2f}, size {min(scale, 1.0):.0%})"
 
 
 def sell(acc: dict, pair: str, price: float, time: str, reason: str) -> str | None:

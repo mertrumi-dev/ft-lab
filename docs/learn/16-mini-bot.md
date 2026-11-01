@@ -25,7 +25,7 @@ Hesap basit bir sözlükten oluşuyor: `cash` (nakit), `positions` (açık işle
 
 | Fonksiyon | Ne yapar |
 |---|---|
-| `stake_for` | Ne kadar alınacağını hesaplar: sermaye × %1 / %8, en fazla sermayenin %25'i |
+| `stake_for` | Ne kadar alınacağını hesaplar: sermaye × %1 / %8, en fazla sermayenin %25'i, × VolTarget katsayısı (kart 31) |
 | `buy` | Nakitten düşer, komisyonu keser, pozisyon açar. Aynı coinden ikinci pozisyonu ve kill switch tetiklenmişse yeni alımı reddeder |
 | `sell` | Pozisyonu kapatır, kârı/zararı yazar, kill switch tepe noktasını günceller |
 | `stop_hit` | Mumun en düşük fiyatı giriş fiyatının %8 altına indi mi? |
@@ -34,7 +34,7 @@ Hesap basit bir sözlükten oluşuyor: `cash` (nakit), `positions` (açık işle
 
 Her saatin 30. saniyesinde bot şu adımları izler:
 
-1. Her coin için son 500 saatlik mumu ister (`fetch_ohlcv`).
+1. Her coin için son 1000 saatlik mumu ister (`fetch_ohlcv`; 2026-11-01 öncesi 500, oynaklık için 721 kapanış gerekiyor). Pozisyon boyutu için kart 31.
 2. **Son mumu atar.** O saat henüz bitmedi, kapanış fiyatı kesin değil. Bunu yapmayan botlar backtest'te iyi, canlıda kötü sonuç verir.
 3. Coin elimizdeyse ve son mumun en düşük fiyatı stop'a değdiyse, stop fiyatından satar.
 4. Değmediyse sinyale bakar ve alır, satar ya da bekler.

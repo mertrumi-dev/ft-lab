@@ -4,10 +4,12 @@
     .venv/bin/python -m minibot.bot                 # run forever, one pass every hour
 
 What one pass does, for each pair:
-  1. Ask the exchange for the last 500 one-hour candles (public data, no key).
+  1. Ask the exchange for the last 1000 one-hour candles (public data, no key).
   2. Throw away the newest candle: it is still forming, its close is not final.
   3. If we hold the coin and the last candle's low touched the stop -> sell at the stop.
-  4. Otherwise compute the TrendEma signal and buy / sell / do nothing.
+  4. Otherwise compute the TrendEma signal and buy / sell / do nothing. With the default
+     rule "voltarget" (same as the Freqtrade bot since 2026-11-01) a buy is sized by the
+     coin's 30-day volatility; "trendema" keeps the old full-size stake.
   5. Save the account to minibot/state.json, so a restart continues where it stopped.
 """
 
@@ -22,7 +24,8 @@ from minibot import paper, signals
 STATE_FILE = Path(__file__).resolve().parent / "state.json"
 PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
 TIMEFRAME = "1h"
-LIMIT = 500  # 2 x EMA200 warm-up + margin
+LIMIT = 1000  # 720 returns for the volatility + margin (also covers the 2 x EMA200 warm-up); Binance max per call
+RULES = ("voltarget", "trendema")
 
 
 def public_exchange():
@@ -41,7 +44,7 @@ def closed_candles(exchange, pair: str, now_ms: int) -> list[list[float]]:
     return [r for r in rows if r[0] + hour_ms <= now_ms]
 
 
-def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS) -> list[str]:
+def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str = "voltarget") -> list[str]:
     """One pass over all pairs. Returns what happened, one line per action."""
     log, candles = [], {}
     for pair in pairs:
@@ -56,9 +59,11 @@ def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS) -> list[str
             stop_price = acc["positions"][pair]["entry"] * (1 + paper.STOPLOSS)
             log.append(paper.sell(acc, pair, stop_price, stamp, "stoploss"))
             continue
-        sig = signals.signal([r[4] for r in rows])
+        closes = [r[4] for r in rows]
+        sig = signals.signal(closes)
         if sig == "buy":
-            note = paper.buy(acc, pair, close, prices, stamp)
+            scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
+            note = paper.buy(acc, pair, close, prices, stamp, scale)
         elif sig == "sell":
             note = paper.sell(acc, pair, close, stamp, "ema_cross_down")
         else:
@@ -81,13 +86,14 @@ def save_state(acc: dict, path: Path = STATE_FILE) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="ft-lab mini bot (paper trading only)")
     parser.add_argument("--once", action="store_true", help="one pass, then exit")
+    parser.add_argument("--rule", choices=RULES, default="voltarget", help="sizing: voltarget (default) or trendema")
     args = parser.parse_args()
 
     exchange = public_exchange()
     while True:
         acc = load_state()
         now_ms = int(time.time() * 1000)
-        for line in step(acc, exchange, now_ms):
+        for line in step(acc, exchange, now_ms, rule=args.rule):
             print(line, flush=True)
         save_state(acc)
         prices = {p: pos["entry"] for p, pos in acc["positions"].items()}

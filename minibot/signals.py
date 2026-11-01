@@ -1,11 +1,19 @@
-"""TrendEma's rules, rewritten without Freqtrade (plain Python lists, no pandas).
+"""TrendEma's rules and VolTarget's sizing, rewritten without Freqtrade (plain Python lists, no pandas).
 
 Same idea as user_data/strategies/trend_ema.py:
     buy  when EMA20 crosses above EMA50 and the close is above EMA200
     sell when EMA20 crosses below EMA50
+and user_data/strategies/sizing.py (TrendEmaVolTarget):
+    stake = normal stake x min(1, 60% / the coin's annualized volatility of the last 720 hourly returns)
 """
 
+import math
+import statistics
+
 FAST, SLOW, TREND = 20, 50, 200
+TARGET_VOL = 0.60  # annualized, same number as sizing.py
+VOL_WINDOW = 24 * 30  # 720 hourly returns = 30 days
+HOURS_PER_YEAR = 24 * 365
 
 
 def ema(values: list[float], length: int) -> list[float]:
@@ -36,3 +44,23 @@ def signal(closes: list[float]) -> str:
     if crossed_down:
         return "sell"
     return "hold"
+
+
+def realized_vol(closes: list[float], window: int = VOL_WINDOW) -> float:
+    """Annualized volatility of the last `window` hourly log returns (NaN until there are enough).
+
+    Same as pandas: log(close).diff().rolling(window).std() * sqrt(hours per year),
+    where std is the sample standard deviation (divides by n - 1).
+    """
+    if len(closes) < window + 1:
+        return math.nan
+    tail = closes[-(window + 1):]
+    returns = [math.log(b / a) for a, b in zip(tail, tail[1:])]
+    return statistics.stdev(returns) * math.sqrt(HOURS_PER_YEAR)
+
+
+def vol_scale(vol: float, target: float = TARGET_VOL) -> float:
+    """How much of the normal stake to use: 1 for calm coins, less for wild ones (never more than 1)."""
+    if not math.isfinite(vol) or vol <= 0:
+        return 1.0  # no reading yet: behave like TrendEma
+    return min(1.0, target / vol)
