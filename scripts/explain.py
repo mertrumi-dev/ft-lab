@@ -59,6 +59,16 @@ def next_entry_need(row: pd.Series) -> str:
             " altına inip tekrar yukarı kesmeli")  # fmt: skip
 
 
+def exit_distance(row: pd.Series, open_rate: float, stop: float = STOP) -> str:
+    """How far an open trade is from its two exits: EMA20 crossing below EMA50, or the stop."""
+    gap = row["ema20"] / row["ema50"] - 1
+    stop_px = open_rate * (1 - stop)
+    to_stop = 1 - stop_px / row["close"]
+    cross = (f"EMA20, EMA50'nin %{gap * 100:.1f} üstünde; aşağı keserse satar" if gap > 0
+             else "EMA20 EMA50'nin altına indi; bir sonraki mumda çıkış sinyali bekleniyor")  # fmt: skip
+    return f"- Çıkışa uzaklık: {cross}. Stop fiyatı {stop_px:g}, şu anki fiyatın %{to_stop * 100:.1f} altında."
+
+
 def read_trades(db: Path) -> pd.DataFrame:
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     try:
@@ -90,6 +100,8 @@ def explain_trade(t: pd.Series, ind: pd.DataFrame, now_close: float | None) -> s
     if t["is_open"]:
         if now_close:
             lines.append(f"- Durum: hâlâ açık. Şu anki fiyat {now_close:g} ({now_close / t['open_rate'] - 1:+.1%}).")
+            if not ind.empty:
+                lines.append(exit_distance(ind.iloc[-1], t["open_rate"]))
         else:
             lines.append("- Durum: hâlâ açık.")
     else:

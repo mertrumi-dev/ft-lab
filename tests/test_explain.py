@@ -51,3 +51,24 @@ def test_closed_trade_explained(tmp_path):
 def test_db_opened_read_only():
     src = (Path(__file__).resolve().parent.parent / "scripts" / "explain.py").read_text()
     assert "mode=ro" in src
+
+
+def test_exit_distance_for_open_trade():
+    up = explain.exit_distance(pd.Series({"close": 110.0, "ema20": 105.0, "ema50": 100.0}), open_rate=100.0)
+    assert "%5.0 üstünde; aşağı keserse satar" in up and "Stop fiyatı 92" in up and "%16.4 altında" in up
+    down = explain.exit_distance(pd.Series({"close": 99.0, "ema20": 98.0, "ema50": 100.0}), open_rate=100.0)
+    assert "çıkış sinyali bekleniyor" in down
+
+
+def test_open_trade_shows_exit_distance(tmp_path):
+    db = tmp_path / "x.dryrun.sqlite"
+    con = sqlite3.connect(db)
+    con.execute("create table trades (id int, pair text, is_open int, open_date text, close_date text, open_rate float, "
+                "close_rate float, stake_amount float, close_profit float, close_profit_abs float, exit_reason text, "
+                "strategy text, fee_open_cost float, fee_close_cost float)")
+    con.execute("insert into trades values (2,'ETH/USDT',1,'2026-10-20 10:00:00',null,100,null,125,null,null,null,"
+                "'TrendEmaVolTarget',0.19,null)")
+    con.commit()
+    con.close()
+    text = explain.render([explain.read_trades(db)], lambda p: fake_ind(np.linspace(80, 120, 1500)))
+    assert "hâlâ açık" in text and "Çıkışa uzaklık" in text
