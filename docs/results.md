@@ -701,3 +701,21 @@ Faber'in kuralı sıkı bir stop olmadan tasarlanmış. Bizim %1 risk / -%8 stop
 | wide (14) | -19,6% (DD 24,8%) | -10,7% (36 işlem) | -14,4% | -7,5% (25 işlem) | | | |
 
 50'den az işlem: istatistiksel olarak anlamsız. Okuma: düşen ayda kurallar çoğunlukla nakitte kaldı, ama açılan işlemlerin neredeyse hepsi zararla kapandı (testere).
+
+### Ünlü botlar dahil tam tablo (fresh, 5 coin, 2026-11-01)
+
+`ft.py download --fine` + `ft.py backtest --slice fresh --strategy NostalgiaForInfinityX8` + `ft.py bots --slice fresh --strategy TrendEma TrendEmaBtcRisingGap NostalgiaForInfinityX8` (main be5c0e7), `--timerange 20261001-20261101`, fee 0.0015, kill switch açık.
+
+| Bot | İşlem | Getiri | Saatlik DD |
+|---|---|---|---|
+| Al-tut | - | -13,5% | 17,3% |
+| Haftalık DCA | - | -10,0% | 12,0% |
+| Grid (Pionex tarzı) | 83 | -3,9% | 6,1% |
+| DCA bot (3Commas tarzı) | 13 | -3,3% | 4,5% |
+| Rotasyon (haftalık) | 14 | -12,4% | 14,1% |
+| TrendEma | 17 | -3,4% | 3,8% |
+| TrendEma %50 + Grid %50 | 100 | -3,6% | 4,5% |
+| TrendEmaBtcRisingGap (aday) | 9 | -2,0% | 2,2% |
+| NostalgiaForInfinity X8 | 1 | +0,1% | 0,2% |
+
+NFI ayın neredeyse tamamında nakitte kaldı (1 işlem, 2 saat 55 dk, +0,98 USDT, dönem sonunda açık işlem yok). Tek işlem istatistiksel olarak hiçbir şey söylemez (Calmar 4,93 anlamsız). Train'deki davranışıyla tutarlı: çok seçici, paranın ortalama %2'si coinde.
