@@ -65,5 +65,6 @@ Demo hesapta 10.000 ya da 100.000 sahte USDT olabilir. Pozisyon o bakiyeden hesa
 ## Anlaman gerekenler
 
 - **Kontrol, tehlikeli işlemden önce yapılır.** Adres yanlışsa bot bakiye bile sormadan durur. "Sonra fark ederiz" yok.
-- **Karar ile uygulama ayrı.** `bot.step` karar verir, `DemoBroker` sadece uygular. Böylece kağıt ve demo aynı kuralı oynar; farkı sadece borsa yaratır. Ölçmek istediğimiz de bu fark.
+- **Karar ile uygulama ayrı.** `demo.step` kararı kağıt botla aynı fonksiyonlarla verir (`signals.signal`, `signals.vol_scale`, `paper.stake_for`), `DemoBroker` sadece uygular ve sonucu okur. Böylece kağıt ve demo aynı kuralı oynar; farkı sadece borsa yaratır. Ölçmek istediğimiz de bu fark.
+- **"Gönderildi" ≠ "doldu".** Defter emri gönderdiğimizde değil, borsa doldurduğunu söylediğinde değişir. Kısmi dolum ve iptal bu yüzden doğru sayılır.
 - **Benzer görünen adres saldırısı:** `demo-api.binance.com.evil.io` metin olarak "demo-api.binance.com" içerir ama başka bir sitedir. Bu yüzden adres metinde aranmıyor, **host** (alan adı) ayrıştırılıp karşılaştırılıyor.
