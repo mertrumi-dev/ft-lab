@@ -391,3 +391,22 @@ def test_dca_falls_less_than_buy_and_hold_in_an_early_crash():
 def test_dca_pays_fee_on_buys_and_final_sale():
     eq = benchmark.dca_equity({"A": _hourly([100.0] * 24 * 14)}, fee=0.01)
     assert eq.iloc[-1] == pytest.approx(0.99 * 0.99)
+
+
+# --- fresh (forward) slice -----------------------------------------------------
+
+
+def test_fresh_starts_where_test_ends_and_never_overlaps():
+    from splits import fresh_slice
+
+    f = fresh_slice(date(2026, 11, 1))
+    assert f.start == SLICES["test"].end
+    assert f.end == date(2026, 11, 1)
+    assert f.timerange == "20261001-20261101"
+    # a clock before the data end can never produce a slice that reaches back into test
+    assert fresh_slice(date(2020, 1, 1)).start == SLICES["test"].end
+
+
+def test_fresh_backtest_needs_no_final_test_flag():
+    c = ft.build_commands(ft.parse_args(["backtest", "--slice", "fresh"]))[0]
+    assert c[c.index("--timerange") + 1] == SLICES["fresh"].timerange

@@ -277,7 +277,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     dl.add_argument("--fine", action="store_true", help="also 5m and 15m (for the NFI benchmark bot)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
-    bt.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
@@ -287,12 +287,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
-    bm.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
     bm.add_argument("--universe", choices=UNIVERSES, default="core")
     bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
-    rp.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
@@ -312,7 +312,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation", "test"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh"], required=True)
     bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")
