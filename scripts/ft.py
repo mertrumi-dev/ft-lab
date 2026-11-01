@@ -161,7 +161,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
         n = trials.n_trials(trials.load())
         return [["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
-                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/deflated.py", str(n)]]  # fmt: skip
+                 "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/deflated.py", str(n), *args.strategy]]  # fmt: skip
 
     if args.command == "minibot":
         # Paper trading only (public prices, no keys); the state file minibot/state.json is written in the repo.
@@ -447,7 +447,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rp = sub.add_parser("replay", help="minibot demo loop over stored candles vs the Freqtrade backtest (no keys)")
     rp.add_argument("--slice", choices=["fresh", "validation"], required=True)
 
-    sub.add_parser("deflated", help="Deflated Sharpe Ratio of VolTarget/TrendEma; N = trials in docs/trials.csv")
+    df = sub.add_parser("deflated", help="Deflated Sharpe Ratio of VolTarget/TrendEma; N = trials in docs/trials.csv")
+    df.add_argument("--strategy", nargs="+", default=[], help="extra strategies to score next to the defaults")
 
     mb = sub.add_parser("minibot", help="the from-scratch paper bot (Phase 4), in Docker")
     mb.add_argument("--once", action="store_true", help="one pass, then exit")

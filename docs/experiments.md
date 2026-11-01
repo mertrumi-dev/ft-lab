@@ -543,3 +543,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv70_vw30 | train | no kill switch (research) |
 | 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv60_vw20 | train | no kill switch (research) |
 | 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv60_vw45 | train | no kill switch (research) |
+| 2026-11-01 23:29 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:29 | backtest | TrendEmaVolTargetVote9 | train | no kill switch (research) |
+| 2026-11-01 23:29 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-01 23:29 | backtest | TrendEmaVolTargetVote9 | validation | no kill switch (research) |
+| 2026-11-01 23:30 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:30 | backtest | TrendEmaVolTargetVote9 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:31 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:31 | backtest | TrendEmaVolTargetVote9 | early | universe early, no kill switch (research) |

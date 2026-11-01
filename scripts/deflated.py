@@ -68,6 +68,9 @@ def daily_returns(equity: pd.Series) -> pd.Series:
     return equity.resample("1D").last().pct_change().dropna()
 
 
+DEFAULT_NAMES = ("TrendEmaVolTarget", "TrendEmaVolTargetCooldown24", "TrendEmaVolTargetDerisk72h", "TrendEma")
+
+
 def main() -> None:  # pragma: no cover - needs backtest results inside the container
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import benchmark
@@ -76,7 +79,7 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
     from splits import SLICES
 
     if len(sys.argv) < 2:
-        raise SystemExit("usage: deflated.py N   (python3 scripts/ft.py deflated reads N from docs/trials.csv)")
+        raise SystemExit("usage: deflated.py N [extra strategies]   (python3 scripts/ft.py deflated reads N from docs/trials.csv)")
     n_trials = int(sys.argv[1])
     nk = Path("/freqtrade/user_data/backtest_results/no_kill_switch")
     cases = [("validation", "core", nk), ("validation", "wide", nk), ("early", "early", report.RESULTS_DIR)]
@@ -95,7 +98,7 @@ def main() -> None:  # pragma: no cover - needs backtest results inside the cont
         var_sr = float(np.var(list(srs.values()), ddof=1)) if len(srs) > 2 else float("nan")
         print(f"\n== {sl} {uni}  --timerange {s.timerange}: {len(srs)} strategies with results here, "
               f"variance of their daily Sharpe = {var_sr:.6f}, N = {n_trials}")  # fmt: skip
-        for name in ("TrendEmaVolTarget", "TrendEmaVolTargetCooldown24", "TrendEmaVolTargetDerisk72h", "TrendEma"):
+        for name in (*DEFAULT_NAMES, *[x for x in sys.argv[2:] if x not in DEFAULT_NAMES]):
             if name not in rets:
                 print(f"  {name}: no result")
                 continue
