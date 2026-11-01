@@ -40,9 +40,9 @@ Grid ve DCA bot ayarları, sonuç görülmeden önce, bu botların tipik varsay�
 ## Komutlar
 
 ```bash
-.venv/bin/python scripts/ft.py download --fine                    # 5m + 15m veri (sadece NFI için)
-.venv/bin/python scripts/ft.py backtest --slice train --no-kill-switch --strategy NostalgiaForInfinityX8
-.venv/bin/python scripts/ft.py bots --slice train --no-kill-switch # hepsi tek tabloda
+python3 scripts/ft.py download --fine                    # 5m + 15m veri (sadece NFI için)
+python3 scripts/ft.py backtest --slice train --no-kill-switch --strategy NostalgiaForInfinityX8
+python3 scripts/ft.py bots --slice train --no-kill-switch # hepsi tek tabloda
 ```
 
 `bots` tablosunda her satırın düşüşü saat saat ölçülüyor, al-tut ile aynı yöntemle. Bu, kuralımızın başarı ölçütüyle aynı ölçüm.

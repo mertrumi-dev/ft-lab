@@ -43,7 +43,7 @@ cash = 1 - (alım sayısı / toplam alım)       # harcanmamış para
 ## Komut
 
 ```bash
-.venv/bin/python scripts/ft.py benchmark --slice train
+python3 scripts/ft.py benchmark --slice train
 ```
 
 Al-tut'un altına DCA satırları da yazılır.

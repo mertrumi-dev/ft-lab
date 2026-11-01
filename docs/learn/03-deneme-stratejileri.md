@@ -53,8 +53,8 @@ dataframe["high"].rolling(20).max().shift(1)
 
 Veri gelince tek komut, hepsi yan yana:
 ```
-.venv/bin/python scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr TrendEmaAtrTrail TrendEma4h TrendBreakout
-.venv/bin/python scripts/benchmark.py --slice train
+python3 scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr TrendEmaAtrTrail TrendEma4h TrendBreakout
+python3 scripts/ft.py benchmark --slice train
 ```
 Kazanan: Calmar'ı en yüksek, en az 50 işlem yapan, düşüşü al-tut'un yarısından az olan. Train'de kazanan validation'da da kazanırsa canlı bota o geçer.
 

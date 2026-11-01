@@ -1,7 +1,7 @@
 """The mini bot's main loop.
 
-    .venv/bin/python -m minibot.bot --once          # one pass over all pairs, then exit
-    .venv/bin/python -m minibot.bot                 # run forever, one pass every hour
+    python3 scripts/ft.py minibot --once          # one pass over all pairs, then exit
+    python3 scripts/ft.py minibot                 # run forever, one pass every hour
 
 What one pass does, for each pair:
   1. Ask the exchange for the last 1000 one-hour candles (public data, no key).

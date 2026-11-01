@@ -15,8 +15,8 @@ pozisyon = normal pozisyon × min(1, %60 / coinin yıllık oynaklığı)
 Çalıştırma:
 
 ```
-.venv/bin/python -m minibot.bot --once                 # VolTarget (varsayılan)
-.venv/bin/python -m minibot.bot --once --rule trendema # eski hali, hep normal boyut
+python3 scripts/ft.py minibot --once                 # VolTarget (varsayılan)
+python3 scripts/ft.py minibot --once --rule trendema # eski hali, hep normal boyut
 ```
 
 ## Kod nerede?

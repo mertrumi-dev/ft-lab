@@ -4,7 +4,7 @@ Splits the capital equally across the pairs, buys at the first candle of the
 slice, sells at the last one, and pays the fee on both sides. Reports the same
 risk numbers we judge strategies by.
 
-    .venv/bin/python scripts/benchmark.py --slice train
+    python3 scripts/ft.py benchmark --slice train
 """
 
 import argparse

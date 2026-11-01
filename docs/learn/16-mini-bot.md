@@ -52,5 +52,5 @@ Bu eksikler bilerek bırakıldı. Mini bot öğrenmek için, gerçek bot Freqtra
 ## Komut
 
 ```bash
-.venv/bin/python -m minibot.bot --once   # tek tur
+python3 scripts/ft.py minibot --once   # tek tur
 ```

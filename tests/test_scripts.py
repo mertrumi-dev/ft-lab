@@ -473,3 +473,12 @@ def test_chart_turkish_render_and_tiny_prices():
     assert chart.px_tr(0.000005) == "0,000005" and chart.px_tr(74200) == "74.200,00"
     c = ft.build_commands(ft.parse_args(["chart", "--pair", "eth", "--tr"]))[-1]
     assert c[-2:] == ["--lang", "tr"]
+
+
+def test_ft_test_and_minibot_run_in_the_test_image():
+    t = ft.build_commands(ft.parse_args(["test", "tests/test_minibot.py"]))
+    assert len(t) == 1 and t[0][-4:] == ["-m", "pytest", "-q", "tests/test_minibot.py"] and ft.TEST_IMAGE in t[0]
+    assert ft.build_commands(ft.parse_args(["test", "--build"]))[0][:2] == ["docker", "build"]
+    m = ft.build_commands(ft.parse_args(["minibot", "--once"]))[0]
+    assert m[-3:] == ["--once", "--rule", "voltarget"] and "minibot.bot" in m
+    assert (ft.ROOT / "tests" / "Dockerfile").read_text().count("freqtrade:2026.10") == 1

@@ -7,8 +7,8 @@ Bu kart `scripts/scan.py` dosyasını anlatıyor. Bu araç botun kuralını tek 
 ## Nasıl çalıştırılır
 
 ```bash
-.venv/bin/python scripts/ft.py scan                  # 'pool' grubundaki tüm coinler
-.venv/bin/python scripts/ft.py scan --universe core  # sadece botun 5 coini
+python3 scripts/ft.py scan                  # 'pool' grubundaki tüm coinler
+python3 scripts/ft.py scan --universe core  # sadece botun 5 coini
 ```
 
 `ft.py` önce coinlerin en son 1 saatlik mumlarını indirir. Daha önce indirilmiş veriler silinmez, sadece eksik kalan son mumlar eklenir. Sonra `scan.py` Docker içinde çalışır.

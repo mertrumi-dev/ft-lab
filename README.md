@@ -27,13 +27,13 @@ Bir kere yapılır.
    openssl rand -hex 32     # çıkan değeri WS_TOKEN'a yapıştır
    open -e .env             # TextEdit'te açar; şifreni de değiştir, kaydet
    ```
-6. Güvenlik testlerini çalıştır:
+6. Testleri çalıştır (Docker içinde; Mac'in python3'ünde pandas/freqtrade yok, gerekmez de):
    ```bash
-   python3 -m venv .venv
-   .venv/bin/pip install -r requirements-dev.txt
-   .venv/bin/python -m pytest
+   export PATH=$HOME/.docker/bin:$PATH     # Docker Desktop'ın docker komutu (zsh'de ~/.zshrc'ye ekle)
+   python3 scripts/ft.py test --build      # ilk sefer: test image'ını tests/Dockerfile'dan kurar
+   python3 scripts/ft.py test              # sonrakiler
    ```
-   Sonuç `313 passed` olmalı. (İlk kurulum freqtrade kütüphanesini de indirdiği için birkaç dakika sürebilir.)
+   Hepsi `passed` olmalı (2026-11-01: 444). İsteğe bağlı: `requirements-dev.txt` ile bir `.venv` kurup `.venv/bin/python -m pytest` da çalışır.
 
 ## Botu çalıştırma
 
@@ -50,10 +50,10 @@ Durdurmak için: `docker compose down`.
 ## Ölçme (Faz 1)
 
 ```bash
-.venv/bin/python scripts/splits.py                      # veri dilimlerini göster
-.venv/bin/python scripts/ft.py download                 # geçmiş fiyatları indir (bir kere)
-.venv/bin/python scripts/benchmark.py --slice train     # al-tut sonucu
-.venv/bin/python scripts/ft.py backtest --slice train --strategy all   # tüm stratejiler
-.venv/bin/python scripts/ft.py report --slice train     # kısa tablo: stratejiler vs al-tut
+python3 scripts/splits.py                      # veri dilimlerini göster
+python3 scripts/ft.py download                 # geçmiş fiyatları indir (bir kere)
+python3 scripts/ft.py benchmark --slice train     # al-tut sonucu
+python3 scripts/ft.py backtest --slice train --strategy all   # tüm stratejiler
+python3 scripts/ft.py report --slice train     # kısa tablo: stratejiler vs al-tut
 ```
 Test dilimi (`--slice test`) her strateji için sadece bir kere, en sonda. Açıklama: [docs/learn/02-olcme-araclari.md](docs/learn/02-olcme-araclari.md).

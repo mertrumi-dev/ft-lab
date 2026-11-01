@@ -4,23 +4,23 @@ Why a wrapper: it takes dates ONLY from scripts/splits.py, always uses the
 realistic fee, refuses to hyperopt on anything but the train slice, and logs
 every run to docs/experiments.md so we can count how many times we tried.
 
-    .venv/bin/python scripts/ft.py download
-    .venv/bin/python scripts/ft.py backtest --slice train
-    .venv/bin/python scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr
-    .venv/bin/python scripts/ft.py backtest --slice train --strategy all
-    .venv/bin/python scripts/ft.py benchmark --slice train
-    .venv/bin/python scripts/ft.py report --slice train      # short comparison table
-    .venv/bin/python scripts/ft.py backtest --slice validation
-    .venv/bin/python scripts/ft.py backtest --slice test --final-test   # once per strategy!
-    .venv/bin/python scripts/ft.py hyperopt --epochs 200 --spaces buy sell
+    python3 scripts/ft.py download
+    python3 scripts/ft.py backtest --slice train
+    python3 scripts/ft.py backtest --slice train --strategy TrendEma TrendEmaAtr
+    python3 scripts/ft.py backtest --slice train --strategy all
+    python3 scripts/ft.py benchmark --slice train
+    python3 scripts/ft.py report --slice train      # short comparison table
+    python3 scripts/ft.py backtest --slice validation
+    python3 scripts/ft.py backtest --slice test --final-test   # once per strategy!
+    python3 scripts/ft.py hyperopt --epochs 200 --spaces buy sell
 
     # robustness (Phase 3): other coins, double fee
-    .venv/bin/python scripts/ft.py download --universe wide
-    .venv/bin/python scripts/ft.py backtest --slice train --universe wide --strategy TrendEmaSlow
-    .venv/bin/python scripts/ft.py backtest --slice train --fee-stress --strategy TrendEmaSlow
-    .venv/bin/python scripts/ft.py report --slice train --universe wide
-    .venv/bin/python scripts/ft.py backtest --slice train --no-kill-switch --strategy all
-    .venv/bin/python scripts/ft.py report --slice train --no-kill-switch
+    python3 scripts/ft.py download --universe wide
+    python3 scripts/ft.py backtest --slice train --universe wide --strategy TrendEmaSlow
+    python3 scripts/ft.py backtest --slice train --fee-stress --strategy TrendEmaSlow
+    python3 scripts/ft.py report --slice train --universe wide
+    python3 scripts/ft.py backtest --slice train --no-kill-switch --strategy all
+    python3 scripts/ft.py report --slice train --no-kill-switch
 """
 
 import argparse
@@ -80,6 +80,9 @@ BOTS_CONFIG = "/freqtrade/user_data/config/research-bots.json"
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6, *ROUND7, *ROUND8, *ROUND9, *ROUND10]
 
 
+TEST_IMAGE = "ft-lab-test"  # freqtrade:2026.10 + pytest, built from tests/Dockerfile
+
+
 def docker_cmd(*args: str) -> list[str]:
     return ["docker", "compose", "run", "--rm", "freqtrade", *args]
 
@@ -119,6 +122,17 @@ def third_party_args(strategies: list[str]) -> list[str]:
 
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
+    if args.command == "test":
+        # The Mac's python3 has no pandas/freqtrade: tests run in the test image (tests/Dockerfile).
+        build = [["docker", "build", "-q", "-t", TEST_IMAGE, str(ROOT / "tests")]] if args.build else []
+        return [*build, ["docker", "run", "--rm", "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo",
+                         TEST_IMAGE, "-m", "pytest", "-q", *args.pytest_args]]  # fmt: skip
+
+    if args.command == "minibot":
+        # Paper trading only (public prices, no keys); the state file minibot/state.json is written in the repo.
+        return [["docker", "run", "--rm", "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo", TEST_IMAGE,
+                 "-m", "minibot.bot", *(["--once"] if args.once else []), "--rule", args.rule]]  # fmt: skip
+
     if args.command == "download":
         return [
             docker_cmd(
@@ -329,7 +343,8 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan", "execution", "expected", "explain", "ai-score"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -361,6 +376,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     dl.add_argument("--universe", choices=UNIVERSES, default="core")
     dl.add_argument("--fine", action="store_true", help="also 5m and 15m (for the NFI benchmark bot)")
     dl.add_argument("--early", action="store_true", help="also candles from 2017-08 (for the 'early' 2018-2020 slice)")
+
+    te = sub.add_parser("test", help="run the test suite in Docker (the Mac's python3 has no pandas/freqtrade)")
+    te.add_argument("--build", action="store_true", help="(re)build the test image from tests/Dockerfile first")
+    te.add_argument("pytest_args", nargs="*", help="extra pytest arguments, e.g. tests/test_minibot.py")
+
+    mb = sub.add_parser("minibot", help="the from-scratch paper bot (Phase 4), in Docker")
+    mb.add_argument("--once", action="store_true", help="one pass, then exit")
+    mb.add_argument("--rule", choices=["voltarget", "trendema"], default="voltarget")
 
     ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
     ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")
@@ -444,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     commands = build_commands(args)
     for cmd in commands:
-        print("$", " ".join(cmd))
+        print("$", " ".join(cmd), flush=True)
     if args.dry:
         return 0
     log_run(args)
