@@ -792,3 +792,18 @@ NFI 25 işlemin hepsini kazandı, paranın ortalama ~%0'ı coinde (çok seçici)
 Kill switch kapalıyken sonuçlar aynı; tek fark PyramidBtc (+106%, Calmar 1,32).
 
 Okuma: Hiç görülmemiş 2018 çöküşü + toparlanma döneminde bizim trend kurallarımız ünlü botların hepsinden iyi (grid ve DCA bot 2018'de -%39-40). En iyi Calmar yine VolTarget (2,47, en küçük düşüş %9,6); canlıdaki TrendEma 1,71.
+
+## 2026-11-01 · VolTarget %50 + TSMOM %50 (önceden kaydedildi)
+
+`ft.py bots --slice validation --no-kill-switch --universe core|wide|alt2022|alt2023|alt2024 --strategy TrendEmaVolTarget` ve `ft.py bots --slice early --universe early --strategy TrendEmaVolTarget` (main 2f1248a), fee 0.0015. Validation `--timerange 20240613-20250807`, early `20180101-20210101` (pencere 2018-06-12'den).
+
+| Grup | VolTarget Calmar / DD | TSMOM | **Karışım Calmar / DD** | Al-tut | DCA bot | Grid |
+|---|---|---|---|---|---|---|
+| core val. | 1,93 / 13,0% | 1,21 | 1,59 / 15,2% | 2,11 | 1,76 | 1,97 |
+| wide val. | 0,83 / 20,1% | 0,99 | **0,98 / 19,4%** | 0,62 | 0,78 | 0,71 |
+| alt2022 val. | 0,88 / 10,1% | 0,07 | 0,28 / 18,9% | -0,35 | -0,14 | -0,14 |
+| alt2023 val. | 0,43 / 17,4% | 0,09 | 0,24 / 20,1% | -0,20 | 0,11 | 0,02 |
+| alt2024 val. | 0,30 / 13,6% | -0,58 | -0,32 / 17,1% | -0,45 | -0,03 | 0,01 |
+| early | 2,47 / 9,6% | 1,24 | 1,71 / 15,7% | 0,03 | 0,06 | -0,04 |
+
+Ölçüt: Calmar VolTarget'ten yüksek ≥3/5 (oldu: 1/5), DD daha düşük ≥4/5 (oldu: 1/5), early'de ≥ (olmadı) → **FAIL**. TSMOM yeni dönemlerde VolTarget'ten zayıf; karıştırmak onu aşağı çekiyor.
