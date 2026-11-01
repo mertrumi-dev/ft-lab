@@ -769,3 +769,26 @@ Okuma (dürüst): Aday, train'de üç coin grubunun üçünde de TrendEma'yı ge
 | NFI X8 | 25 | +15,2% | 1,5% | 8,60 (<50 işlem) |
 
 NFI 25 işlemin hepsini kazandı, paranın ortalama ~%0'ı coinde (çok seçici). Düşüş çok küçük ama getiri de al-tut'un 1/8'i; 25 işlem istatistik için az. Train'deki gibi: "az al, stop koyma, dönmesini bekle" profili.
+
+## 2026-11-01 · "Early" sınavı (2018-01-01 → 2021-01-01, hiç kullanılmamış dönem)
+
+`ft.py download --universe early --early`, `ft.py backtest --slice early --universe early [--no-kill-switch] --strategy TrendEma TrendEmaVolTarget TrendEmaBtcRising TrendEmaBtcRisingGap TrendEmaLongTrend TrendEmaPyramidBtc`, `ft.py bots ...` (main a57643b). 13 coinden 12'si (EOS verisi yok). Al-tut penceresi 2018-06-12'den (ETC). Kurallar bugünkü halleriyle, değişiklik yok. Bu dilim sadece yargı içindir.
+
+| Bot (kill switch açık, aynı pencere) | İşlem | Getiri | Saatlik DD | Calmar | 2018 | 2019 | 2020 |
+|---|---|---|---|---|---|---|---|
+| Al-tut | - | +5,9% | 78,7% | 0,03 | -66,5% | +6,3% | +198,6% |
+| Haftalık DCA | - | +92,8% | 54,6% | 0,54 | -8,4% | -10,4% | +135,2% |
+| Grid | 2664 | -4,2% | 47,3% | -0,04 | -39,8% | +3,2% | +54,5% |
+| DCA bot | 2076 | +6,8% | 47,3% | 0,06 | -39,2% | +6,7% | +65,0% |
+| Rotasyon | 323 | +129,9% | 48,5% | 0,79 | -17,4% | +19,9% | +132,2% |
+| TSMOM | 432 | +94,5% | 23,9% | 1,24 | -15,3% | +23,9% | +85,5% |
+| TrendEma (canlı) | 675 | +74,3% | 14,2% | 1,71 | +2,1% | +13,2% | +51,2% |
+| **TrendEmaVolTarget** | 675 | +72,4% | **9,6%** | **2,47** | +0,4% | +16,7% | +47,4% |
+| TrendEmaBtcRisingGap | 313 | +64,9% | 12,2% | 1,77 | -2,7% | +23,9% | +36,8% |
+| TrendEmaBtcRising | 371 | +49,1% | 13,1% | 1,30 | | | |
+| TrendEmaLongTrend | 469 | +61,7% | 14,4% | 1,44 | | | |
+| TrendEmaPyramidBtc | 404 | +17,1% | 24,0% | 0,27 (2019-12'de kill switch) | | | |
+
+Kill switch kapalıyken sonuçlar aynı; tek fark PyramidBtc (+106%, Calmar 1,32).
+
+Okuma: Hiç görülmemiş 2018 çöküşü + toparlanma döneminde bizim trend kurallarımız ünlü botların hepsinden iyi (grid ve DCA bot 2018'de -%39-40). En iyi Calmar yine VolTarget (2,47, en küçük düşüş %9,6); canlıdaki TrendEma 1,71.
