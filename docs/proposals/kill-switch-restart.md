@@ -1,6 +1,6 @@
-# ÖNERİ: Kill switch sonrası insan kontrol listesi
+# Kill switch sonrası insan kontrol listesi
 
-> **ÖNERİ: Kaan onaylamadan `docs/risk-rules.md`'ye girmez.** Bu bir taslak. Kural değil, prosedür önerisi. Onaylanana kadar geçerli kural R13: "yeni işlem yok, insan bakana kadar".
+> **Uygulandı 2026-11-01 (R13 eki, `docs/risk-rules.md`), Kaan değiştirebilir.** Seçilen bekleme: 14 gün + yazılı cevaplar. Koordinatörün kararıyla, Kaan'ın karar kartı cevabından önce uygulandı. Sadece yeniden başlamayı kısıtlıyor, hiçbir risk sayısını değiştirmiyor; sahte para botu için.
 
 Neden: Final test otopsisi (araştırma 10) gösterdi ki kill switch kaybı %20'de tutuyor ama "ne zaman, nasıl yeniden başlanır" kararı belirsiz. Bu belge o kararı yazılı ve sakin bir sürece bağlamak için.
 
@@ -45,9 +45,9 @@ Kural: **eski veritabanı asla düzenlenmez.** İçindeki işlemleri silmek veya
 
 Mini bot (demo) için aynı mantık: `minibot/state.demo.json` → `minibot/archive/state.demo.KILLED-YYYYMMDD.json` (kopya), yeni dosya boş başlar. Eski dosya düzenlenmez.
 
-## 5. En az bekleme süresi (öneri)
+## 5. En az bekleme süresi (uygulanan: 14 gün)
 
-**Öneri: kilitlendikten sonra en az 14 gün** sıfırlama yok, ve 3. bölümdeki cevaplar journal'da yazılı olmalı.
+**Kilitlendikten sonra en az 14 gün** sıfırlama yok, ve 3. bölümdeki cevaplar journal'da yazılı olmalı.
 
 Neden 14 gün:
 - Kayıptan hemen sonra "hemen geri kazanayım" isteği kötü karar getirir. Bekleme süresi bunu engeller.

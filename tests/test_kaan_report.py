@@ -102,6 +102,6 @@ def test_chart_section_from_captured_outputs():
 
 def test_report_points_to_the_checklist_only_when_latched():
     hit = kaan_report.render("2026-11-02", {"drawdown": 0.15, "worst": 0.21}, "", [], "", "", "", (0, 0))
-    assert "TETİKLENDİ" in hit and "docs/proposals/kill-switch-restart.md" in hit
+    assert "TETİKLENDİ" in hit and "docs/proposals/kill-switch-restart.md" in hit and "14 gün" in hit
     ok = kaan_report.render("2026-11-02", {"drawdown": 0.02, "worst": 0.05}, "", [], "", "", "", (0, 0))
     assert "kill-switch-restart" not in ok and "TETİKLENDİ" not in ok

@@ -132,8 +132,10 @@ def test_latched_kill_switch_points_to_the_restart_checklist():
     s = health.LogSummary()
     latched = {"open": 1, "closed": 40, "profit": -150.0, "drawdown": 0.15, "worst": 0.21}
     text = health.render(s, latched, "up", T0, 24)
-    assert "TRIGGERED" in text and "docs/proposals/kill-switch-restart.md" in text
+    assert "TRIGGERED" in text and "docs/proposals/kill-switch-restart.md" in text and "14 days" in text
     calm = {"open": 0, "closed": 3, "profit": 5.0, "drawdown": 0.01, "worst": 0.05}
     assert "kill-switch-restart" not in health.render(s, calm, "up", T0, 24)
     doc = (health.ROOT / health.RESTART_CHECKLIST).read_text()
-    assert "ÖNERİ: Kaan onaylamadan" in doc and "asla düzenlenmez" in doc
+    assert "Uygulandı 2026-11-01" in doc and "asla düzenlenmez" in doc
+    rules = (health.ROOT / "docs" / "risk-rules.md").read_text()
+    assert "R13 eki" in rules and "En az 14 gün" in rules and "%20, %1, %8, %25" in rules

@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "user_data" / "tradesv3.dryrun.sqlite"
 STARTING_BALANCE = 1000.0  # config.json dry_run_wallet
 KILL_SWITCH_DRAWDOWN = 0.20  # same number as trend_ema.py
-RESTART_CHECKLIST = "docs/proposals/kill-switch-restart.md"  # what to do when latched (a proposal until Kaan approves)
+RESTART_CHECKLIST = "docs/proposals/kill-switch-restart.md"  # what to do when latched (R13 addendum, applied 2026-11-01)
 HEARTBEAT_MAX_AGE = timedelta(minutes=5)  # the bot logs one every minute
 PHASE0_HOURS = 24
 
@@ -203,7 +203,7 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
            if trades.get("worst", trades["drawdown"]) >= KILL_SWITCH_DRAWDOWN else "")
     )
     if trades.get("worst", trades["drawdown"]) >= KILL_SWITCH_DRAWDOWN:
-        out.append(f"  What now:     read {RESTART_CHECKLIST} (checklist; a proposal until Kaan approves it)")
+        out.append(f"  What now:     R13 addendum: wait at least 14 days + written review, then {RESTART_CHECKLIST}")
     total_net = sum(s.network_by_hour.values())
     out.append(f"Network errors: {total_net}  (normal: a few per hour; a burst = no internet / Mac asleep)" + (f"  ({', '.join(f'{k} {v}' for k, v in s.network_by_cause.most_common())})" if total_net else ""))
     for hour, n in sorted(s.network_by_hour.items()):

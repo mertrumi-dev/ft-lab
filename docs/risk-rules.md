@@ -48,6 +48,16 @@ Hepsi önce train/validation verisinde, en sonda bir kere test diliminde.
 
 Kill switch işlem geçmişinden hesaplanır, bu yüzden bot yeniden başlasa da açık kalır. Bilerek böyle: kötü giden bir botu "restart" ile kandıramazsın. Sıfırlamak için önce nedenini incele (`docs/journal.md`'ye yaz), sonra Claude ile birlikte karar ver.
 
+### R13 eki: kill switch sonrası yeniden başlama (uygulandı 2026-11-01, Kaan değiştirebilir)
+
+Kill switch işlem geçmişindeki **en büyük** düşüşe bakar (`trend_ema.worst_drawdown`): bir kez %20'ye ulaştıysa kendiliğinden açılmaz. Yeniden başlama için:
+
+1. **En az 14 gün** bekleme (kilitlendiği andan itibaren).
+2. `docs/journal.md`'de yazılı "KILL SWITCH İNCELEMESİ": ne oldu, kural mı piyasa mı, beklenen aralık, şu anki rejim, teknik hata var mı. Karar Kaan'ın.
+3. Sıfırlama prosedürü: eski veritabanı **asla düzenlenmez**; arşive kopyalanır (salt okunur), bot yeni bir veritabanı adıyla (ayrı commit) başlar.
+
+Ayrıntılı kontrol listesi ve gerekçe: `docs/proposals/kill-switch-restart.md`. Bu ek sadece yeniden başlamayı kısıtlar; hiçbir risk sayısı (%20, %1, %8, %25) değişmedi.
+
 ### Araştırma backtest'inde kapatma (2026-11-01)
 
 Backtest'te kill switch bir kere tetiklenince dönemin geri kalanında hiç alım olmaz. O zaman sonuç "kural nasıl" değil "kural ilk %20 düşüşe kadar nasıldı" olur (ör. 14 coin testinde TrendEma Temmuz 2021'de durdu).
