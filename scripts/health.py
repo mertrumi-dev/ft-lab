@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DB = ROOT / "user_data" / "tradesv3.dryrun.sqlite"
+DB = ROOT / "user_data" / "tradesv3.voltarget.dryrun.sqlite"  # main bot since 2026-11-01 (TrendEmaVolTarget)
 STARTING_BALANCE = 1000.0  # config.json dry_run_wallet
 KILL_SWITCH_DRAWDOWN = 0.20  # same number as trend_ema.py
 HEARTBEAT_MAX_AGE = timedelta(minutes=5)  # the bot logs one every minute

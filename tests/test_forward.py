@@ -28,7 +28,9 @@ def test_forward_config_is_dry_run_without_secrets():
     assert not ({"exchange", "api_server", "telegram", "trading_mode"} & set(cfg))
 
 
-def test_main_bot_unchanged():
+def test_main_bot_runs_voltarget_on_its_own_db():
+    # 2026-11-01: main dry-run bot switched TrendEma -> TrendEmaVolTarget (docs/journal.md).
+    # New DB file so the old TrendEma dry-run record stays untouched.
     block = service_block("freqtrade")
-    assert "--strategy TrendEma\n" in block + "\n" and "profiles" not in block
-    assert "tradesv3.dryrun.sqlite" in block
+    assert "--strategy TrendEmaVolTarget\n" in block + "\n" and "profiles" not in block
+    assert "tradesv3.voltarget.dryrun.sqlite" in block
