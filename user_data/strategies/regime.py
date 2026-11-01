@@ -39,9 +39,11 @@ def btc_daily_rising(daily: DataFrame, sma: int = BTC_SMA, days: int = BTC_SLOPE
     return out
 
 
-def attach_btc_rising(hourly: DataFrame, daily: DataFrame) -> pd.Series:
+def attach_btc_rising(
+    hourly: DataFrame, daily: DataFrame, sma: int = BTC_SMA, days: int = BTC_SLOPE_DAYS
+) -> pd.Series:
     """For each hourly candle: the latest btc_rising value that was already known."""
-    flags = btc_daily_rising(daily).sort_values("available_from")
+    flags = btc_daily_rising(daily, sma, days).sort_values("available_from")
     # Freqtrade's hourly and daily frames can use different time units (ms vs us);
     # merge_asof needs identical key types, so both go to nanoseconds.
     flags["available_from"] = flags["available_from"].astype("datetime64[ns, UTC]")
@@ -56,6 +58,9 @@ def attach_btc_rising(hourly: DataFrame, daily: DataFrame) -> pd.Series:
 class TrendEmaBtcRising(TrendEma):
     """Only buy while Bitcoin's daily trend (SMA50) is going up."""
 
+    btc_sma = BTC_SMA
+    btc_days = BTC_SLOPE_DAYS
+
     def informative_pairs(self):
         return [("BTC/USDT", "1d")]
 
@@ -66,7 +71,7 @@ class TrendEmaBtcRising(TrendEma):
         if dp is not None:
             daily = dp.get_pair_dataframe("BTC/USDT", "1d")
             if daily is not None and not daily.empty:
-                dataframe["btc_rising"] = attach_btc_rising(dataframe, daily)
+                dataframe["btc_rising"] = attach_btc_rising(dataframe, daily, self.btc_sma, self.btc_days)
         return dataframe
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -74,3 +79,27 @@ class TrendEmaBtcRising(TrendEma):
         if "enter_long" in dataframe:
             dataframe.loc[~dataframe["btc_rising"], ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# --- Sensitivity neighbours (NOT candidates): each moves ONE number --------------
+# A real effect should survive small changes (a plateau); a lucky number collapses
+# when moved (a spike, like EntryConfirm in round 7).
+
+
+class BtcRisingSma40(TrendEmaBtcRising):
+    btc_sma = 40
+
+
+class BtcRisingSma60(TrendEmaBtcRising):
+    btc_sma = 60
+
+
+class BtcRisingDays5(TrendEmaBtcRising):
+    btc_days = 5
+
+
+class BtcRisingDays15(TrendEmaBtcRising):
+    btc_days = 15
+
+
+BTC_RISING_NEIGHBOURS = [BtcRisingSma40, BtcRisingSma60, BtcRisingDays5, BtcRisingDays15]

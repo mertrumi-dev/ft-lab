@@ -69,3 +69,20 @@ def test_mixed_time_units_like_freqtrade():
     h = hourly("2024-03-15", 48)
     h["date"] = h["date"].astype("datetime64[ms, UTC]")
     assert regime.attach_btc_rising(h, d).all()
+
+
+@pytest.mark.parametrize("cls", regime.BTC_RISING_NEIGHBOURS, ids=lambda c: c.__name__)
+def test_neighbours_change_exactly_one_number(cls):
+    base = (regime.TrendEmaBtcRising.btc_sma, regime.TrendEmaBtcRising.btc_days)
+    mine = (cls.btc_sma, cls.btc_days)
+    assert sum(b != m for b, m in zip(base, mine)) == 1
+    assert cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
+
+
+def test_neighbour_parameters_reach_the_gate():
+    # a 100-day rise then flat: slope over 5 days turns False sooner than over 15
+    close = np.concatenate([np.linspace(100, 200, 100), np.full(40, 200.0)])
+    d = daily(close)
+    r5 = regime.btc_daily_rising(d, 50, 5)["btc_rising"]
+    r15 = regime.btc_daily_rising(d, 50, 15)["btc_rising"]
+    assert r5.sum() != r15.sum()
