@@ -126,3 +126,14 @@ def test_render_with_a_gap_does_not_crash():
 def test_kill_switch_line_uses_the_worst_drawdown():
     assert abs(health.worst_drawdown(1000, [-210, 60]) - 0.21) < 1e-9
     assert abs(health.drawdown_from_peak(1000, [-210, 60]) - 0.15) < 1e-9
+
+
+def test_latched_kill_switch_points_to_the_restart_checklist():
+    s = health.LogSummary()
+    latched = {"open": 1, "closed": 40, "profit": -150.0, "drawdown": 0.15, "worst": 0.21}
+    text = health.render(s, latched, "up", T0, 24)
+    assert "TRIGGERED" in text and "docs/proposals/kill-switch-restart.md" in text
+    calm = {"open": 0, "closed": 3, "profit": 5.0, "drawdown": 0.01, "worst": 0.05}
+    assert "kill-switch-restart" not in health.render(s, calm, "up", T0, 24)
+    doc = (health.ROOT / health.RESTART_CHECKLIST).read_text()
+    assert "ÖNERİ: Kaan onaylamadan" in doc and "asla düzenlenmez" in doc

@@ -98,3 +98,10 @@ def test_chart_section_from_captured_outputs():
     text = kaan_report.render("2026-11-01", {}, "", [], "", "", "", (0, 0), charts=[out, ""])
     assert "## 8. Grafik okuma" in text and text.count("tahmin değil, yatırım tavsiyesi değil.") == 1  # one closing line for all coins
     assert "## 8." not in kaan_report.render("2026-11-01", {}, "", [], "", "", "", (0, 0))
+
+
+def test_report_points_to_the_checklist_only_when_latched():
+    hit = kaan_report.render("2026-11-02", {"drawdown": 0.15, "worst": 0.21}, "", [], "", "", "", (0, 0))
+    assert "TETİKLENDİ" in hit and "docs/proposals/kill-switch-restart.md" in hit
+    ok = kaan_report.render("2026-11-02", {"drawdown": 0.02, "worst": 0.05}, "", [], "", "", "", (0, 0))
+    assert "kill-switch-restart" not in ok and "TETİKLENDİ" not in ok
