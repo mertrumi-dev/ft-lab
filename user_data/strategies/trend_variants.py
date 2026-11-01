@@ -250,7 +250,7 @@ class TrendEmaMulti(TrendEma):
         return dataframe
 
 
-def add_btc_bull(strategy, dataframe: DataFrame) -> DataFrame:
+def add_btc_bull(strategy, dataframe: DataFrame, length: int = 200) -> DataFrame:
     """Column btc_bull: is BTC above its EMA200 on this candle? (True without Freqtrade's dp.)"""
     dataframe["btc_bull"] = True
     dp = getattr(strategy, "dp", None)  # set by Freqtrade; missing in plain unit tests
@@ -258,7 +258,7 @@ def add_btc_bull(strategy, dataframe: DataFrame) -> DataFrame:
         btc = dp.get_pair_dataframe("BTC/USDT", strategy.timeframe)
         if not btc.empty:
             btc = btc[["date", "close"]].copy()
-            btc["btc_bull"] = btc["close"] > ema(btc["close"], 200)
+            btc["btc_bull"] = btc["close"] > ema(btc["close"], length)
             merged = dataframe[["date"]].merge(btc[["date", "btc_bull"]], on="date", how="left")
             dataframe["btc_bull"] = merged["btc_bull"].fillna(False).astype(bool).to_numpy()
     return dataframe
@@ -511,8 +511,10 @@ class TrendEmaPyramidBtc(TrendEmaPyramid):
     def informative_pairs(self):
         return [("BTC/USDT", self.timeframe)]
 
+    btc_len = 200
+
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        return add_btc_bull(self, super().populate_indicators(dataframe, metadata))
+        return add_btc_bull(self, super().populate_indicators(dataframe, metadata), self.btc_len)
 
     def _btc_bull_now(self, pair: str) -> bool:
         dp = getattr(self, "dp", None)
@@ -527,3 +529,27 @@ class TrendEmaPyramidBtc(TrendEmaPyramid):
         if not self._btc_bull_now(trade.pair):
             return None
         return super().adjust_trade_position(trade, *args, **kwargs)
+
+
+class PyramidBtc150(TrendEmaPyramidBtc):
+    """Sensitivity neighbour: BTC EMA150 (not a candidate)."""
+
+    btc_len = 150
+
+
+class PyramidBtc250(TrendEmaPyramidBtc):
+    """Sensitivity neighbour: BTC EMA250 (not a candidate)."""
+
+    btc_len = 250
+
+
+class PyramidBtc3(TrendEmaPyramidBtc):
+    """Sensitivity neighbour: add at +3% (not a candidate)."""
+
+    pyramid_trigger = 0.03
+
+
+class PyramidBtc6(TrendEmaPyramidBtc):
+    """Sensitivity neighbour: add at +6% (not a candidate)."""
+
+    pyramid_trigger = 0.06

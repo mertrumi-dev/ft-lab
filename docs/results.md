@@ -591,3 +591,20 @@ Komut: `ft.py backtest --slice validation [--no-kill-switch] --strategy TrendEma
 - Yıl yıl: 2024 (Haziran-Aralık) +%58,1; 2025 (Ocak-Ağustos) +%1,4.
 
 Karar: Kural kuraldır. Pyramid validation'ı GEÇEMEDİ; canlıya/dry-run'a geçmiyor. Yine de bugüne kadarki en iyi adayımız: validation'da TrendEma'dan açık farkla iyi (1,55 → 2,10) ve al-tut ile neredeyse berabere. Dry-run TrendEma'da kalıyor. Validation 3 kez kullanıldı ve artık yıpranmaya başladı.
+
+## 2026-11-01 · Train · Tur 9: TrendEmaPyramidBtc (ekleme sadece BTC EMA200 üstündeyken)
+
+Komut: `ft.py backtest/report/montecarlo --slice train --no-kill-switch [--universe wide] --by-year` (`--timerange 20210101-20240613`, main 008bea6)
+
+| | Calmar | Saatlik DD | 2022 | MC P(DD ≥ %20) | 14 coin Calmar (DD) |
+|---|---|---|---|---|---|
+| TrendEma | 2,70 | 16,4% | -1,5% | 1,9% | 0,76 (41,3%) |
+| TrendEmaPyramid | 3,69 | 20,9% | -8,2% | 30,5% | 0,88 (56,4%) FAIL |
+| **TrendEmaPyramidBtc** | **4,16** | **19,4%** | -3,6% | 20,4% | 0,87 (57,5%) FAIL |
+
+- Ekleme yapılan işlem sayısı 235'ten 216'ya düştü.
+- Yukarı çekilen stop'un tetiklenme sayısı 64'ten 46'ya düştü.
+- BTC filtresi atlanan eklemelerin çoğunda kötü eklemeleri engellemiş.
+- Monte Carlo'da en kötü senaryo düşüşü %46,5.
+
+Dürüstlük notu: Bu, validation'a baktıktan sonra Pyramid üzerine eklenen ikinci değişiklik. Bu yüzden validation #4'ten önce sağlamlık testi şart: BTC EMA 150/250 ve ekleme eşiği +%3/+%6 komşuları, ayrıca 2 kat komisyon.

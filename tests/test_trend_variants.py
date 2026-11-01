@@ -17,7 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
-    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid, tv.Pyramid3, tv.Pyramid6, tv.TrendEmaPyramidBtc,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid, tv.Pyramid3, tv.Pyramid6, tv.TrendEmaPyramidBtc, tv.PyramidBtc150, tv.PyramidBtc250, tv.PyramidBtc3, tv.PyramidBtc6,
 ]  # fmt: skip
 
 
