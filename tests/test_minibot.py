@@ -121,7 +121,11 @@ def test_exchange_has_no_keys():
 
 
 def test_minibot_source_never_sets_keys():
+    # demo.py is the one module that passes keys to ccxt; tests/test_minibot_demo.py checks
+    # that it takes them only from the FTLAB_DEMO_* environment variables.
     for path in (ROOT / "minibot").glob("*.py"):
+        if path.name == "demo.py":
+            continue
         text = path.read_text()
         for word in ("apiKey\":", "secret\":", "'apiKey'", "\"secret\"", "dry_run"):
             assert word not in text, f"{path.name} mentions {word}"

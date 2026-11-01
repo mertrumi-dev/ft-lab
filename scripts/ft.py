@@ -137,8 +137,11 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
     if args.command == "minibot":
         # Paper trading only (public prices, no keys); the state file minibot/state.json is written in the repo.
-        return [["docker", "run", "--rm", "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo", TEST_IMAGE,
-                 "-m", "minibot.bot", *(["--once"] if args.once else []), "--rule", args.rule]]  # fmt: skip
+        # --demo: docker passes .env to the container (FTLAB_DEMO_KEY/SECRET); ft.py itself never reads it.
+        env = ["--env-file", str(ROOT / ".env")] if args.demo else []
+        return [["docker", "run", "--rm", *env, "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo", TEST_IMAGE,
+                 "-m", "minibot.bot", *(["--once"] if args.once else []), "--rule", args.rule,
+                 *(["--demo"] if args.demo else [])]]  # fmt: skip
 
     if args.command == "download":
         return [
@@ -393,6 +396,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mb = sub.add_parser("minibot", help="the from-scratch paper bot (Phase 4), in Docker")
     mb.add_argument("--once", action="store_true", help="one pass, then exit")
     mb.add_argument("--rule", choices=["voltarget", "trendema"], default="voltarget")
+    mb.add_argument("--demo", action="store_true", help="Binance Demo Mode (needs demo keys in .env; Kaan's approval)")
 
     ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
     ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")

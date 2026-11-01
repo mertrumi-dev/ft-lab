@@ -24,4 +24,6 @@ __pycache__/
 .DS_Store
 minibot/state.json
 minibot/state.tmp
+minibot/state.demo.json
+minibot/state.demo.tmp
 user_data/nfix*-*.json

@@ -78,6 +78,23 @@ def check_demo_config(config: dict) -> list[tuple[str, str]]:
     return out
 
 
+MINIBOT_DEMO = ROOT / "minibot" / "demo.py"
+
+
+def check_minibot_demo(source: str, gitignore: str) -> list[tuple[str, str]]:
+    """The mini bot's demo path: keys only from env, demo-url guard present, its state never committed."""
+    out = []
+    env_only = 'env.get(KEY_ENV, "")' in source and 'env.get(SECRET_ENV, "")' in source and source.count('"apiKey"') == 1
+    out.append(("PASS", "minibot demo: keys only from FTLAB_DEMO_KEY/SECRET") if env_only
+               else ("FAIL", "minibot demo: keys not (only) from the environment"))  # fmt: skip
+    guard = 'DEMO_SPOT_HOST = "demo-api.binance.com"' in source and "assert_demo_urls(exchange)" in source
+    out.append(("PASS", "minibot demo: demo-url guard present") if guard else ("FAIL", "minibot demo: demo-url guard missing"))
+    ignored = "minibot/state.demo.json" in gitignore.splitlines()
+    out.append(("PASS", "minibot demo: state.demo.json is git-ignored") if ignored
+               else ("FAIL", "minibot demo: state.demo.json not in .gitignore"))  # fmt: skip
+    return out
+
+
 MAIN_SERVICE = "freqtrade"  # the only service a plain `docker compose up -d` may start
 
 
@@ -187,6 +204,8 @@ def main() -> int:
     results += check_all_configs(CONFIG.parent)
     if DEMO_CONFIG.exists():
         results += check_demo_config(json.loads(DEMO_CONFIG.read_text()))
+    if MINIBOT_DEMO.exists():
+        results += check_minibot_demo(MINIBOT_DEMO.read_text(), (ROOT / ".gitignore").read_text())
     results += check_compose(COMPOSE.read_text())
     results += check_env(ENV, (ROOT / ".gitignore").read_text())
     results += check_tools()

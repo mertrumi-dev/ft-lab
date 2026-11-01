@@ -106,3 +106,13 @@ def test_demo_config_keys_and_futures_fail():
     keyed = {**DEMO, "exchange": {**DEMO["exchange"], "key": "abc"}}
     assert "FAIL" in levels(preflight.check_demo_config(keyed))
     assert "FAIL" in levels(preflight.check_demo_config({**DEMO, "trading_mode": "futures", "margin_mode": "isolated"}))
+
+
+def test_minibot_demo_check_real_and_broken():
+    src, ignore = preflight.MINIBOT_DEMO.read_text(), (preflight.ROOT / ".gitignore").read_text()
+    assert set(levels(preflight.check_minibot_demo(src, ignore))) == {"PASS"}
+    hardcoded = src.replace('env.get(KEY_ENV, "")', '"abc"')
+    assert "FAIL" in levels(preflight.check_minibot_demo(hardcoded, ignore))
+    no_guard = src.replace("assert_demo_urls(exchange)", "pass")
+    assert "FAIL" in levels(preflight.check_minibot_demo(no_guard, ignore))
+    assert "FAIL" in levels(preflight.check_minibot_demo(src, ignore.replace("minibot/state.demo.json", "")))

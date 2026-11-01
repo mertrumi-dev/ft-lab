@@ -44,8 +44,12 @@ def closed_candles(exchange, pair: str, now_ms: int) -> list[list[float]]:
     return [r for r in rows if r[0] + hour_ms <= now_ms]
 
 
-def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str = "voltarget") -> list[str]:
-    """One pass over all pairs. Returns what happened, one line per action."""
+def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str = "voltarget", broker=None) -> list[str]:
+    """One pass over all pairs. Returns what happened, one line per action.
+
+    `acc` is the paper account that decides and sizes every trade. With a `broker`
+    (minibot/demo.py) each decided buy/sell is also sent to the exchange, same amount and price.
+    """
     log, candles = [], {}
     for pair in pairs:
         candles[pair] = closed_candles(exchange, pair, now_ms)
@@ -57,15 +61,23 @@ def step(acc: dict, exchange, now_ms: int, pairs: list[str] = PAIRS, rule: str =
         low, close = rows[-1][3], rows[-1][4]
         if paper.stop_hit(acc, pair, low):
             stop_price = acc["positions"][pair]["entry"] * (1 + paper.STOPLOSS)
+            amount = acc["positions"][pair]["amount"]
             log.append(paper.sell(acc, pair, stop_price, stamp, "stoploss"))
+            if broker:
+                broker.sell(pair, amount, stop_price)
             continue
         closes = [r[4] for r in rows]
         sig = signals.signal(closes)
         if sig == "buy":
             scale = signals.vol_scale(signals.realized_vol(closes)) if rule == "voltarget" else 1.0
             note = paper.buy(acc, pair, close, prices, stamp, scale)
+            if broker and note and pair in acc["positions"] and note.startswith("BUY"):
+                broker.buy(pair, acc["positions"][pair]["amount"], close)
         elif sig == "sell":
+            amount = acc["positions"].get(pair, {}).get("amount")
             note = paper.sell(acc, pair, close, stamp, "ema_cross_down")
+            if broker and note:
+                broker.sell(pair, amount, close)
         else:
             note = None
         if note:
@@ -87,15 +99,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ft-lab mini bot (paper trading only)")
     parser.add_argument("--once", action="store_true", help="one pass, then exit")
     parser.add_argument("--rule", choices=RULES, default="voltarget", help="sizing: voltarget (default) or trendema")
+    parser.add_argument("--demo", action="store_true",
+                        help="Binance Demo Mode: real orders with fake money (keys from FTLAB_DEMO_KEY/SECRET only)")
     args = parser.parse_args()
 
-    exchange = public_exchange()
+    if args.demo:
+        from minibot import demo  # refuses to start without demo keys or with any non-demo url
+
+        exchange = demo.demo_exchange()
+        state_path, load, save = demo.STATE_FILE, demo.load_state, demo.save_state
+    else:
+        exchange = public_exchange()
+        state_path, load, save = STATE_FILE, load_state, save_state
     while True:
-        acc = load_state()
+        state = load(state_path)
+        acc = state.setdefault("paper", paper.new_account()) if args.demo else state
+        broker = demo.DemoBroker(exchange, state) if args.demo else None
         now_ms = int(time.time() * 1000)
-        for line in step(acc, exchange, now_ms, rule=args.rule):
+        for line in step(acc, exchange, now_ms, rule=args.rule, broker=broker):
             print(line, flush=True)
-        save_state(acc)
+        save(state, state_path)
         prices = {p: pos["entry"] for p, pos in acc["positions"].items()}
         print(f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC  cash {acc['cash']:.2f}  "
               f"open {list(acc['positions'])}  closed trades {len(acc['closed'])}  "
