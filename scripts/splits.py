@@ -61,7 +61,13 @@ def early_slice() -> Slice:
     return Slice("early", EARLY_START, DATA_START)
 
 
-SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice()}
+# window24: 2024-01-01..2025-08-07 (start of 2024 to the end of validation). These dates were
+# already used for our old coin groups, so this slice is allowed ONLY with the never-used
+# "alt2024b" coins (ft.py refuses anything else). It never touches the test period.
+WINDOW24 = Slice("window24", date(2024, 1, 1), date(2025, 8, 7))
+WINDOW24_UNIVERSES = ("alt2024b",)
+
+SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice(), "window24": WINDOW24}
 SLICE_NAMES = list(SLICES)  # for argparse choices
 
 

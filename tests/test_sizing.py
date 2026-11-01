@@ -323,3 +323,29 @@ def test_kama_strategy_only_swaps_the_fast_line():
     s = cls({})
     entries = s.populate_entry_trend(out.copy(), {})["enter_long"].fillna(0).sum()
     assert entries > 5
+
+
+def test_daily_rule_entry_is_the_false_to_true_switch_and_exit_is_the_cross_down():
+    cls = sizing.TrendEmaVolTargetDaily
+    assert cls.timeframe == "1d" and cls.stoploss == trend_ema.STOPLOSS and cls.vol_window == 30
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount  # VolTarget sizing, R2/R4
+    close = np.r_[np.linspace(100, 80, 80), np.linspace(80, 130, 60), np.linspace(130, 90, 60)]
+    df = pd.DataFrame({"close": close, "volume": 1.0})
+    s = cls({})
+    d = s.populate_exit_trend(s.populate_entry_trend(s.populate_indicators(df.copy(), {}), {}), {})
+    ok = (d["ema_fast"] > d["ema_slow"]) & (d["close"] > d["ema_slow"])
+    entries = d.index[d["enter_long"] == 1].tolist()
+    assert entries and all(ok[i] and not ok[i - 1] for i in entries)  # only on the switch day
+    exits = d.index[d["exit_long"] == 1].tolist()
+    assert exits and all(d["ema_fast"][i] < d["ema_slow"][i] and d["ema_fast"][i - 1] >= d["ema_slow"][i - 1] for i in exits)
+    assert np.isclose(d["rvol"].iloc[-1], np.log(df["close"]).diff().iloc[-30:].std() * np.sqrt(365))
+
+
+def test_window24_only_with_alt2024b():
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import ft
+
+    with pytest.raises(SystemExit, match="window24"):
+        ft.build_commands(ft.parse_args(["backtest", "--slice", "window24", "--strategy", "TrendEma"]))
+    cmd = ft.build_commands(ft.parse_args(["backtest", "--slice", "window24", "--universe", "alt2024b", "--strategy", "TrendEmaVolTargetDaily"]))[0]
+    assert "20240101-20250807" in cmd and "1d" in cmd

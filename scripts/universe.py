@@ -73,6 +73,20 @@ EARLY_2018 = [
 # their own coins (TrendEmaVolTargetTopVol ranks them by 30-day volume). The core
 # coins come first; pairs without data are skipped by the tools.
 CORE_5 = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
+# alt2024b (added 2026-11-01, BEFORE any price of these coins was downloaded): coins first
+# listed on Binance spot between 2024-01-01 and 2024-06-30, in none of our other groups.
+# Listing dates (expected, from memory): AI 01-04, XAI 01-09, MANTA 01-18, ALT 01-25, JUP 01-31,
+# DYM 02-06, PIXEL 02-19, STRK 02-20, PORTAL 02-29, WIF 03-05, AEVO 03-13, BOME 03-16,
+# ETHFI 03-18, ENA 04-02, W 04-03, TNSR 04-08, SAGA 04-09, OMNI 04-17, REZ 04-30, BB 05-13,
+# NOT 05-16, IO 06-11, ZK 06-17, ZRO 06-20. Rule fixed before results: a coin whose first
+# downloaded candle is outside 2024-01-01..2024-06-30 is dropped (checked, not assumed).
+# Used ONLY with the "window24" slice (2024-01-01..2025-08-07): never the test period.
+ALT_2024B = [
+    "AI/USDT", "XAI/USDT", "MANTA/USDT", "ALT/USDT", "JUP/USDT", "DYM/USDT", "PIXEL/USDT", "STRK/USDT",
+    "PORTAL/USDT", "WIF/USDT", "AEVO/USDT", "BOME/USDT", "ETHFI/USDT", "ENA/USDT", "W/USDT", "TNSR/USDT",
+    "SAGA/USDT", "OMNI/USDT", "REZ/USDT", "BB/USDT", "NOT/USDT", "IO/USDT", "ZK/USDT", "ZRO/USDT",
+]  # fmt: skip
+
 POOL = list(dict.fromkeys(CORE_5 + WIDE_2021 + ALT_2022 + ALT_2023 + ALT_2024))
 
 # core_gold (2026-11-01, research): the 5 core coins + tokenized gold, a different asset
@@ -82,5 +96,5 @@ CORE_GOLD = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "PAXG/U
 UNIVERSES = {
     "pool": POOL,
     "early": EARLY_2018,
-    "core": None, "core_gold": CORE_GOLD, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024,
+    "core": None, "core_gold": CORE_GOLD, "wide": WIDE_2021, "alt2022": ALT_2022, "alt2023": ALT_2023, "alt2024": ALT_2024, "alt2024b": ALT_2024B,
 }  # None = pairs from config.json

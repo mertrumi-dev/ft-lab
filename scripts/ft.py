@@ -30,7 +30,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from splits import DATA_START, SLICES  # noqa: E402
+from splits import DATA_START, SLICES, WINDOW24_UNIVERSES  # noqa: E402
 from universe import UNIVERSES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -57,6 +57,7 @@ STRATEGY_TIMEFRAMES = {
     "TrendDonchianEnsembleFull": "1d",
     "TrendEmaBtcRisingGap4h": "4h",
     "TrendEmaVolTarget2h": "2h",
+    "TrendEmaVolTargetDaily": "1d",
 }
 ROUND1 = ["TrendEmaAtr", "TrendEmaAtrTrail", "TrendBreakout", "TrendEma4h"]
 ROUND2 = ["TrendEmaAtrWide", "TrendEmaSlow", "TrendEmaMulti", "TrendEmaBtc"]
@@ -125,6 +126,8 @@ def third_party_args(strategies: list[str]) -> list[str]:
 
 def build_commands(args: argparse.Namespace) -> list[list[str]]:
     """One or more docker commands to run, in order."""
+    if getattr(args, "slice", None) == "window24" and getattr(args, "universe", "core") not in WINDOW24_UNIVERSES:
+        raise SystemExit("Refusing: window24 reuses dates of our old groups; it is allowed only with --universe alt2024b.")
     if args.command == "test":
         # The Mac's python3 has no pandas/freqtrade: tests run in the test image (tests/Dockerfile).
         build = [["docker", "build", "-q", "-t", TEST_IMAGE, str(ROOT / "tests")]] if args.build else []
@@ -171,7 +174,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             docker_cmd(
                 "download-data", "--config", CONFIG,
                 "--timerange", f"{EARLY_FROM if getattr(args, 'early', False) else DOWNLOAD_FROM}-",
-                "--timeframes", "1h", "2h", "4h",
+                "--timeframes", "1h", "2h", "4h", "1d",
                 *(["--prepend"] if getattr(args, "early", False) else []),
                 *pairs_args(args),
             ),
@@ -451,7 +454,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sc.add_argument("--csv", action="store_true", help="also print a breadth_csv line (daily.py records it)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
-    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
+    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
@@ -461,12 +464,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
-    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
+    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
     bm.add_argument("--universe", choices=UNIVERSES, default="core")
     bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
-    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
+    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
@@ -486,7 +489,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24"], required=True)
     bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")

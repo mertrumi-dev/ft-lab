@@ -628,3 +628,41 @@ class TrendEmaVolTargetKama(TrendEmaVolTarget):
         dataframe = super().populate_indicators(dataframe, metadata)
         dataframe["ema_fast"] = kama(dataframe["close"])  # TrendEma's entry/exit read this column
         return dataframe
+
+
+# --- Daily trend rule (pre-registered 2026-11-01, research 10 backlog) -------------------
+# The hourly EMA cross bled through whipsaw and fees in the final test (research 10). This is
+# the same idea on DAILY candles, textbook numbers, no tuning:
+#   entry: (EMA20 > EMA50 AND close > EMA50) turns from false to true
+#   exit:  EMA20 crosses below EMA50, or the -8% stop (R1)
+#   size:  VolTarget, 60% target, 30 daily returns annualized with sqrt(365)
+
+
+class TrendEmaVolTargetDaily(TrendEmaVolTarget):
+    """Daily-candle trend rule with VolTarget sizing (fewer trades, lower fees)."""
+
+    timeframe = "1d"
+    vol_window = 30  # daily candles in 30 days
+    periods_per_year = 365
+    startup_candle_count = 2 * 50 + 30
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import ema
+
+        dataframe["ema_fast"] = ema(dataframe["close"], 20)
+        dataframe["ema_slow"] = ema(dataframe["close"], 50)
+        dataframe["rvol"] = realized_vol(dataframe["close"], self.vol_window, self.periods_per_year)
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        ok = (dataframe["ema_fast"] > dataframe["ema_slow"]) & (dataframe["close"] > dataframe["ema_slow"])
+        dataframe.loc[ok & ~ok.shift(1, fill_value=False) & (dataframe["volume"] > 0), ["enter_long", "enter_tag"]] = (
+            1, "daily_trend_up")  # fmt: skip
+        return dataframe
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import crossed_below
+
+        dataframe.loc[crossed_below(dataframe["ema_fast"], dataframe["ema_slow"]) & (dataframe["volume"] > 0),
+                      ["exit_long", "exit_tag"]] = (1, "ema_cross_down")  # fmt: skip
+        return dataframe
