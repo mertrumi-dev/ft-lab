@@ -349,3 +349,22 @@ def test_window24_only_with_alt2024b():
         ft.build_commands(ft.parse_args(["backtest", "--slice", "window24", "--strategy", "TrendEma"]))
     cmd = ft.build_commands(ft.parse_args(["backtest", "--slice", "window24", "--universe", "alt2024b", "--strategy", "TrendEmaVolTargetDaily"]))[0]
     assert "20240101-20250807" in cmd and "1d" in cmd
+
+
+def test_fee_aware_filter_blocks_entries_with_a_small_hourly_move():
+    cls = sizing.TrendEmaVolTargetFeeAware
+    assert sizing.FEE_COVER * sizing.ROUND_TRIP_COST == pytest.approx(0.009)
+    assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    rng = np.random.default_rng(3)
+    for sigma, expect_entries in ((0.002, False), (0.02, True)):  # calm coin: ATR% ~0.2%; wild: ~2%
+        close = 100 * np.exp(np.cumsum(rng.normal(0.0003, sigma, 3000)))
+        df = pd.DataFrame({"close": close, "high": close * (1 + sigma), "low": close * (1 - sigma), "volume": 1.0})
+        base = sizing.TrendEmaVolTarget({})
+        b = base.populate_entry_trend(base.populate_indicators(df.copy(), {}), {})
+        s = cls({})
+        f = s.populate_entry_trend(s.populate_indicators(df.copy(), {}), {})
+        kept = f["enter_long"].fillna(0) == 1
+        assert (b["enter_long"].fillna(0)[kept] == 1).all()  # only ever removes entries
+        assert (f.loc[kept, "atr_pct"] >= 0.009).all()
+        assert kept.any() == expect_entries

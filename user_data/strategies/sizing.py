@@ -666,3 +666,30 @@ class TrendEmaVolTargetDaily(TrendEmaVolTarget):
         dataframe.loc[crossed_below(dataframe["ema_fast"], dataframe["ema_slow"]) & (dataframe["volume"] > 0),
                       ["exit_long", "exit_tag"]] = (1, "ema_cross_down")  # fmt: skip
         return dataframe
+
+
+# --- Fee-aware entry filter (pre-registered 2026-11-01, research 10 lesson 1) -------------
+# Fees were a quarter of the final-test loss. Enter only if the coin's typical hourly move
+# (ATR(14) / close) covers the round-trip cost at least 3 times: 3 x 0.30% = 0.9%.
+# The number comes from the cost (0.15% per side, the backtest fee), it was not tuned.
+
+ROUND_TRIP_COST = 2 * 0.0015
+FEE_COVER = 3
+
+
+class TrendEmaVolTargetFeeAware(TrendEmaVolTarget):
+    """VolTarget that skips entries when the expected hourly move is too small for the fees."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_variants import atr
+
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["atr_pct"] = atr(dataframe) / dataframe["close"]
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            too_small = dataframe["atr_pct"] < FEE_COVER * ROUND_TRIP_COST
+            dataframe.loc[too_small, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
