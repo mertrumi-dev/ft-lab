@@ -492,3 +492,31 @@ class Pyramid6(TrendEmaPyramid):
     """Sensitivity neighbour: add at +6% (not a candidate)."""
 
     pyramid_trigger = 0.06
+
+
+# --- Round 9: pyramid only in a bull market ------------------------------------
+# Pyramid's cost is depth: 2022 (-8.2% vs -1.5%) and 2025 were bear/choppy and
+# Monte Carlo puts P(DD>=20%) at 30%. One change, no new number: the extra buy
+# is allowed only while BTC is above its EMA200 (the same market filter as
+# TrendEmaBtc). Entries and exits are unchanged.
+
+
+class TrendEmaPyramidBtc(TrendEmaPyramid):
+    """TrendEmaPyramid, but add to a winner only while BTC is in an uptrend."""
+
+    informative_pairs = TrendEmaBtc.informative_pairs
+    populate_indicators = TrendEmaBtc.populate_indicators
+
+    def _btc_bull_now(self, pair: str) -> bool:
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return True
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+        if dataframe is None or dataframe.empty or "btc_bull" not in dataframe:
+            return False  # no market data -> be careful, don't add
+        return bool(dataframe["btc_bull"].iloc[-1])
+
+    def adjust_trade_position(self, trade: Trade, *args, **kwargs) -> float | None:
+        if not self._btc_bull_now(trade.pair):
+            return None
+        return super().adjust_trade_position(trade, *args, **kwargs)

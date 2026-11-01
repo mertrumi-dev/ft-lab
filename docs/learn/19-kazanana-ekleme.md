@@ -43,3 +43,16 @@ def pyramid_stop_price(avg_price, amount, capital, risk, max_loss):
 - R1, R2 ve R4 korunuyor ve testlerle kontrol ediliyor.
 - R7'deki "paranın en az %62'si nakitte" sonucu değişebilir. 3 işlemin her biri %25 olursa nakit %25'e düşer.
 - Bu yüzden: piramit kuralı **kazansa bile canlıya geçmeden önce** risk tablosu güncellenecek ve Kaan'a sorulacak. Bu, bir risk sayısını değiştirmek demek.
+
+## Tur 9: sadece boğa piyasasında ekle (TrendEmaPyramidBtc)
+
+**Sorun:** Pyramid'in bedeli derin düşüş. 2022 ve 2025 gibi kötü dönemlerde eklenen para geri veriliyor.
+
+**Tek değişiklik:** Ekleme sadece **BTC 200 saatlik ortalamasının üstündeyken** yapılır. Bu "piyasa havası iyi" demek. Alım ve satış kuralları değişmiyor.
+
+**Neden bu seçildi:**
+- Yeni bir sayı eklemiyor. Aynı filtre tur 2'de (TrendEmaBtc) denendi.
+- O denemede filtre alımlara uygulandığında düşüşü azaltmıştı, ama kazancı da kesmişti.
+- Burada filtre alımlara değil, sadece eklemeye uygulanıyor. Böylece TrendEma'nın kendisi hiç değişmiyor.
+
+**Dürüstlük notu:** Bu fikir validation sonucunu gördükten sonra yazıldı. Validation'a girerse 4. bakış olacak. Validation'ı her kullanışımızda biraz daha ezberlemiş oluyoruz.

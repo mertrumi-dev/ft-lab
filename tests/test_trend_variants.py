@@ -17,7 +17,7 @@ VARIANTS = [
     tv.TrendEmaAtr, tv.TrendEmaAtrTrail, tv.TrendEma4h, tv.TrendBreakout,
     tv.TrendEmaAtrWide, tv.TrendEmaSlow, tv.TrendEmaMulti, tv.TrendEmaBtc,
     *tv.SLOW_NEIGHBOURS, tv.TrendEmaAdx, tv.TrendEmaLongTrend, tv.TrendEmaHold,
-    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid, tv.Pyramid3, tv.Pyramid6,
+    tv.TrendEmaExitConfirm, tv.TrendEmaSlope, tv.TrendEmaEntryConfirm, tv.EntryConfirm2, tv.EntryConfirm4, tv.TrendEmaPyramid, tv.Pyramid3, tv.Pyramid6, tv.TrendEmaPyramidBtc,
 ]  # fmt: skip
 
 
@@ -322,3 +322,27 @@ def test_pyramid_neighbours_triggers():
     s = tv.Pyramid6({})
     s.wallets = _Wallets(1000.0)
     assert _adjust(s, _Trade(1, 125.0), 0.05) is None
+
+
+class _Dp:
+    def __init__(self, bull):
+        self.df = pd.DataFrame({"btc_bull": [not bull, bull]})
+
+    def get_analyzed_dataframe(self, pair, timeframe):
+        return self.df, None
+
+
+class _PTrade(_Trade):
+    pair = "ETH/USDT"
+
+
+def test_pyramid_btc_adds_only_in_bull_market():
+    for bull, expected in ((True, 125.0), (False, None)):
+        s = tv.TrendEmaPyramidBtc({})
+        s.wallets, s.dp = _Wallets(1000.0), _Dp(bull)
+        assert _adjust(s, _PTrade(1, 125.0), 0.05) == expected
+
+
+def test_pyramid_btc_keeps_entries_of_trend_ema():
+    # no BTC filter on entries: same entry function as TrendEma
+    assert tv.TrendEmaPyramidBtc.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
