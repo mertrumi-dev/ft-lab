@@ -324,3 +324,23 @@ Komut (RC): `ft.py backtest --slice train [--no-kill-switch] [--universe wide] -
 
 - **Kalite çok yüksek (PF 4,99) ama paranın sadece %3'ü coinde.** Sebep: %1 risk bütçesi (%12,5) × oy oranı × oynaklık ölçeği (~0,3) → coin başına ~%2-3. Bizim -%8 sabit stop zaten riski sınırladığı için oynaklık ölçeği pozisyonu ikinci kez küçültüyor.
 - Sıradaki deneme (tek değişiklik): `TrendDonchianEnsembleFull` = oynaklık ölçeği yok, büyüklük = bütçe × oy oranı.
+
+## 2026-11-01 · Train · Tur 4b ve 3b (kill switch kapalı, emirlerden kesin saatlik düşüş)
+
+Komut (RC): `ft.py backtest --slice train --no-kill-switch [--universe wide] --strategy TrendDonchianEnsembleFull` (+ Mac dalında TrendEmaFng, TrendEmaCalm); `report ...`. `--timerange 20210101-20240613`, `--fee 0.0015`.
+
+| Strateji | 5 coin Calmar | 5 coin düşüş | PF | Coinde | 14 coin Calmar | Karar |
+|---|---|---|---|---|---|---|
+| Al-tut | 1,69 | 92,1% | - | %100 | 0,49 | referans |
+| **TrendEma** | **2,70** | 16,4% | 1,63 | %17 | 0,76 | PASS (en iyi) |
+| TrendEmaLongTrend | 2,25 | 16,1% | 1,72 | %12 | **0,98** | PASS |
+| TrendEmaCalm (oynaklık filtresi) | 1,95 | 17,1% | - | - | 0,74 | PASS, TrendEma'dan kötü |
+| TrendEmaFng (korku-açgözlülük ≥75'te alma) | 1,48 | 14,4% | - | - | 0,27 | FAIL |
+| TrendDonchianEnsembleFull | 1,46 | 15,8% | 4,18 | %13 | 0,30 | FAIL |
+| TrendDonchianEnsemble | 0,50 | 16,4% | 4,99 | %6 | 0,14 | FAIL |
+
+- Korku-açgözlülük filtresi en iyi trend günlerini (2021'deki aşırı açgözlülük) kaçırıyor: 2021'de +%60 vs TrendEma +%177. Trend takibine zararlı.
+- Günlük oylama kuralı işlem kalitesinde çok iyi (PF 4-5) ama yükseliş yıllarında az kazanıyor; 2023'te +%2,5.
+- Validation (kesin ölçüm): TrendEma 1,55, TrendEmaSlow 1,62, al-tut 2,11: ikisi de FAIL.
+
+**Ara sonuç (22 train denemesi sonra):** 5 ana coinde TrendEma'yı geçen kural bulunamadı. Giriş filtresi eklemek hep paranın coinde olan kısmını ve kazancı düşürüyor.
