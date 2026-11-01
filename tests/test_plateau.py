@@ -21,7 +21,8 @@ def test_sixteen_cells_match_the_preregistration():
     assert all(f",{n}," in rows for n in names)
     for n in names:
         cls = getattr(plateau, n)
-        assert cls.__module__ == "plateau" and issubclass(cls, sizing.TrendEmaVolTarget)
+        assert issubclass(cls, sizing.TrendEmaVolTarget) and plateau.cell_name(cls.cell) == n
+        assert f"class {n}(" in (ROOT / "user_data" / "strategies" / "plateau.py").read_text()  # Freqtrade's text search
 
 
 def test_cell_settings_reach_indicators_and_sizing():

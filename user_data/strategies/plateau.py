@@ -19,11 +19,24 @@ TODAY = (20, 50, 200, 8, 60, 30)  # fast, slow, trend, stop %, target vol %, vol
 
 
 class VolTargetGrid(TrendEmaVolTarget):
-    """TrendEmaVolTarget with the EMA lengths as class settings (the base keeps module constants)."""
+    """TrendEmaVolTarget with every T115 setting as a class setting (the base keeps module constants).
 
-    fast_ema = 20
-    slow_ema = 50
-    trend_ema = 200
+    A subclass only sets `cell = (fast, slow, trend, stop %, target vol %, vol window days)`.
+    The classes below are written out one by one on purpose: Freqtrade finds a strategy by
+    searching the file TEXT for "class <Name>", so classes made in a loop are never found.
+    """
+
+    cell = TODAY
+    fast_ema, slow_ema, trend_ema = TODAY[:3]
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        fast, slow, trend, stop, tv, vw = cls.cell
+        cls.fast_ema, cls.slow_ema, cls.trend_ema = fast, slow, trend
+        cls.stoploss = -stop / 100
+        cls.target_vol = tv / 100
+        cls.vol_window = 24 * vw
+        cls.startup_candle_count = 2 * trend + 24 * vw
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe = super().populate_indicators(dataframe, metadata)
@@ -48,16 +61,66 @@ def cell_name(c: tuple[int, ...]) -> str:
     return "VTG_f%d_s%d_t%d_sl%d_tv%d_vw%d" % c
 
 
-def make_cell(c: tuple[int, int, int, int, int, int]) -> type:
-    fast, slow, trend, stop, tv, vw = c
-    attrs = {
-        "__module__": __name__,  # Freqtrade only loads classes whose module is this file
-        "fast_ema": fast, "slow_ema": slow, "trend_ema": trend,
-        "stoploss": -stop / 100, "target_vol": tv / 100, "vol_window": 24 * vw,
-        "startup_candle_count": 2 * trend + 24 * vw,
-    }  # fmt: skip
-    return type(cell_name(c), (VolTargetGrid,), attrs)
+
+class VTG_f15_s40_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (15, 40, 200, 8, 60, 30)
 
 
-for _c in cells():
-    globals()[cell_name(_c)] = make_cell(_c)
+class VTG_f15_s50_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (15, 50, 200, 8, 60, 30)
+
+
+class VTG_f15_s60_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (15, 60, 200, 8, 60, 30)
+
+
+class VTG_f20_s40_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (20, 40, 200, 8, 60, 30)
+
+
+class VTG_f20_s60_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (20, 60, 200, 8, 60, 30)
+
+
+class VTG_f25_s40_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (25, 40, 200, 8, 60, 30)
+
+
+class VTG_f25_s50_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (25, 50, 200, 8, 60, 30)
+
+
+class VTG_f25_s60_t200_sl8_tv60_vw30(VolTargetGrid):
+    cell = (25, 60, 200, 8, 60, 30)
+
+
+class VTG_f20_s50_t150_sl8_tv60_vw30(VolTargetGrid):
+    cell = (20, 50, 150, 8, 60, 30)
+
+
+class VTG_f20_s50_t250_sl8_tv60_vw30(VolTargetGrid):
+    cell = (20, 50, 250, 8, 60, 30)
+
+
+class VTG_f20_s50_t200_sl6_tv60_vw30(VolTargetGrid):
+    cell = (20, 50, 200, 6, 60, 30)
+
+
+class VTG_f20_s50_t200_sl10_tv60_vw30(VolTargetGrid):
+    cell = (20, 50, 200, 10, 60, 30)
+
+
+class VTG_f20_s50_t200_sl8_tv50_vw30(VolTargetGrid):
+    cell = (20, 50, 200, 8, 50, 30)
+
+
+class VTG_f20_s50_t200_sl8_tv70_vw30(VolTargetGrid):
+    cell = (20, 50, 200, 8, 70, 30)
+
+
+class VTG_f20_s50_t200_sl8_tv60_vw20(VolTargetGrid):
+    cell = (20, 50, 200, 8, 60, 20)
+
+
+class VTG_f20_s50_t200_sl8_tv60_vw45(VolTargetGrid):
+    cell = (20, 50, 200, 8, 60, 45)
