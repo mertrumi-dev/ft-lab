@@ -81,3 +81,13 @@ class VolTarget80(TrendEmaVolTarget):
 
 
 VOL_NEIGHBOURS = [VolTarget45, VolTarget80]
+
+
+# --- Pre-registered combination (2026-11-01): VolTarget sizing + BtcRising entry gate.
+# No new numbers. Criterion fixed in docs/journal.md before the run.
+
+from regime import TrendEmaBtcRising  # noqa: E402
+
+
+class TrendEmaVolTargetBtc(TrendEmaBtcRising, TrendEmaVolTarget):
+    """BtcRising entries (BTC daily SMA50 rising) + VolTarget stake (60%)."""
