@@ -640,3 +640,21 @@ Komut: `ft.py backtest --slice validation [--no-kill-switch] --strategy TrendEma
 - PF train'de 1,66, validation'da 1,87.
 
 Dürüstlük notu: Validation'a 4. bakış. Bu kural, 3. bakışta Pyramid'in kıl payı kaldığını gördükten sonra eklenen bir değişiklik. Yani validation bu kural için kısmen "kullanılmış" durumda. Bağımsız kalan kontroller şunlar: test dilimi (tek seferlik final sınavı) ve dry-run'da ileriye dönük çalışma.
+
+## 2026-11-01 · FİNAL TESTİ (test dilimi, tek seferlik) · TrendEma ve TrendEmaPyramidBtc
+
+Komut: `ft.py backtest --slice test --final-test --strategy TrendEma TrendEmaPyramidBtc`, `report --slice test --by-year`. Dönem `--timerange 20250807-20261001`, kill switch açık (canlıdaki gibi), main 2bfb719.
+
+| | İşlem | Getiri | Saatlik DD | Kazanma | PF | Son işlem | Karar |
+|---|---|---|---|---|---|---|---|
+| Al-tut | - | -27,0% | 63,7% | - | - | - | referans |
+| TrendEma | 121 | -20,1% | 21,4% | 19% | 0,30 | 2026-04-12 | FAIL, kill switch tetiklendi |
+| TrendEmaPyramidBtc | 99 | -20,4% | 22,0% | 8% | 0,26 | 2026-03-02 | FAIL, kill switch tetiklendi |
+
+Sonuç: İki kural da final sınavında kaldı. Train ve validation'da PF 1,6-1,9 idi, burada 0,26-0,30. Yani üstünlük yeni dönemde ortadan kalktı. Kıl payı değil, büyük bir kırılma.
+
+Olumlu tek taraf: Kill switch görevini yaptı. Kayıp yaklaşık %20'de durdu; al-tut ise %64 düştü.
+
+Not: Getiri negatif olunca Calmar karşılaştırması anlamını yitiriyor (-0,82 / -0,38). Karar Calmar'a değil, kuralın para kaybetmesine ve PF'nin çökmesine dayanıyor.
+
+Kural gereği bu sonuca bakarak hiçbir şey ayarlanmayacak. Test dilimi bu iki kural için artık kullanıldı.
