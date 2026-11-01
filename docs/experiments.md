@@ -427,3 +427,7 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 16:42 | backtest | TrendEmaVolTargetDaily | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 16:43 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 16:43 | backtest | TrendEmaVolTargetDaily | early | universe early, no kill switch (research) |
+| 2026-11-01 16:47 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 16:47 | backtest | TrendEmaVolTargetFeeAware | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 16:48 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 16:48 | backtest | TrendEmaVolTargetFeeAware | early | universe early, no kill switch (research) |
