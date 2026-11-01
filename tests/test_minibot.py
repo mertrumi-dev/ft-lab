@@ -196,3 +196,15 @@ def test_step_voltarget_sizes_the_buy_and_trendema_mode_does_not():
     assert expected < 123.75  # a wild coin (sigma 1.2%/h ~ 110%/yr): smaller than the normal stake
     assert a["positions"]["BTC/USDT"]["stake"] == pytest.approx(expected)
     assert b["positions"]["BTC/USDT"]["stake"] == pytest.approx(123.75)
+
+
+def test_minibot_kill_switch_latches_and_survives_a_restart(tmp_path):
+    acc = paper.new_account(1000)
+    acc["realized"] = 790.0  # -21%
+    assert paper.kill_switch_hit(acc)
+    acc["realized"] = 850.0  # a pre-kill trade closed with a profit: current fall only 15%
+    assert paper.kill_switch_hit(acc)  # still on
+    path = tmp_path / "state.json"
+    bot.save_state(acc, path)
+    again = bot.load_state(path)  # a new process reads only the file
+    assert paper.kill_switch_hit(again) and "KILL SWITCH" in paper.buy(again, "BTC/USDT", 100.0, {}, "t")

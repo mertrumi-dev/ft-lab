@@ -73,6 +73,24 @@ def drawdown_from_peak(starting: float, closed_profits: list[float]) -> float:
     return (peak - equity) / peak if peak > 0 else 0.0
 
 
+def worst_drawdown(starting: float, closed_profits: list[float]) -> float:
+    """The LARGEST fall of realized equity from a previous peak, over the whole history.
+
+    The kill switch uses this, not the current fall: once realized equity has been 20% below
+    its peak, entries stay blocked even if trades that were still open later close with a profit
+    and pull the current fall back under 20% (R13: "until a human looks"). Found by the
+    kill-switch drill (docs/research/08). Still computed from the trade history only, so a
+    restart cannot reset it; a human resets it by starting a new database.
+    """
+    equity = peak = starting
+    worst = 0.0
+    for profit in closed_profits:
+        equity += profit
+        peak = max(peak, equity)
+        worst = max(worst, (peak - equity) / peak if peak > 0 else 0.0)
+    return worst
+
+
 class TrendEma(IStrategy):
     INTERFACE_VERSION = 3
 
@@ -192,12 +210,12 @@ class TrendEma(IStrategy):
             closed = sorted(
                 Trade.get_trades_proxy(is_open=False), key=lambda t: t.close_date_utc
             )
-            drawdown = drawdown_from_peak(
+            drawdown = worst_drawdown(
                 self.wallets.get_starting_balance(), [t.close_profit_abs or 0.0 for t in closed]
             )
             if drawdown >= KILL_SWITCH_DRAWDOWN:
                 logger.warning(
-                    "KILL SWITCH: realized drawdown %.1f%% >= %.0f%%. Entry on %s refused.",
+                    "KILL SWITCH: realized drawdown reached %.1f%% (>= %.0f%%) since the start. Entry on %s refused.",
                     drawdown * 100,
                     KILL_SWITCH_DRAWDOWN * 100,
                     pair,

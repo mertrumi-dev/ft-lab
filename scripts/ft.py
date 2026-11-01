@@ -80,6 +80,9 @@ BOTS_CONFIG = "/freqtrade/user_data/config/research-bots.json"
 ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6, *ROUND7, *ROUND8, *ROUND9, *ROUND10]
 
 
+DRILL_TIMERANGE = "20291215-20300601"  # scripts/drill.py TIMERANGE (made-up data in 2029-2030)
+DRILL_RESULTS = "user_data/backtest_results/drill"
+DRILL_PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
 TEST_IMAGE = "ft-lab-test"  # freqtrade:2026.10 + pytest, built from tests/Dockerfile
 
 
@@ -127,6 +130,21 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         build = [["docker", "build", "-q", "-t", TEST_IMAGE, str(ROOT / "tests")]] if args.build else []
         return [*build, ["docker", "run", "--rm", "--entrypoint", "python", "-v", f"{ROOT}:/repo", "-w", "/repo",
                          TEST_IMAGE, "-m", "pytest", "-q", *args.pytest_args]]  # fmt: skip
+
+    if args.command == "drill":
+        # Kill-switch drill on made-up data (scripts/drill.py): kill switch ON (no research flag).
+        py = ["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+              "-v", f"{ROOT / 'minibot'}:/freqtrade/minibot:ro", "--entrypoint", "python", "freqtrade",
+              "/freqtrade/scripts/drill.py"]  # fmt: skip
+        return [
+            [*py, "generate"],
+            docker_cmd("backtesting", "--config", CONFIG, "--strategy", "TrendEmaVolTarget", "--timeframe", "1h",
+                       "--timerange", DRILL_TIMERANGE, "--fee", FEE, "--enable-protections", "--export", "trades",
+                       "--datadir", "/freqtrade/user_data/data/drill",
+                       "--backtest-directory", f"/freqtrade/{DRILL_RESULTS}",
+                       "--pairs", *DRILL_PAIRS),  # fmt: skip
+            [*py, "compare"],
+        ]
 
     if args.command == "replay":
         return [["docker", "compose", "run", "--rm",
@@ -360,7 +378,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -396,6 +414,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     te = sub.add_parser("test", help="run the test suite in Docker (the Mac's python3 has no pandas/freqtrade)")
     te.add_argument("--build", action="store_true", help="(re)build the test image from tests/Dockerfile first")
     te.add_argument("pytest_args", nargs="*", help="extra pytest arguments, e.g. tests/test_minibot.py")
+
+    sub.add_parser("drill", help="kill-switch drill: made-up crash through Freqtrade (kill switch ON) and the mini bot")
 
     rp = sub.add_parser("replay", help="minibot demo loop over stored candles vs the Freqtrade backtest (no keys)")
     rp.add_argument("--slice", choices=["fresh", "validation"], required=True)
@@ -495,6 +515,8 @@ def main(argv: list[str] | None = None) -> int:
     log_run(args)
     if getattr(args, "no_kill_switch", False):
         (ROOT / NO_KILL_DIR).mkdir(parents=True, exist_ok=True)
+    if args.command == "drill":
+        (ROOT / DRILL_RESULTS).mkdir(parents=True, exist_ok=True)
     for cmd in commands:
         code = subprocess.call(cmd, cwd=ROOT)
         if code != 0:

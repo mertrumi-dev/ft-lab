@@ -63,7 +63,7 @@ def health_summary() -> dict:
         return {
             "status": health.container_status(), "other_errors": len(s.other_errors),
             "network_errors": sum(s.network_by_hour.values()), "open": t["open"], "closed": t["closed"],
-            "profit": t["profit"], "drawdown": t["drawdown"], "phase0": health.phase0_verdict(s, now),
+            "profit": t["profit"], "drawdown": t["drawdown"], "worst": t.get("worst", t["drawdown"]), "phase0": health.phase0_verdict(s, now),
             "network_peak": (lambda hr, n: f"{hr}:00 UTC'de {n}")(*s.network_by_hour.most_common(1)[0])
             if s.network_by_hour else None,
             "longest_gap": f"{health.hours(s.longest_gap)} ({s.longest_gap_start:%d.%m %H:%M} UTC'den itibaren;"

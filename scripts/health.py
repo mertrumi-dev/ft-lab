@@ -120,9 +120,20 @@ def drawdown_from_peak(starting: float, closed_profits: list[float]) -> float:
     return (peak - equity) / peak if peak > 0 else 0.0
 
 
+def worst_drawdown(starting: float, closed_profits: list[float]) -> float:
+    """Same math as trend_ema.worst_drawdown: the largest fall ever (the kill switch latches on it)."""
+    equity = peak = starting
+    worst = 0.0
+    for profit in closed_profits:
+        equity += profit
+        peak = max(peak, equity)
+        worst = max(worst, (peak - equity) / peak if peak > 0 else 0.0)
+    return worst
+
+
 def trade_summary(db: Path) -> dict:
     if not db.exists():
-        return {"open": 0, "closed": 0, "profit": 0.0, "drawdown": 0.0}
+        return {"open": 0, "closed": 0, "profit": 0.0, "drawdown": 0.0, "worst": 0.0}
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)  # read-only: never lock or change the bot's DB
     try:
         open_n = con.execute("select count(*) from trades where is_open = 1").fetchone()[0]
@@ -137,6 +148,7 @@ def trade_summary(db: Path) -> dict:
         "closed": len(profits),
         "profit": sum(profits),
         "drawdown": drawdown_from_peak(STARTING_BALANCE, profits),
+        "worst": worst_drawdown(STARTING_BALANCE, profits),
     }
 
 
@@ -184,8 +196,10 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
         out.append(f"Running since:  {s.first_heartbeat:%Y-%m-%d %H:%M} UTC without a gap ({s.restarts} gap(s) in the log)")
     out.append(f"Trades:         {trades['open']} open, {trades['closed']} closed, realized {trades['profit']:+.2f} USDT")
     out.append(
-        f"Kill switch:    realized drawdown {trades['drawdown']:.1%} of {KILL_SWITCH_DRAWDOWN:.0%}"
-        + ("  <-- TRIGGERED" if trades["drawdown"] >= KILL_SWITCH_DRAWDOWN else "")
+        f"Kill switch:    realized drawdown {trades['drawdown']:.1%} now, worst {trades.get('worst', trades['drawdown']):.1%} "
+        f"of {KILL_SWITCH_DRAWDOWN:.0%}"
+        + ("  <-- TRIGGERED (stays on until a human resets it)"
+           if trades.get("worst", trades["drawdown"]) >= KILL_SWITCH_DRAWDOWN else "")
     )
     total_net = sum(s.network_by_hour.values())
     out.append(f"Network errors: {total_net}  (normal: a few per hour; a burst = no internet / Mac asleep)" + (f"  ({', '.join(f'{k} {v}' for k, v in s.network_by_cause.most_common())})" if total_net else ""))

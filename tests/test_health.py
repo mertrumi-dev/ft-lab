@@ -121,3 +121,8 @@ def test_render_with_a_gap_does_not_crash():
     s = health.summarize_log(lines, since=T0)
     text = health.render(s, {"open": 0, "closed": 0, "profit": 0.0, "drawdown": 0.0}, "up", T0 + health.timedelta(minutes=160), 24)
     assert "Longest gap:    2.0h" in text
+
+
+def test_kill_switch_line_uses_the_worst_drawdown():
+    assert abs(health.worst_drawdown(1000, [-210, 60]) - 0.21) < 1e-9
+    assert abs(health.drawdown_from_peak(1000, [-210, 60]) - 0.15) < 1e-9

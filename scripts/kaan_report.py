@@ -106,7 +106,8 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
         + (f", en çok {h['network_peak']}" if h.get("network_peak") else "") + ")",
         f"- En uzun bağlantısız süre: {h.get('longest_gap', 'yok')}",
         f"- İşlemler: {h.get('open', 0)} açık, {h.get('closed', 0)} kapanmış, gerçekleşen kâr/zarar {h.get('profit', 0.0):+.2f} USDT",
-        f"- Kill switch: zirveden düşüş %{h.get('drawdown', 0.0) * 100:.1f} (sınır %20)",
+        f"- Kill switch: zirveden düşüş şu an %{h.get('drawdown', 0.0) * 100:.1f}, en kötü %{h.get('worst', h.get('drawdown', 0.0)) * 100:.1f}"
+        " (sınır %20" + ("; TETİKLENDİ, yeni işlem yok, insan bakana kadar)" if h.get("worst", 0.0) >= 0.20 else ")"),
         f"- Faz 0: {h.get('phase0', '?')}",
         "", "## 2. Botun 5 coini şu an (1 saatlik grafik)", "",
     ]  # fmt: skip

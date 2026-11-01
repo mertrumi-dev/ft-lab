@@ -36,8 +36,14 @@ def capital(acc: dict, prices: dict[str, float]) -> float:
 
 
 def kill_switch_hit(acc: dict) -> bool:
-    """Realized equity (start + closed profits) fell 20% from its highest point."""
-    return (acc["peak"] - acc["realized"]) / acc["peak"] >= KILL_SWITCH_DRAWDOWN
+    """Realized equity (start + closed profits) has been 20% below its highest point.
+
+    Latched: once hit it stays on (saved in the state file, so a restart keeps it), even if
+    trades that were still open later close with a profit. Same as trend_ema.worst_drawdown.
+    """
+    if (acc["peak"] - acc["realized"]) / acc["peak"] >= KILL_SWITCH_DRAWDOWN:
+        acc["kill_switch"] = True
+    return bool(acc.get("kill_switch"))
 
 
 def risk_capital(acc: dict) -> float:

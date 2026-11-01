@@ -110,12 +110,13 @@ class ReplayExchange:
             self.orders[oid]["status"] = "canceled"
 
 
-def run_replay(candles, start_ms: int, end_ms: int, fee: float, pairs=CORE):
-    """Run demo.step hour by hour. Returns (ledger, broker state, last closes)."""
+def run_replay(candles, start_ms: int, end_ms: int, fee: float, pairs=CORE, state: dict | None = None, exchange=None):
+    """Run demo.step hour by hour and return the bot's state. Pass `state` (e.g. loaded from the
+    state file) and the same `exchange` to continue after a simulated restart."""
     from minibot import demo, paper
 
-    ex = ReplayExchange(candles, fee)
-    state = {"ledger": paper.new_account(demo.RESEARCH_EQUITY)}
+    ex = exchange or ReplayExchange(candles, fee)
+    state = state if state is not None else {"ledger": paper.new_account(demo.RESEARCH_EQUITY)}
     clock = [0]
 
     def tick():  # every poll moves the fake clock, so an unfilled order times out at once

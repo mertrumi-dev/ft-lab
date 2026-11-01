@@ -184,3 +184,24 @@ def test_kill_switch_on_when_runmode_unknown():
 
 def test_live_config_has_no_research_flag():
     assert "ftlab_research_no_kill_switch" not in json.loads(CONFIG_FILE.read_text())
+
+
+def test_kill_switch_latches_on_the_worst_drawdown():
+    # equity 1000 -> 790 (-21%: fired) -> a pre-kill trade closes +60 -> 850 (current fall only 15%)
+    profits = [-210, 60]
+    assert trend_ema.drawdown_from_peak(1000, profits) == pytest.approx(0.15)
+    assert trend_ema.worst_drawdown(1000, profits) == pytest.approx(0.21)  # still >= 20%: entries stay blocked
+    assert trend_ema.worst_drawdown(1000, [100, -100, 50]) == pytest.approx(100 / 1100)
+    assert trend_ema.worst_drawdown(1000, []) == 0.0
+
+
+def test_confirm_trade_entry_refuses_after_a_recovered_kill(monkeypatch):
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    strat = trend_ema.TrendEma({})
+    strat.wallets = SimpleNamespace(get_starting_balance=lambda: 1000.0)
+    t = lambda p, d: SimpleNamespace(close_profit_abs=p, close_date_utc=datetime(2030, 1, d, tzinfo=timezone.utc))  # noqa: E731
+    monkeypatch.setattr(trend_ema.Trade, "get_trades_proxy", staticmethod(lambda is_open=False: [t(-210, 1), t(60, 2)]))
+    ok = strat.confirm_trade_entry("BTC/USDT", "limit", 1.0, 100.0, "GTC", datetime(2030, 1, 3, tzinfo=timezone.utc), None, "long")
+    assert ok is False
