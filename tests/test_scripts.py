@@ -455,3 +455,21 @@ def test_scan_breadth_line_and_ft_passthrough():
     assert scan.CSV_HEADER == "date,n_coins,breadth,n_in_trend,n_entry_now,BTC,ETH,SOL,BNB,XRP"
     c = ft.build_commands(ft.parse_args(["scan", "--csv"]))[-1]
     assert c[-1] == "--csv"
+
+
+def test_chart_turkish_render_and_tiny_prices():
+    pytest.importorskip("pandas")
+    import chart
+
+    r = {"date": "2026-10-31", "close": 2255.66, "ema20": 2380.27, "vs_ema20": -0.052, "ema50": 2428.44, "vs_ema50": -0.071,
+         "ema200": 2317.59, "vs_ema200": -0.027, "ret7": -0.044, "ret30": -0.167, "ret90": 0.196, "high60": 2776.19,
+         "low60": 2245.54, "support": None, "resistance": 2359.68, "vol30": 0.36, "volume_ratio": 0.92}
+    b = {"short_up": True, "above_trend": False, "entry_now": False, "vol1h": 0.45, "size_scale": 1.0, "candle": "x"}
+    t = chart.render_tr("ETH/USDT", r, b)
+    for must in ("Fiyat 50 günlük ortalamanın %7,1 altında: orta vadede zayıf.", "2.255,66$", "yok, fiyat 60 günün en dibinde",
+                 "2.359,68$", "normalin (90 günlük ortalama) 0,9 katı", "Bot şu an almaz, çünkü saatlik grafikte fiyat 200 saatlik",
+                 "Geçmişin okunması, tahmin değil, yatırım tavsiyesi değil."):
+        assert must in t, must
+    assert chart.px_tr(0.000005) == "0,000005" and chart.px_tr(74200) == "74.200,00"
+    c = ft.build_commands(ft.parse_args(["chart", "--pair", "eth", "--tr"]))[-1]
+    assert c[-2:] == ["--lang", "tr"]

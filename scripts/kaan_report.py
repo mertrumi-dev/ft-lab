@@ -71,12 +71,16 @@ def bots_rows(bots_text: str) -> list[str]:
 
 
 def ai_counts(path: Path) -> tuple[int, int]:
-    """(views written, views scored) from docs/fresh/ai-views.md."""
+    """(views written, views scored). Single source: docs/fresh/ai-scores.csv (written by ft.py ai-score);
+    falls back to counting the views in ai-views.md if the CSV does not exist yet."""
+    scores = path.with_name("ai-scores.csv")
+    if scores.exists():
+        with scores.open() as f:
+            rows = list(csv.DictReader(f))
+        return len(rows), sum(1 for r in rows if r.get("hit", "") != "")
     if not path.exists():
         return 0, 0
-    rows = [r for r in path.read_text().splitlines() if r.startswith("| 20")]
-    scored = [r for r in rows if r.rstrip("|").split("|")[-1].strip()]
-    return len(rows), len(scored)
+    return len([r for r in path.read_text().splitlines() if r.startswith("| 20")]), 0
 
 
 def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_core: str, bots_gold: str,

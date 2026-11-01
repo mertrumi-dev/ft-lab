@@ -34,9 +34,12 @@ def test_bots_rows_keep_first_table_only():
     assert not any("DD  4%" in r for r in rows)
 
 
-def test_ai_counts(tmp_path):
-    p = tmp_path / "ai.md"
+def test_ai_counts_single_source_is_scores_csv(tmp_path):
+    p = tmp_path / "ai-views.md"
     p.write_text("| Tarih | ... |\n|---|---|\n| 2026-10-31 | BTC | 1 | x | aşağı | 1 | | |\n| 2026-10-31 | ETH | 2 | y | aşağı | 2 | -3% | evet |\n")
+    assert kaan_report.ai_counts(p) == (2, 0)  # no CSV yet: views counted, none scored
+    (tmp_path / "ai-scores.csv").write_text("date,coin,base_close,call,confidence,due,close_7d,move,actual,hit\n"
+                                            "2026-10-31,BTC,1,aşağı,1,2026-11-07,0.9,-0.1,aşağı,1\n2026-10-31,ETH,2,aşağı,2,2026-11-07,,,,\n")
     assert kaan_report.ai_counts(p) == (2, 1)
 
 

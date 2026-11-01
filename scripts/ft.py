@@ -182,6 +182,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
                 "--entrypoint", "python",
                 "freqtrade", "/freqtrade/scripts/chart.py", "--pair", pair,
+                *(["--lang", "tr"] if getattr(args, "tr", False) else []),
             ],
         ]  # fmt: skip
 
@@ -352,6 +353,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     ch = sub.add_parser("chart", help="chart reading of one coin in numbers (downloads it first)")
     ch.add_argument("--pair", required=True, help="e.g. ETH/USDT or just ETH")
+    ch.add_argument("--tr", action="store_true", help="simple Turkish sentences (for Kaan)")
 
     sub.add_parser("ai-score", help="score the AI chart views after 7 days (docs/fresh/ai-scores.csv)")
     sub.add_parser("explain", help="every dry-run trade explained in plain Turkish (read-only)")
