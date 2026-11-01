@@ -509,3 +509,37 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:15 | backtest | TrendEmaVolTargetVolConfirm | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 23:16 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 23:16 | backtest | TrendEmaVolTargetVolConfirm | early | universe early, no kill switch (research) |
+| 2026-11-01 23:20 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f15_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f15_s50_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f15_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f25_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f25_s50_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f25_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t150_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t250_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl6_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl10_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl8_tv50_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl8_tv70_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl8_tv60_vw20 | train | no kill switch (research) |
+| 2026-11-01 23:20 | backtest | VTG_f20_s50_t200_sl8_tv60_vw45 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f15_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f15_s50_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f15_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f25_s40_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f25_s50_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f25_s60_t200_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t150_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t250_sl8_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl6_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl10_tv60_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv50_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv70_vw30 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv60_vw20 | train | no kill switch (research) |
+| 2026-11-01 23:22 | backtest | VTG_f20_s50_t200_sl8_tv60_vw45 | train | no kill switch (research) |
