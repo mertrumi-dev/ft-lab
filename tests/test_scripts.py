@@ -148,9 +148,10 @@ def test_timeframe_map_matches_strategies():
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))
     import dip_rsi
     import donchian_ensemble
+    import sma_daily
     import trend_variants
 
-    modules = [trend_variants, donchian_ensemble, dip_rsi]
+    modules = [trend_variants, donchian_ensemble, dip_rsi, sma_daily]
     for name, tf in ft.STRATEGY_TIMEFRAMES.items():
         if name in ft.THIRD_PARTY:
             continue  # third-party code is not imported in tests (checked in test_benchmark_bots)

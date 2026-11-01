@@ -51,6 +51,7 @@ STRATEGY_TIMEFRAMES = {
     "TrendEma4h": "4h",
     "DipRsi4h": "4h",
     "NostalgiaForInfinityX8": "5m",
+    "TrendSmaDaily": "1d",
     "TrendDonchianEnsemble": "1d",
     "TrendDonchianEnsembleFull": "1d",
 }
@@ -62,7 +63,8 @@ ROUND5 = ["TrendEmaHold"]
 ROUND6 = ["DipRsi", "DipRsi4h"]  # Phase 2: buy dips (mean reversion)
 ROUND7 = ["TrendEmaExitConfirm", "TrendEmaSlope", "TrendEmaEntryConfirm"]
 ROUND8 = ["TrendEmaPyramid"]  # add to winners once, total risk still 1%
-ROUND9 = ["TrendEmaPyramidBtc"]  # add only while BTC > EMA200  # whipsaw fixes from the trade analysis
+ROUND9 = ["TrendEmaPyramidBtc"]  # add only while BTC > EMA200
+ROUND10 = ["TrendSmaDaily"]  # after the final test: daily close vs 200-day SMA (Faber 2007)  # whipsaw fixes from the trade analysis
 EMA_SENSITIVITY = ["EmaFast15", "EmaFast25", "EmaSlow40", "EmaSlow60", "EmaTrend150", "EmaTrend250"]
 PYRAMID_SENSITIVITY = ["Pyramid3", "Pyramid6"]
 ENTRY_CONFIRM_SENSITIVITY = ["EntryConfirm2", "EntryConfirm4"]
@@ -72,7 +74,7 @@ SLOW_SENSITIVITY = ["SlowFast40", "SlowFast60", "SlowSlow150", "SlowSlow250", "S
 THIRD_PARTY = ["NostalgiaForInfinityX8"]
 THIRD_PARTY_PATH = "/freqtrade/user_data/strategies/thirdparty"
 BOTS_CONFIG = "/freqtrade/user_data/config/research-bots.json"
-ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6, *ROUND7, *ROUND8, *ROUND9]
+ALL_STRATEGIES = ["TrendEma", *ROUND1, *ROUND2, *ROUND3, *ROUND4, *ROUND5, *ROUND6, *ROUND7, *ROUND8, *ROUND9, *ROUND10]
 
 
 def docker_cmd(*args: str) -> list[str]:
