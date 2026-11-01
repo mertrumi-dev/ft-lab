@@ -721,3 +721,12 @@ class TrendEmaVolTargetCooldown24(TrendEmaVolTarget):
             until = current_time + timedelta(minutes=timeframe_to_minutes(self.timeframe) * self.signal_exit_cooldown)
             self.lock_pair(pair, until, reason=f"{self.signal_exit_cooldown} candles after a signal exit")
         return True
+
+
+# Cooldown24 plateau neighbours (NOT candidates): only the cooldown length moves.
+class VTCooldown12(TrendEmaVolTargetCooldown24):
+    signal_exit_cooldown = 12
+
+
+class VTCooldown48(TrendEmaVolTargetCooldown24):
+    signal_exit_cooldown = 48

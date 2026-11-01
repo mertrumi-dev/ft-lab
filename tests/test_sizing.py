@@ -385,3 +385,16 @@ def test_cooldown24_locks_the_pair_for_a_day_after_a_signal_exit_only():
     assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
     assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
     assert cls.protections.fget is trend_ema.TrendEma.protections.fget
+
+
+@pytest.mark.parametrize("cls,n", [(sizing.VTCooldown12, 12), (sizing.VTCooldown48, 48)])
+def test_cooldown_neighbours_only_move_the_length(cls, n):
+    from datetime import datetime, timedelta, timezone
+
+    s = cls({})
+    calls = []
+    s.lock_pair = lambda pair, until, reason=None, side="*": calls.append(until)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    s.confirm_trade_exit("X/USDT", None, "limit", 1.0, 1.0, "GTC", "ema_cross_down", now)
+    assert calls == [now + timedelta(hours=n)]
+    assert cls.confirm_trade_exit is sizing.TrendEmaVolTargetCooldown24.confirm_trade_exit
