@@ -429,3 +429,27 @@ Pencere seçimleri:
 - Kurallar: LongTrend, LongTrend, Atr, TrendEma, Multi.
 
 Yorum: Geçen yılın kazananını seçmek, sabit kurala göre hem daha az kazandırıyor hem de daha çok düşürüyor. Sayı ayarlamak ve kural değiştirmek değer katmıyor. Sabit TrendEma'da kalınacak, hyperopt yapılmayacak.
+
+## 2026-11-01 · Train · Ünlü bot türleri ile karşılaştırma (Kaan'ın isteği)
+
+Komut (Mac, main f1fe2e4, `--timerange 20210101-20240613`, fee %0,15, düşüş saatlik ölçüldü): `ft.py bots --slice train --no-kill-switch [--universe wide] --strategy TrendEma`
+
+| 5 coin | İşlem | Getiri | CAGR | DD | Calmar |
+|---|---|---|---|---|---|
+| Al-tut | - | +2426,5% | +155,4% | 92,1% | 1,69 |
+| Haftalık DCA | - | +171,7% | +33,7% | 64,3% | 0,52 |
+| Grid bot (Pionex tarzı) | 5553 tur | +163,0% | +32,4% | 24,5% | 1,32 |
+| DCA bot (3Commas tarzı) | 2679 anlaşma | +113,7% | +24,7% | 30,1% | 0,82 |
+| **TrendEma** | 638 | +254,6% | +44,4% | 16,4% | **2,70** |
+
+| 14 coin | İşlem | Getiri | DD | Calmar |
+|---|---|---|---|---|
+| Al-tut | - | +256,3% | 90,6% | 0,49 |
+| Haftalık DCA | - | +15,3% | 52,7% | 0,08 |
+| Grid bot | 13975 | +91,6% | 25,5% | **0,81** |
+| DCA bot | 6899 | +51,6% | 32,3% | 0,40 |
+| TrendEma | 949 | +156,7% | 41,3% | 0,76 |
+
+Coin başına kontrol: grid düşüşü %20-39 (BTC %39, SOL %19,7). Portföyün düşüşü daha düşük çıkıyor, çünkü coinlerin dipleri farklı aylara denk geliyor. Grid bot kârını yeniden yatırmıyor; kâr nakitte birikiyor, riskte sadece başlangıç parası kalıyor (SOL: 2021 sonunda 4,6x, 2022'de %97 çöküşte düşüş %20). Bu bir hata değil, grid botların gerçek özelliği.
+
+Yorum: 5 büyük coinde TrendEma bütün bot türlerini Calmar'da geçiyor. 14 coinde grid bot az farkla önde (0,81'e 0,76). Grid bot ve DCA bot ayarları varsayılanlardır, ayarlanmadı.
