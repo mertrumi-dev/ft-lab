@@ -693,3 +693,31 @@ class TrendEmaVolTargetFeeAware(TrendEmaVolTarget):
             too_small = dataframe["atr_pct"] < FEE_COVER * ROUND_TRIP_COST
             dataframe.loc[too_small, ["enter_long", "enter_tag"]] = (0, None)
         return dataframe
+
+
+# --- Longer cooldown after a signal exit (pre-registered 2026-11-01) ----------------------
+# Fees are mostly a question of HOW MANY trades (research 10, FeeAware trial). After an
+# ema_cross_down exit the same pair waits 24 candles (one day) before a new entry; stop exits
+# keep the 2-candle CooldownPeriod. The strategy locks the pair itself (lock_pair), so the
+# live/dry-run bot and the backtest apply exactly the same rule.
+
+SIGNAL_EXIT_COOLDOWN_CANDLES = 24
+
+
+class TrendEmaVolTargetCooldown24(TrendEmaVolTarget):
+    """VolTarget that waits one day before re-entering a pair it just left on a signal."""
+
+    signal_exit_cooldown = SIGNAL_EXIT_COOLDOWN_CANDLES
+
+    def confirm_trade_exit(
+        self, pair: str, trade, order_type: str, amount: float, rate: float, time_in_force: str,
+        exit_reason: str, current_time: datetime, **kwargs,
+    ) -> bool:  # fmt: skip
+        if exit_reason == "ema_cross_down":
+            from datetime import timedelta
+
+            from freqtrade.exchange import timeframe_to_minutes
+
+            until = current_time + timedelta(minutes=timeframe_to_minutes(self.timeframe) * self.signal_exit_cooldown)
+            self.lock_pair(pair, until, reason=f"{self.signal_exit_cooldown} candles after a signal exit")
+        return True

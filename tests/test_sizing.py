@@ -368,3 +368,20 @@ def test_fee_aware_filter_blocks_entries_with_a_small_hourly_move():
         assert (b["enter_long"].fillna(0)[kept] == 1).all()  # only ever removes entries
         assert (f.loc[kept, "atr_pct"] >= 0.009).all()
         assert kept.any() == expect_entries
+
+
+def test_cooldown24_locks_the_pair_for_a_day_after_a_signal_exit_only():
+    from datetime import datetime, timedelta, timezone
+
+    s = sizing.TrendEmaVolTargetCooldown24({})
+    calls = []
+    s.lock_pair = lambda pair, until, reason=None, side="*": calls.append((pair, until, reason))
+    now = datetime(2030, 1, 1, 10, tzinfo=timezone.utc)
+    assert s.confirm_trade_exit("BTC/USDT", None, "limit", 1.0, 100.0, "GTC", "ema_cross_down", now) is True
+    assert calls == [("BTC/USDT", now + timedelta(hours=24), "24 candles after a signal exit")]
+    assert s.confirm_trade_exit("ETH/USDT", None, "market", 1.0, 92.0, "GTC", "stop_loss", now) is True
+    assert len(calls) == 1  # stop exits: only the normal 2-candle CooldownPeriod
+    cls = sizing.TrendEmaVolTargetCooldown24
+    assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
+    assert cls.protections.fget is trend_ema.TrendEma.protections.fget
