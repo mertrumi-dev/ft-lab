@@ -414,3 +414,59 @@ class TrendEmaVolTargetAtrStop(TrendEmaVolTarget):
             return None  # keep the -8% hard stop
         dist = atr_stop_distance(float(row["close"]), float(row["atr"]))
         return stoploss_from_absolute(trade.open_rate * (1 - dist), current_rate)
+
+
+# --- Breadth gate (pre-registered 2026-11-01) -----------------------------------------
+# New entries only while at least 3 of the "breadth set" close above their 1h EMA200
+# (simple majority, not tuned). Breadth set = the first 5 pairs of the bot's list that
+# have data (core: the bot's 5 coins). Exits unchanged. Same-candle values only.
+
+BREADTH_SET_SIZE = 5
+BREADTH_MIN_UP = 3
+
+
+def breadth_count(frames: dict[str, DataFrame], trend_len: int = 200) -> pd.Series:
+    """date -> how many of the given pairs closed above their EMA(trend_len) on that candle."""
+    ups = {}
+    for pair, df in frames.items():
+        c = df["close"].set_axis(pd.DatetimeIndex(df["date"]))
+        ups[pair] = (c > c.ewm(span=trend_len, adjust=False).mean()).astype(int)
+    return pd.DataFrame(ups).sort_index().fillna(0).sum(axis=1)
+
+
+class TrendEmaVolTargetBreadth(TrendEmaVolTarget):
+    """VolTarget, new trades only while >= 3 of the 5 breadth coins are above their EMA200."""
+
+    _breadth_cache: dict = {}
+
+    def _breadth(self) -> pd.Series | None:
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        frames = {}
+        for p in dp.current_whitelist():
+            df = dp.get_pair_dataframe(p, self.timeframe)
+            if df is not None and not df.empty:
+                frames[p] = df
+            if len(frames) == BREADTH_SET_SIZE:
+                break
+        if not frames:
+            return None
+        key = (tuple(frames), max(len(f) for f in frames.values()), max(f["date"].iloc[-1] for f in frames.values()))
+        if key not in self._breadth_cache:
+            type(self)._breadth_cache = {key: breadth_count(frames)}
+        return self._breadth_cache[key]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["breadth_ok"] = True  # unit tests without a data provider
+        b = self._breadth()
+        if b is not None:
+            dataframe["breadth_ok"] = (b.reindex(pd.DatetimeIndex(dataframe["date"])).fillna(0) >= BREADTH_MIN_UP).to_numpy()
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[~dataframe["breadth_ok"], ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe

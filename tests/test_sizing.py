@@ -232,3 +232,17 @@ def test_atr_stop_stake_keeps_1pct_risk():
     cls = sizing.TrendEmaVolTargetAtrStop
     assert cls.stoploss == trend_ema.STOPLOSS and cls.confirm_trade_entry is trend_ema.TrendEma.confirm_trade_entry
     assert cls.populate_entry_trend is trend_ema.TrendEma.populate_entry_trend
+
+
+def test_breadth_count_and_gate():
+    idx = pd.date_range("2024-01-01", periods=600, freq="1h", tz="UTC")
+    up = pd.DataFrame({"date": idx, "close": np.linspace(100, 200, 600)})
+    down = pd.DataFrame({"date": idx, "close": np.linspace(200, 100, 600)})
+    b = sizing.breadth_count({"A": up, "B": up, "C": down, "D": down, "E": down})
+    assert b.iloc[-1] == 2  # 2 of 5 above EMA200 -> gate closed
+    b3 = sizing.breadth_count({"A": up, "B": up, "C": up, "D": down, "E": down})
+    assert b3.iloc[-1] == 3
+    cls = sizing.TrendEmaVolTargetBreadth
+    assert sizing.BREADTH_MIN_UP == 3 and sizing.BREADTH_SET_SIZE == 5
+    assert cls.populate_exit_trend is trend_ema.TrendEma.populate_exit_trend
+    assert cls.custom_stake_amount is sizing.TrendEmaVolTarget.custom_stake_amount
