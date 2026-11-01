@@ -21,7 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import dcabot  # noqa: E402
 import grid  # noqa: E402
 import report  # noqa: E402
-from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, summarize, universe_pairs  # noqa: E402
+import rotation  # noqa: E402
+from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, load_closes, summarize, universe_pairs  # noqa: E402
 from benchmark import run as benchmark_run  # noqa: E402
 from equity import build_curve  # noqa: E402
 from splits import SLICES  # noqa: E402
@@ -43,6 +44,28 @@ def simulate_bot(sim, slice_name: str, universe: str, fee: float, data_dir: Path
     out = summarize(equity)
     out.update(trades=count, years=by_year(equity), exposure=None, equity=equity)
     return out
+
+
+def rotation_bot(slice_name: str, universe: str, fee: float, data_dir: Path = DATA_DIR) -> dict:
+    """Our weekly momentum rotation (scripts/rotation.py) on the same coins.
+
+    Scores need history from BEFORE the slice (30 days, BTC 100-day average),
+    so the full files are read and only the slice's hours are traded.
+    """
+    s = SLICES[slice_name]
+    full = {}
+    for pair in universe_pairs(universe):
+        try:
+            full[pair] = load_closes(pair, "1h", data_dir)
+        except FileNotFoundError:
+            continue
+    btc = rotation.daily_closes({"BTC": load_closes("BTC/USDT", "1h", data_dir)})["BTC"]
+    weights = rotation.target_weights(rotation.daily_closes(full), btc)
+    start, end = pd.Timestamp(s.start, tz="UTC"), pd.Timestamp(s.end, tz="UTC")
+    hourly = pd.DataFrame(full).sort_index().ffill()
+    hourly = hourly[(hourly.index >= start) & (hourly.index < end)]
+    equity, orders = rotation.simulate(hourly, weights[(weights.index >= start - pd.Timedelta(days=1))], fee)
+    return with_years(equity, orders)
 
 
 def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
@@ -98,7 +121,8 @@ def main() -> None:
             ("Grid bot (Pionex-style)", simulate_bot(
                 lambda c, cash, fee: grid.simulate_pair(c, cash, fee=fee), args.slice, args.universe, args.fee)),
             ("DCA bot (3Commas-style)", simulate_bot(
-                dcabot.simulate_pair, args.slice, args.universe, args.fee))]  # fmt: skip
+                dcabot.simulate_pair, args.slice, args.universe, args.fee)),
+            ("Rotation (ours, weekly)", rotation_bot(args.slice, args.universe, args.fee))]  # fmt: skip
 
     stats = report.latest_stats_per_strategy(
         s.timerange, universe_pairs(args.universe), args.fee, args.results_dir)
@@ -125,7 +149,7 @@ def main() -> None:
     print("-" * len(head))
     for name, r in rows:
         print(row(name, r))
-    print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals.")
+    print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals, rotation = orders.")
     print()
     print(format_years(rows))
 
