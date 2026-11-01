@@ -453,3 +453,18 @@ Komut (Mac, main f1fe2e4, `--timerange 20210101-20240613`, fee %0,15, düşüş 
 Coin başına kontrol: grid düşüşü %20-39 (BTC %39, SOL %19,7). Portföyün düşüşü daha düşük çıkıyor, çünkü coinlerin dipleri farklı aylara denk geliyor. Grid bot kârını yeniden yatırmıyor; kâr nakitte birikiyor, riskte sadece başlangıç parası kalıyor (SOL: 2021 sonunda 4,6x, 2022'de %97 çöküşte düşüş %20). Bu bir hata değil, grid botların gerçek özelliği.
 
 Yorum: 5 büyük coinde TrendEma bütün bot türlerini Calmar'da geçiyor. 14 coinde grid bot az farkla önde (0,81'e 0,76). Grid bot ve DCA bot ayarları varsayılanlardır, ayarlanmadı.
+
+## 2026-11-01 · Train · Komisyon stresi (%0,3) ve TrendEma %50 + Grid %50
+
+Komut: `ft.py bots --slice train --no-kill-switch [--fee-stress] --strategy TrendEma` (`--timerange 20210101-20240613`, 5 coin, main 3e6b98b)
+
+| Bot | Calmar fee %0,15 | Calmar fee %0,30 | DD %0,15 |
+|---|---|---|---|
+| Al-tut | 1,69 | 1,69 | 92,1% |
+| Haftalık DCA | 0,52 | 0,52 | 64,3% |
+| Grid bot | 1,32 | 0,97 | 24,5% |
+| DCA bot | 0,82 | 0,70 | 30,1% |
+| **TrendEma** | **2,70** | **1,82** | 16,4% |
+| TrendEma %50 + Grid %50 | 1,99 | 1,38 | 19,5% |
+
+Komisyon iki katına çıkınca da TrendEma bütün bot türlerini geçiyor ve al-tut'u geçen tek bot o. Birleşik deneme (TrendEma %50 + Grid %50) iki parçasının arasında kalıyor, TrendEma'nın tek başına sonucunu geçmiyor. FAIL, elendi. Yıl yıl: grid 2022'de -%20, TrendEma -%1,5.

@@ -165,6 +165,17 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--strategy", *args.strategy,
         ]]  # fmt: skip
 
+    if args.command == "analyze":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/analyze.py",
+            "--slice", args.slice, "--universe", args.universe,
+            *(["--results-dir", f"/freqtrade/{NO_KILL_DIR}"] if args.no_kill_switch else []),
+            "--strategy", *args.strategy,
+        ]]  # fmt: skip
+
     if args.command == "bots":
         return [[
             "docker", "compose", "run", "--rm",
@@ -224,7 +235,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 
 def log_run(args: argparse.Namespace) -> None:
-    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots"):
+    if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze"):
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -284,6 +295,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mc.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY])
     mc.add_argument("--universe", choices=UNIVERSES, default="core")
     mc.add_argument("--no-kill-switch", action="store_true")
+
+    an = sub.add_parser("analyze", help="split trades by exit reason, coin, holding time, year (train only)")
+    an.add_argument("--slice", choices=["train"], required=True)
+    an.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY])
+    an.add_argument("--universe", choices=UNIVERSES, default="core")
+    an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
     bo.add_argument("--slice", choices=["train", "validation"], required=True)
