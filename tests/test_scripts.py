@@ -280,3 +280,42 @@ def test_no_kill_switch_report_says_live_bot_would_stop():
     row = report.strategy_row("X", fake_stats(cagr=0.6, mdd=0.23))
     assert "would have stopped" in report.verdict(row, BH, kill_switch_on=False)
     assert "stopped buying" in report.verdict(row, BH, kill_switch_on=True)
+
+
+# --- year by year -------------------------------------------------------------------
+
+
+def test_benchmark_by_year_splits_calendar_years():
+    idx = pd.to_datetime(["2021-01-01", "2021-12-31", "2022-01-01", "2022-06-01", "2022-12-31"], utc=True)
+    eq = pd.Series([1.0, 2.0, 2.0, 1.0, 1.5], index=idx)
+    y = benchmark.by_year(eq)
+    assert y[2021]["return"] == pytest.approx(1.0)
+    assert y[2022]["return"] == pytest.approx(-0.25)
+    assert y[2022]["max_drawdown"] == pytest.approx(0.5)
+
+
+def test_strategy_by_year_compounds_balance():
+    stats = {"starting_balance": 1000, "trades": [
+        {"close_date": "2021-03-01 00:00:00+00:00", "profit_abs": 100},   # 1000 -> 1100
+        {"close_date": "2022-02-01 00:00:00+00:00", "profit_abs": -220},  # 1100 -> 880 (-20%)
+        {"close_date": "2022-05-01 00:00:00+00:00", "profit_abs": 110},   # 880 -> 990
+    ]}
+    y = report.strategy_by_year(stats)
+    assert y[2021] == {"trades": 1, "return": pytest.approx(0.10), "max_drawdown": 0.0}
+    assert y[2022]["trades"] == 2
+    assert y[2022]["return"] == pytest.approx(990 / 1100 - 1)
+    assert y[2022]["max_drawdown"] == pytest.approx(0.20)
+
+
+def test_year_table_marks_years_without_trades():
+    stats = {"A": {"starting_balance": 1000, "trades": [
+        {"close_date": "2021-03-01 00:00:00+00:00", "profit_abs": 50}]}}
+    text = report.format_years(stats, {2021: {"return": 1.0, "max_drawdown": 0.3},
+                                       2022: {"return": -0.6, "max_drawdown": 0.7}})
+    assert "2022" in text and "no trades" in text
+
+
+def test_report_by_year_and_strategy_filter_are_passed_on():
+    r = cmd("report", "--slice", "train", "--by-year", "--strategy", "TrendEma", "TrendEmaBtc")
+    assert "--by-year" in r
+    assert r[r.index("--strategy") + 1:r.index("--strategy") + 3] == ["TrendEma", "TrendEmaBtc"]

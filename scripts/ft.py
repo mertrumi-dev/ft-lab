@@ -119,6 +119,10 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         extra += ["--universe", args.universe, "--fee", fee_of(args)]
         if args.command == "report" and args.no_kill_switch:
             extra += ["--results-dir", f"/freqtrade/{NO_KILL_DIR}"]
+        if args.command == "report" and args.by_year:
+            extra += ["--by-year"]
+        if args.command == "report" and args.strategy:
+            extra += ["--strategy", *args.strategy]
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
@@ -196,6 +200,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
+    rp.add_argument("--by-year", action="store_true", help="also show each calendar year separately")
+    rp.add_argument("--strategy", nargs="+", help="only these strategies")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)

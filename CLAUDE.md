@@ -61,12 +61,13 @@ docker compose up -d                # botu arka planda başlat
 docker compose logs -f              # canlı log (Ctrl+C ile çık, bot durmaz)
 docker compose down                 # botu durdur
 docker compose run --rm freqtrade <alt-komut> --config /freqtrade/user_data/config/config.json   # tek seferlik freqtrade komutu
-.venv/bin/python -m pytest          # tüm testler (102)
+.venv/bin/python -m pytest          # tüm testler (106)
 .venv/bin/python scripts/ft.py download|backtest|hyperopt   # Freqtrade'i HER ZAMAN bunun üzerinden çalıştır (dilim + fee kilidi)
 .venv/bin/python scripts/ft.py report --slice train          # tüm stratejiler vs al-tut, kısa tablo (Docker içinde)
 .venv/bin/python scripts/ft.py backtest|report --slice train --universe wide   # 2021'in büyük 15 coini (hayatta kalan yanılgısı testi)
 .venv/bin/python scripts/ft.py backtest|report --slice train --fee-stress      # komisyon %0,3 (2 kat) stres testi
 .venv/bin/python scripts/ft.py backtest|report --slice train --no-kill-switch  # SADECE backtest: kill switch kapalı ölçüm (canlıda hep açık)
+.venv/bin/python scripts/ft.py report --slice train --by-year --strategy A B   # yıl yıl kırılım (yeni backtest gerekmez)
 ```
 
 FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).

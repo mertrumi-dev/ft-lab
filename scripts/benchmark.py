@@ -70,6 +70,17 @@ def universe_pairs(universe: str = "core") -> list[str]:
     return pairs if pairs else json.loads(CONFIG_FILE.read_text())["exchange"]["pair_whitelist"]
 
 
+def by_year(equity: pd.Series) -> dict[int, dict]:
+    """Return and worst fall inside each calendar year (for 'how did it do in 2022?')."""
+    out = {}
+    for year, part in equity.groupby(equity.index.year):
+        out[int(year)] = {
+            "return": float(part.iloc[-1] / part.iloc[0] - 1),
+            "max_drawdown": max_drawdown(part),
+        }
+    return out
+
+
 def run(
     slice_name: str, timeframe: str, fee: float, data_dir: Path = DATA_DIR, universe: str = "core"
 ) -> dict:
@@ -87,7 +98,9 @@ def run(
             skipped.append(pair)  # e.g. delisted from Binance, nothing to download
             continue
         closes[pair] = series[(series.index >= start) & (series.index < end)]
-    result = summarize(buy_and_hold_equity(closes, fee))
+    equity = buy_and_hold_equity(closes, fee)
+    result = summarize(equity)
+    result["years"] = by_year(equity)
     result.update(
         slice=slice_name, timerange=s.timerange, pairs=list(closes), skipped=skipped, fee=fee
     )
