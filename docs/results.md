@@ -622,3 +622,21 @@ Dürüstlük notu: Bu, validation'a baktıktan sonra Pyramid üzerine eklenen ik
 - Komşuların hepsi TrendEma'yı (2,70) geçiyor. Sonuçlar birbirine yakın, yani tek bir şanslı ayara bağlı değil (plato).
 - 2 kat komisyonla: PyramidBtc 2,99, Pyramid 2,41, TrendEma 1,81.
 - Karar: validation #4'e giriyor.
+
+## 2026-11-01 · VALIDATION #4 · TrendEmaPyramidBtc: İLK PASS
+
+Komut: `ft.py backtest --slice validation [--no-kill-switch] --strategy TrendEmaPyramidBtc`, `report --by-year`, `bots` (`--timerange 20240613-20250807`, main 195b3c5)
+
+| Bot | İşlem | Getiri | Saatlik DD | Calmar | PF | Karar |
+|---|---|---|---|---|---|---|
+| Al-tut | - | +122,6% | 47,8% | 2,11 | - | referans |
+| Grid bot | 1955 | +56,7% | 24,3% | 1,97 | - | |
+| TrendEma | 217 | +31,4% | 17,3% | 1,55 | 1,62 | FAIL |
+| TrendEmaPyramid | 218 | +60,2% | 24,1% | 2,10 | 1,80 | FAIL |
+| **TrendEmaPyramidBtc** | 218 | **+63,9%** | **23,1%** | **2,32** | 1,87 | **PASS** |
+
+- Pay az: Calmar 0,21 üstte, DD sınırın 0,8 puan altında.
+- Kill switch açık ve kapalı sonuçlar aynı.
+- PF train'de 1,66, validation'da 1,87.
+
+Dürüstlük notu: Validation'a 4. bakış. Bu kural, 3. bakışta Pyramid'in kıl payı kaldığını gördükten sonra eklenen bir değişiklik. Yani validation bu kural için kısmen "kullanılmış" durumda. Bağımsız kalan kontroller şunlar: test dilimi (tek seferlik final sınavı) ve dry-run'da ileriye dönük çalışma.
