@@ -774,3 +774,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 21:16 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2024 |
 | 2026-11-02 21:16 | backtest | TrendEmaVolTarget2h | fresh | universe alt2024 |
 | 2026-11-02 21:16 | backtest | TrendEmaVolTarget | fresh | universe core_gold |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | train | no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | validation | no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | early | universe early, no kill switch (research) |
