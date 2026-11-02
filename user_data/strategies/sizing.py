@@ -1216,3 +1216,35 @@ class VTLetRun150(TrendEmaVolTargetLetRun):
 # for this strategy only, in its own Freqtrade run. Never in the live config.
 class VTMax5(TrendEmaVolTarget):
     pass
+
+
+# T142. Threshold-free use of the 9-pair vote (T132 moved the fragility into the vote threshold):
+# entries and exits are exactly TrendEmaVolTarget's; only the stake is scaled by the share of the
+# 9 EMA pairs that point up on the signal candle (at a 20/50 cross the share is at least 1/9).
+def vote_share(votes: float, n_pairs: int = len(VOTE_PAIRS)) -> float:
+    """Share of pairs that are up, 0..1; unknown (NaN) -> 1.0 so a missing value never shrinks to 0."""
+    if not np.isfinite(votes):
+        return 1.0
+    return min(max(votes / n_pairs, 0.0), 1.0)
+
+
+class TrendEmaVolTargetVoteSize(TrendEmaVolTarget):
+    """VolTarget entries/exits, stake x share of the 9 EMA pairs that are up (T142)."""
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["votes"] = ema_votes(dataframe["close"])
+        return dataframe
+
+    def custom_stake_amount(self, pair: str, current_time: datetime, current_rate: float, proposed_stake: float,
+                            min_stake: float | None, max_stake: float, leverage: float, entry_tag: str | None,
+                            side: str, **kwargs) -> float:  # fmt: skip
+        stake = super().custom_stake_amount(pair, current_time, current_rate, proposed_stake, min_stake, max_stake,
+                                            leverage, entry_tag, side, **kwargs)  # fmt: skip
+        votes = float("nan")
+        dp = getattr(self, "dp", None)
+        if dp is not None:
+            dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)
+            if dataframe is not None and not dataframe.empty and "votes" in dataframe:
+                votes = float(dataframe["votes"].iloc[-1])
+        return stake * vote_share(votes)

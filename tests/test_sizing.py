@@ -717,3 +717,19 @@ def test_letrun_neighbours_and_indicator():
     df = pd.DataFrame({"close": close, "high": close, "low": close, "volume": 1.0})
     out = sizing.VTLetRun150({}).populate_indicators(df, {})
     assert np.allclose(out["ema_letrun"], ema(close, 150))
+
+
+def test_vote_share_and_vote_size_stake():
+    assert sizing.vote_share(9) == 1.0 and sizing.vote_share(3) == pytest.approx(1 / 3)
+    assert sizing.vote_share(float("nan")) == 1.0 and sizing.vote_share(0) == 0.0
+    cls = sizing.TrendEmaVolTargetVoteSize
+    assert cls.populate_entry_trend is sizing.TrendEmaVolTarget.populate_entry_trend
+    assert cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend and cls.stoploss == -0.08
+    base, s = sizing.TrendEmaVolTarget({}), cls({})
+    df = pd.DataFrame({"rvol": [0.9], "votes": [6.0]})
+    for x in (base, s):
+        x.wallets = SimpleNamespace(get_total_stake_amount=lambda: 1000.0)
+        x.dp = SimpleNamespace(get_analyzed_dataframe=lambda pair, tf: (df, None))
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    args = ("BTC/USDT", now, 100.0, 50.0, 5.0, 1000.0, 1.0, None, "long")
+    assert s.custom_stake_amount(*args) == pytest.approx(base.custom_stake_amount(*args) * 6 / 9)
