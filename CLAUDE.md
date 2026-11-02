@@ -98,6 +98,6 @@ FreqUI: http://127.0.0.1:8080 (kullanıcı adı/şifre `.env`'de).
 - [ ] Faz 0: kurulum, 24 saat temiz dry-run. TrendEma koşusu 2026-11-01'de Docker durdurulunca kesildi (sayılmadı); sayaç TrendEmaVolTarget ile yeniden başladı
 - [x] Faz 1: benchmark + veri bölme (2026-11-01: benchmark, splits, ft.py kilitleri, report, saatlik düşüş, yıl yıl, Monte Carlo)
 - [ ] Faz 2: 3 strateji (EMA cross, RSI+ATR, DCA)
-- [ ] Faz 3: robustluk (walk-forward, hassasiyet, Monte Carlo, kill switch)
+- [x] Faz 3: robustluk (walk-forward, hassasiyet, Monte Carlo, kill switch). 2026-11-02, VolTarget: walk-forward sabit 0,92 vs seç-en-iyi 0,50; hassasiyet haritası T115 (EMA 20/50 kırılgan, diğerleri pürüzsüz); Monte Carlo + ileri risk (araştırma 09); kill switch tatbikatı (araştırma 08); 2 kat komisyon. Özet: araştırma 12
 - [ ] Faz 4: ccxt ile sıfırdan mini bot (grid burada denenir). 2026-11-01: `minibot/` (sadece kağıt üstünde işlem, anahtarsız; VolTarget kuralı Freqtrade ile birebir aynı, eşlik testi var)
 - [ ] Faz 5: Binance demo, 4 hafta
