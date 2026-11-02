@@ -90,6 +90,9 @@ class DemoBroker:
 
     def __init__(self, exchange, state: dict, sleep=time.sleep, clock=time.monotonic):
         assert_demo_urls(exchange)  # checked again right before the first private call
+        # ccxt rounds amounts/prices with the market list; without it amount_to_precision raises
+        # "markets not loaded" on the first order (the keyless data exchange is a different object).
+        exchange.load_markets()  # public call on the demo host checked just above
         self.exchange, self.state, self.sleep, self.clock = exchange, state, sleep, clock
         self.at = None  # the hour demo.step is trading (set by demo.step), recorded with each order
         state.setdefault("orders", [])

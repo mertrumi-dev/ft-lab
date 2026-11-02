@@ -31,10 +31,20 @@ class FakeExchange:
         if enable:
             self.urls["api"] = dict(self.demo_urls)
 
+    markets = None  # like ccxt: precision helpers need load_markets() first
+
+    def load_markets(self):
+        self.markets = {"BTC/USDT": {}}
+        return self.markets
+
     def amount_to_precision(self, pair, amount):
+        if self.markets is None:
+            raise RuntimeError("binance markets not loaded")
         return f"{amount:.5f}"
 
     def price_to_precision(self, pair, price):
+        if self.markets is None:
+            raise RuntimeError("binance markets not loaded")
         return f"{price:.2f}"
 
     # scripted fills: each create_order pops the next plan, default = filled at once
@@ -389,3 +399,23 @@ def test_real_ccxt_demo_switch_passes_the_guard_and_live_fails():
     d.enable_demo_trading(True)
     demo.assert_demo_urls(d)
     assert d.urls["api"]["private"].startswith("https://demo-api.binance.com/")
+
+
+def test_demo_broker_loads_markets_before_the_first_order():
+    """Found 2026-11-02 against the real ccxt 4.5.90: amount_to_precision raises "markets not loaded"
+    on a fresh exchange. The broker's exchange never fetches candles (that is the keyless data
+    exchange), so the broker must load the market list itself."""
+    ex = FakeExchange({"options": {"defaultType": "spot"}})
+    ex.enable_demo_trading(True)
+    with pytest.raises(RuntimeError, match="markets not loaded"):
+        ex.amount_to_precision("BTC/USDT", 0.1)
+    demo.DemoBroker(ex, {}, sleep=lambda s: None)
+    assert ex.markets is not None and ex.amount_to_precision("BTC/USDT", 0.123456) == "0.12346"
+
+
+def test_real_ccxt_needs_markets_for_precision():
+    ccxt = pytest.importorskip("ccxt")
+    e = ccxt.binance()
+    e.enable_demo_trading(True)
+    with pytest.raises(ccxt.ExchangeError, match="markets not loaded"):
+        e.amount_to_precision("BTC/USDT", 0.1)
