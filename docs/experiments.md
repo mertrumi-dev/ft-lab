@@ -626,3 +626,9 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:11 | backtest | TrendEmaVolTarget | fresh | universe core_gold |
 | 2026-11-02 00:14 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
 | 2026-11-02 00:14 | backtest | VTMax5 | train | no kill switch (research) |
+| 2026-11-02 00:15 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:15 | backtest | VTMax5 | validation | no kill switch (research) |
+| 2026-11-02 00:15 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:15 | backtest | VTMax5 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:15 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:15 | backtest | VTMax5 | early | universe early, no kill switch (research) |
