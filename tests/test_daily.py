@@ -62,3 +62,30 @@ def test_append_breadth_is_idempotent_per_date(tmp_path):
 def test_daily_runs_scan_with_csv_last():
     t, args, capture = daily.plan(False, True)[-1]
     assert args == ["scan", "--csv"] and capture
+
+
+def test_run_step_retries_once_after_a_failure(monkeypatch):
+    import daily
+
+    calls = []
+    results = iter([(1, ""), (0, "ok")])
+    monkeypatch.setattr(daily, "run", lambda args, capture=False: (calls.append(args), next(results))[1])
+    monkeypatch.setattr(daily.time, "sleep", lambda s: calls.append(("slept", s)))
+    assert daily.run_step(["download"], False, wait_s=60) == (0, "ok")
+    assert calls == [["download"], ("slept", 60), ["download"]]
+
+
+def test_a_failed_step_is_reported_and_the_day_goes_on(monkeypatch, tmp_path):
+    import daily
+
+    monkeypatch.setattr(daily, "ROOT", tmp_path)
+    monkeypatch.setattr(daily, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(daily, "BREADTH_CSV", tmp_path / "breadth.csv")
+    monkeypatch.setattr(daily, "plan", lambda nfi, dl: [("download core", ["download"], False), ("expected", ["expected"], True)])
+    monkeypatch.setattr(daily, "run_step", lambda args, capture: (2, "") if args == ["download"] else (0, "expected text"))
+    monkeypatch.setattr(daily, "health_summary", lambda: {"status": "test"})
+    monkeypatch.setattr(daily, "forward_rows", lambda: [])
+    monkeypatch.setattr(daily.kaan_report, "write", lambda out_dir, today, text: out_dir / "short.md")
+    assert daily.main(["--no-download"]) == 1  # still a non-zero exit: the failure is not hidden
+    report = next(tmp_path.glob("20*.md")).read_text()
+    assert "## download core" in report and "BAŞARISIZ" in report and "expected text" in report

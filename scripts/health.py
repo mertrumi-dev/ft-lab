@@ -64,6 +64,7 @@ class LogSummary:
     restarts: int = 0
     longest_gap: timedelta = timedelta(0)  # longest time without a heartbeat (bot or Mac down/asleep)
     longest_gap_start: datetime | None = None
+    gaps: list[tuple[datetime, timedelta]] = field(default_factory=list)  # (start, length) of gaps in the window
 
 
 def parse_time(text: str) -> datetime:
@@ -107,6 +108,8 @@ def summarize_log(lines, since: datetime) -> LogSummary:
             gap = s.last_heartbeat is not None and when - s.last_heartbeat > HEARTBEAT_MAX_AGE
             if gap:
                 s.restarts += 1  # a gap = the bot (or the Mac) was down
+                if when >= since:
+                    s.gaps.append((s.last_heartbeat, when - s.last_heartbeat))
                 if when >= since and when - s.last_heartbeat > s.longest_gap:
                     s.longest_gap, s.longest_gap_start = when - s.last_heartbeat, s.last_heartbeat
             if s.first_heartbeat is None or gap:
@@ -179,6 +182,27 @@ def container_status(service: str = "freqtrade") -> str:
         return f"unknown ({e.__class__.__name__}: is docker on PATH?)"
 
 
+def container_started_at(service: str = "freqtrade") -> datetime | None:  # pragma: no cover - docker
+    """When the service's container last started (UTC), or None if docker cannot tell."""
+    try:
+        name = container_status(service).split()[0]
+        r = subprocess.run(["docker", "inspect", "-f", "{{.State.StartedAt}}", name], capture_output=True, text=True, timeout=30)
+        return datetime.fromisoformat(r.stdout.strip()[:19]).replace(tzinfo=timezone.utc) if r.returncode == 0 else None
+    except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
+        return None
+
+
+def gap_cause(started_at: datetime | None, first_gap: datetime | None) -> str:
+    """A gap while the container kept running = the Mac slept or lost the network, not a bot crash."""
+    if first_gap is None:
+        return ""
+    if started_at is None:
+        return "cause unknown (docker did not say when the container started)"
+    if started_at <= first_gap:
+        return "container kept running through them: Mac asleep or no network, not a bot crash"
+    return "container restarted after the first gap: the bot crashed or Docker was restarted"
+
+
 def hours(delta: timedelta) -> str:
     return f"{delta.total_seconds() / 3600:.1f}h"
 
@@ -196,7 +220,7 @@ def phase0_verdict(s: LogSummary, now: datetime) -> str:
     return f"PASS: {hours(uptime)} without a gap, no non-network errors"
 
 
-def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) -> str:
+def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int, started_at: datetime | None = None) -> str:
     out = [f"Health report {now:%Y-%m-%d %H:%M} UTC (last {hours}h)", f"Container:      {status}"]
     if s.last_heartbeat:
         out.append(f"Last heartbeat: {s.last_heartbeat:%H:%M:%S} UTC ({int((now - s.last_heartbeat).total_seconds())}s ago)")
@@ -216,6 +240,10 @@ def render(s: LogSummary, trades: dict, status: str, now: datetime, hours: int) 
         out.append(f"  {hour}h  {n:4d} {'#' * min(n, 50)}")
     if s.longest_gap:
         out.append(f"Longest gap:    {s.longest_gap.total_seconds() / 3600:.1f}h without a heartbeat, from {s.longest_gap_start:%Y-%m-%d %H:%M} UTC")
+    if s.gaps:
+        lost = sum((g for _, g in s.gaps), timedelta(0)).total_seconds() / 3600
+        out.append(f"Gaps:           {len(s.gaps)} in the window, {lost:.1f}h without a heartbeat in total; "
+                   f"{gap_cause(started_at, s.gaps[0][0])}")  # fmt: skip
     out.append(f"Other errors:   {len(s.other_errors)}")
     out.extend(f"  {e}" for e in s.other_errors[-10:])
     out.append(f"Faz 0:          {phase0_verdict(s, now)}")
@@ -235,7 +263,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"could not read docker logs ({e.__class__.__name__}): is docker on PATH?")
         return 1
     s = summarize_log(lines, now - timedelta(hours=args.hours))
-    print(render(s, trade_summary(SERVICES[args.service]), container_status(args.service), now, args.hours))
+    print(render(s, trade_summary(SERVICES[args.service]), container_status(args.service), now, args.hours,
+                 container_started_at(args.service)))  # fmt: skip
     return 0
 
 

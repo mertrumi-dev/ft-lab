@@ -161,3 +161,19 @@ def test_websocket_reset_while_offline_is_a_network_error():
     ]
     s = health.summarize_log(lines, health.parse_time("2026-11-02 00:00:00"))
     assert s.other_errors == [] and s.network_by_cause["ClientConnectionResetError"] == 1
+
+
+def test_gaps_in_window_and_their_cause():
+    def hb(t):
+        return f"{t} ,000 - freqtrade.worker - INFO - Bot heartbeat. PID=1, version='2026.10', state='RUNNING'\n".replace(" ,", ",")
+
+    lines = [hb("2026-11-02 10:00:00"), hb("2026-11-02 10:01:00"), hb("2026-11-02 10:31:00"), hb("2026-11-02 10:32:00"),
+             hb("2026-11-02 11:32:00")]  # fmt: skip
+    s = health.summarize_log(lines, health.parse_time("2026-11-02 00:00:00"))
+    assert [(a.strftime("%H:%M"), int(g.total_seconds() // 60)) for a, g in s.gaps] == [("10:01", 30), ("10:32", 60)]
+    started = health.parse_time("2026-11-01 23:00:00")
+    assert "Mac asleep" in health.gap_cause(started, s.gaps[0][0])
+    assert "restarted" in health.gap_cause(health.parse_time("2026-11-02 10:20:00"), s.gaps[0][0])
+    assert health.gap_cause(None, None) == ""
+    text = health.render(s, {"open": 0, "closed": 0, "profit": 0.0, "drawdown": 0.0}, "ft-lab Up", health.parse_time("2026-11-02 11:33:00"), 24, started)
+    assert "Gaps:           2 in the window, 1.5h" in text and "not a bot crash" in text

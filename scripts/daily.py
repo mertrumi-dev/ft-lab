@@ -17,6 +17,7 @@ Stdlib only: it only calls scripts/ft.py, like a human would.
 import argparse
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -47,6 +48,19 @@ CHART_COINS = ["BTC", "ETH", "SOL", "BNB", "XRP"]
 def run(args: list[str], capture: bool = False) -> tuple[int, str]:
     r = subprocess.run([*FT, *args], cwd=ROOT, capture_output=capture, text=True)
     return r.returncode, (r.stdout or "") if capture else ""
+
+
+RETRY_WAIT_S = 60  # after a Mac sleep / network drop the connection is usually back within a minute
+
+
+def run_step(args: list[str], capture: bool, wait_s: float = RETRY_WAIT_S) -> tuple[int, str]:
+    """run(), and once more after a pause if it failed (a sleep or network drop should not cost the day)."""
+    code, out = run(args, capture)
+    if code != 0:
+        print(f"step failed ({code}), retrying once in {wait_s:.0f} s", flush=True)
+        time.sleep(wait_s)
+        code, out = run(args, capture)
+    return code, out
 
 
 def table_lines(text: str) -> str:
@@ -167,12 +181,15 @@ def main(argv: list[str] | None = None) -> int:
     report = [f"# Taze veri kontrolü {today}", "",
               "Sadece yargı için. Kurallar bu sonuçlara bakılarak değiştirilmez (docs/journal.md).", ""]  # fmt: skip
     captured: dict[str, str] = {}
+    failed: list[str] = []
     for title, ft_args, capture in plan(args.with_nfi, not args.no_download):
         print(f"== {title}: ft.py {' '.join(ft_args)}", flush=True)
-        code, out = run(ft_args, capture)
-        if code != 0:
+        code, out = run_step(ft_args, capture)
+        if code != 0:  # keep going: one failed step must not cost the whole report
             print(f"FAILED ({code}): {title}")
-            return code
+            failed.append(title)
+            report += [f"## {title}", "", f"BAŞARISIZ (çıkış kodu {code}, bir kez tekrar denendi). Mac uykusu ya da internet kesintisi olabilir.", ""]
+            continue
         if capture:
             captured[title] = out
             print(out)
@@ -195,6 +212,9 @@ def main(argv: list[str] | None = None) -> int:
         captured.get("forward-risk", ""), prereg_lines(), forward_rows(),
     ))  # fmt: skip
     print(f"short report: {short.relative_to(ROOT)} (+ latest.md)")
+    if failed:
+        print(f"FAILED steps ({len(failed)}): {', '.join(failed)}")
+        return 1
     return 0
 
 
