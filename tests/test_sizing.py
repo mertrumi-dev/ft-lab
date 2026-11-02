@@ -901,3 +901,19 @@ def test_no_chase_skips_only_stretched_entries():
     df2.loc[2999, "close"] *= 3
     f2 = s.populate_entry_trend(s.populate_indicators(df2, {}), {})
     assert (f2["enter_long"].fillna(0).iloc[:2999] == f["enter_long"].fillna(0).iloc[:2999]).all()
+
+
+def test_live_strategies_fit_the_exchange_startup_limit():
+    """Freqtrade (2026.10) refuses to start live when a strategy needs more than 5 x 1000 - 1 hourly
+    candles from Binance, and with fewer than 2 x EMA200 the trend filter is not warmed up.
+    Checks every strategy a docker-compose service runs (main bot + forward bots)."""
+    import re
+
+    import trend_ema
+
+    compose = (Path(__file__).resolve().parent.parent / "docker-compose.yml").read_text()
+    names = re.findall(r"--strategy\s+(\w+)", compose)
+    assert "TrendEmaVolTarget" in names and len(names) >= 2
+    for name in names:
+        cls = getattr(sizing, name, None) or getattr(trend_ema, name)
+        assert 2 * trend_ema.TREND_EMA <= cls.startup_candle_count <= 5 * 1000 - 1, (name, cls.startup_candle_count)
