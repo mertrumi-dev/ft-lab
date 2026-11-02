@@ -172,6 +172,19 @@ def test_trial_robust_adds_neighbours_and_fee_stress():
     assert steps[-1][-4:] == ["--neighbours", "A", "B", "--robust"]
 
 
+def test_trial_entry_filter_adds_removed_after_each_backtest():
+    steps = cmds("trial", "--strategy", "X", "--entry-filter")
+    kinds = [st[2] for st in steps]
+    assert kinds == ["backtest", "removed"] * 4 + ["verdict"]
+    assert all(st[st.index("--slice") + 1] == bt[bt.index("--slice") + 1] for bt, st in zip(steps[0:8:2], steps[1:8:2]))
+    assert "removed" not in [st[2] for st in cmds("trial", "--strategy", "X")]  # only on request
+
+
+def test_removed_command_is_read_only():
+    c = cmd("removed", "--strategy", "X", "--slice", "early", "--universe", "early")
+    assert "/freqtrade/scripts/removed.py" in c and "backtesting" not in c
+
+
 def test_timeframe_map_matches_strategies():
     pytest.importorskip("freqtrade")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))

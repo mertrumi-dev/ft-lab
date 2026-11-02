@@ -403,6 +403,9 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             if args.robust and (slice_name, universe) in criterion.NEIGHBOUR_CASES:
                 names += args.neighbours
             steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch", "--strategy", *names])
+            if args.entry_filter:  # understanding, not the verdict: what did the filter cut on this slice?
+                steps.append([*me, "removed", "--strategy", args.strategy, "--base", args.baseline,
+                              "--slice", slice_name, "--universe", universe])  # fmt: skip
         if args.robust:
             for slice_name, universe in criterion.FEE_CASES:
                 steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch",
@@ -410,6 +413,15 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
         steps.append([*me, "verdict", "--strategy", args.strategy, "--baseline", args.baseline, *tail])
         return steps
+
+    if args.command == "removed":
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/removed.py",
+            "--strategy", args.strategy, "--base", args.base, "--slice", args.slice, "--universe", args.universe,
+        ]]  # fmt: skip
 
     if args.command == "verdict":
         tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
@@ -470,7 +482,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval", "trial", "verdict", "prereg-judge"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval", "trial", "verdict", "prereg-judge", "removed"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -606,6 +618,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     tr.add_argument("--baseline", default="TrendEmaVolTarget")
     tr.add_argument("--neighbours", nargs="*", default=[], help="robustness neighbours (pre-registered with the candidate)")
     tr.add_argument("--robust", action="store_true", help="also backtest the neighbours and 2x fee, and read them")
+
+    tr.add_argument("--entry-filter", action="store_true", help="the candidate only removes base entries: print `removed` per slice")
+
+    rm = sub.add_parser("removed", help="base entries a filter did not take, by year (read-only, existing exports)")
+    rm.add_argument("--strategy", required=True)
+    rm.add_argument("--base", default="TrendEmaVolTarget")
+    rm.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24"], required=True)
+    rm.add_argument("--universe", choices=UNIVERSES, default="core")
 
     vd = sub.add_parser("verdict", help="the standard verdict from existing results (read-only); `trial` calls it")
     vd.add_argument("--strategy", required=True)
