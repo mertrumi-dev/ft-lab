@@ -1294,3 +1294,36 @@ class VTObv150(TrendEmaVolTargetObv):
 
 class VTObv250(TrendEmaVolTargetObv):
     obv_trend = 250
+
+
+# T144 (volume family, participation regime): is interest in the coin rising? Enter only when the
+# mean volume of the last 7 days beats the last 30 days, both up to the PREVIOUS candle.
+PARTIC_SHORT = 24 * 7
+PARTIC_LONG = 24 * 30
+
+
+def participation_rising(volume: pd.Series, short: int = PARTIC_SHORT, long: int = PARTIC_LONG) -> pd.Series:
+    prev = volume.shift(1)
+    return prev.rolling(short).mean() > prev.rolling(long).mean()
+
+
+class TrendEmaVolTargetPartic(TrendEmaVolTarget):
+    """VolTarget that only enters while the coin's 7-day volume is above its 30-day volume (T144)."""
+
+    partic_short = PARTIC_SHORT
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            ok = participation_rising(dataframe["volume"], self.partic_short)
+            dataframe.loc[~ok, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+# T144 neighbours (only run if T144 passes T110+): only the short window moves.
+class VTPartic3d(TrendEmaVolTargetPartic):
+    partic_short = 24 * 3
+
+
+class VTPartic14d(TrendEmaVolTargetPartic):
+    partic_short = 24 * 14

@@ -754,3 +754,14 @@ def test_obv_strategy_only_swaps_the_trend_filter():
     ent = out["enter_long"].fillna(0) == 1
     expect = crossed_above(out["ema_fast"], out["ema_slow"]) & (out["obv"] > ema(out["obv"], 200))
     assert ent.any() and (ent == expect).all()
+
+
+def test_participation_uses_previous_candles_only():
+    v = pd.Series([1.0] * 800)
+    assert not sizing.participation_rising(v).any()  # flat: never "rising"
+    v.iloc[-168:] = 3.0  # the last 7 days busier...
+    out = sizing.participation_rising(v)
+    assert not out.iloc[-168] and out.iloc[-1]  # ...but the first busy candle itself is not counted yet
+    cls = sizing.TrendEmaVolTargetPartic
+    assert cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend
+    assert (cls.partic_short, sizing.VTPartic3d.partic_short, sizing.VTPartic14d.partic_short) == (168, 72, 336)
