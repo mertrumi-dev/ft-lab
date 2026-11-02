@@ -78,6 +78,8 @@ python3 scripts/ft.py backtest|report --slice S [--universe U] [--fee-stress] [-
 python3 scripts/ft.py bots --slice S [--universe U] --no-kill-switch --strategy A B   # ünlü botlar (DCA, grid, 3Commas DCA, TSMOM) + bizimkiler
 python3 scripts/ft.py report --slice train --by-year --strategy A B   # yıl yıl kırılım
 python3 scripts/ft.py walkforward|montecarlo|benchmark --slice train
+python3 scripts/ft.py trial --strategy X [--neighbours A B --robust]   # standart deneme: 4 dilim sırayla + otomatik hüküm (scripts/criterion.py). Önce ön kayıt!
+python3 scripts/ft.py verdict --strategy X [--neighbours A B --robust]  # mevcut sonuçlardan hüküm (salt okunur)
 python3 scripts/ft.py regimes --slice train|early [--no-kill-switch]   # boğa/ayı/testere + oynaklık rejimine göre sonuç (analiz)
 python3 scripts/ft.py expected      # VolTarget taze sonucu beklenen aralıkta mı (block bootstrap)
 python3 scripts/ft.py scan [--universe core] [--csv]   # piyasa tarayıcı (salt okunur)

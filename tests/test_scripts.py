@@ -153,6 +153,25 @@ def test_extra_config_strategy_runs_alone_with_its_layer():
     assert max5[i - 1] == "--config" and max5.index(ft.CONFIG) < i  # layered on top of config.json
 
 
+def test_trial_runs_cases_one_by_one_then_the_verdict():
+    steps = cmds("trial", "--strategy", "X")
+    assert [st[st.index("--slice") + 1] for st in steps[:-1]] == ["train", "validation", "window24", "early"]
+    backtests = steps[:-1]
+    assert all("--no-kill-switch" in st and "test" not in st and "--final-test" not in st for st in backtests)
+    assert all(st[1].endswith("ft.py") and st[2] in ("backtest", "verdict") for st in steps)  # each step logged by ft.py
+    assert steps[-1][2] == "verdict" and "--robust" not in steps[-1]
+
+
+def test_trial_robust_adds_neighbours_and_fee_stress():
+    steps = cmds("trial", "--strategy", "X", "--neighbours", "A", "B", "--robust")
+    by_slice = {st[st.index("--slice") + 1]: st for st in steps if st[2] == "backtest" and "--fee-stress" not in st}
+    assert "A" in by_slice["train"] and "A" in by_slice["window24"] and "A" in by_slice["early"]
+    assert "A" not in by_slice["validation"]  # neighbours are never looked at on validation
+    fee = [st for st in steps if "--fee-stress" in st]
+    assert [st[st.index("--slice") + 1] for st in fee] == ["window24", "early"] and all("A" not in st for st in fee)
+    assert steps[-1][-4:] == ["--neighbours", "A", "B", "--robust"]
+
+
 def test_timeframe_map_matches_strategies():
     pytest.importorskip("freqtrade")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))

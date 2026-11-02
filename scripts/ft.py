@@ -365,6 +365,36 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--strategy", *args.strategy,
         ]]  # fmt: skip
 
+    if args.command == "trial":
+        # Every step is this script itself, so each backtest is logged in docs/experiments.md and
+        # keeps every guard (the test slice can never appear: the cases are fixed below).
+        import criterion  # stdlib; scripts/ is on sys.path when ft.py runs
+
+        me = [sys.executable, str(ROOT / "scripts" / "ft.py")]
+        steps = []
+        for slice_name, universe in criterion.CASES:
+            names = [args.baseline, args.strategy]
+            if args.robust and (slice_name, universe) in criterion.NEIGHBOUR_CASES:
+                names += args.neighbours
+            steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch", "--strategy", *names])
+        if args.robust:
+            for slice_name, universe in criterion.FEE_CASES:
+                steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch",
+                              "--fee-stress", "--strategy", args.baseline, args.strategy])  # fmt: skip
+        tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
+        steps.append([*me, "verdict", "--strategy", args.strategy, "--baseline", args.baseline, *tail])
+        return steps
+
+    if args.command == "verdict":
+        tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
+        return [[
+            "docker", "compose", "run", "--rm",
+            "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+            "--entrypoint", "python",
+            "freqtrade", "/freqtrade/scripts/verdict.py",
+            "--strategy", args.strategy, "--baseline", args.baseline, *tail,
+        ]]  # fmt: skip
+
     if args.command == "walkforward":
         return [[
             "docker", "compose", "run", "--rm",
@@ -414,7 +444,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval", "trial", "verdict"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -544,6 +574,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     wf.add_argument("--fixed", default=DEFAULT_STRATEGY)
     wf.add_argument("--universe", choices=UNIVERSES, default="core")
     wf.add_argument("--no-kill-switch", action="store_true")
+
+    tr = sub.add_parser("trial", help="standard trial: backtest train/validation/alt2024b/early one at a time, then the verdict")
+    tr.add_argument("--strategy", required=True, help="the candidate (pre-register it first: docs/journal.md + trials.csv)")
+    tr.add_argument("--baseline", default="TrendEmaVolTarget")
+    tr.add_argument("--neighbours", nargs="*", default=[], help="robustness neighbours (pre-registered with the candidate)")
+    tr.add_argument("--robust", action="store_true", help="also backtest the neighbours and 2x fee, and read them")
+
+    vd = sub.add_parser("verdict", help="the standard verdict from existing results (read-only); `trial` calls it")
+    vd.add_argument("--strategy", required=True)
+    vd.add_argument("--baseline", default="TrendEmaVolTarget")
+    vd.add_argument("--neighbours", nargs="*", default=[])
+    vd.add_argument("--robust", action="store_true")
 
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)
