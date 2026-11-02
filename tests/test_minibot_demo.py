@@ -63,16 +63,34 @@ class FakeExchange:
         self._script = {oid: list(plan)}
         self._last = {"id": oid, "status": "open", "filled": 0.0, "amount": amount, "price": price}
         if plan and plan[0].get("status") == "closed" and len(plan) == 1:  # instant fill
-            return {**self._last, **plan[0]}
+            self._remember_fee(oid, plan[0])
+            return {**self._last, **plan[0]}  # like Binance's FULL response: the fills (fee) are included
         return dict(self._last)
+
+    _fees: dict = {}
+    raise_next: list = []  # exceptions fetch_order raises first (network trouble)
+    coin_free: dict = {}  # free coin balances; missing = not reported
+
+    def _remember_fee(self, oid, step):
+        fees = [step["fee"]] if step.get("fee") else list(step.get("fees") or [])
+        if fees:
+            self._fees = {**self._fees, oid: fees}
+
+    def fetch_order_trades(self, oid, symbol):
+        return [{"fee": f} for f in self._fees.get(oid, [])]
 
     def fetch_order(self, oid, symbol):
         if str(oid).startswith("stop"):  # untriggered stop order
             return {"id": oid, "status": "open", "filled": 0.0}
+        if self.raise_next:
+            raise self.raise_next.pop(0)
         script = self._script.get(oid, [])
         if script:
-            self._last = {**self._last, **script.pop(0)}
-        return dict(self._last)
+            step = script.pop(0)
+            self._remember_fee(oid, step)
+            self._last = {**self._last, **step}
+        # like Binance GET /api/v3/order: the order status carries no fee (ccxt: fee None, fees [])
+        return {k: v for k, v in self._last.items() if k not in ("fee", "fees")}
 
     def cancel_order(self, oid, symbol):
         self.canceled.append(oid)
@@ -80,7 +98,7 @@ class FakeExchange:
         self._last = {**self._last, "status": "canceled"}
 
     def fetch_balance(self):
-        return {"free": {"USDT": self.usdt_free}}
+        return {"free": {"USDT": self.usdt_free, **self.coin_free}}
 
     def fetch_ohlcv(self, pair, timeframe, limit):
         return self.rows[-limit:]
@@ -437,3 +455,54 @@ def test_too_small_orders_are_recorded_not_sent():
     assert state["orders"][-1]["status"] == "too_small" and "below the minimum 5.0" in state["orders"][-1]["reason"]
     b._order("BTC/USDT", "buy", "entry", 0.001, 80000.0)  # 80 USDT: sent normally
     assert len(ex.orders) == 1
+
+
+class NetworkError(Exception):  # stands in for ccxt.NetworkError (matched by class name)
+    pass
+
+
+class RateLimitExceeded(NetworkError):
+    pass
+
+
+def _broker():
+    ex = FakeExchange({"options": {"defaultType": "spot"}})
+    ex._fees, ex.raise_next, ex.coin_free = {}, [], {}
+    ex.enable_demo_trading(True)
+    return ex, demo.DemoBroker(ex, {}, sleep=lambda s: None)
+
+
+def test_late_fill_reads_the_fee_from_the_trades():
+    """Real ccxt 4.5.90: a Binance fetch_order result has fee None / fees []. A limit order that fills
+    after a few polls must still book the fee taken in the coin (or the ledger holds 0.1% too much)."""
+    ex, b = _broker()
+    ex.plans = [[{"status": "open"}, {"status": "closed", "filled": 1.0, "average": 10.0, "fee": {"cost": 0.001, "currency": "BTC"}}]]
+    fill = b.buy("BTC/USDT", 1.0, 10.0)
+    assert fill["filled"] == pytest.approx(0.999) and fill["fee_usdt"] == pytest.approx(0.01)
+
+
+def test_network_errors_while_polling_are_waited_out():
+    ex, b = _broker()
+    ex.plans = [[{"status": "open"}, {"status": "closed", "filled": 1.0, "average": 10.0}]]
+    ex.raise_next = [RateLimitExceeded("429"), NetworkError("timeout")]
+    assert b.buy("BTC/USDT", 1.0, 10.0)["filled"] == pytest.approx(1.0)
+    ex.raise_next = [ValueError("not a network problem")]
+    ex.plans = [[{"status": "open"}, {"status": "closed", "filled": 1.0, "average": 10.0}]]
+    with pytest.raises(ValueError):
+        b.buy("BTC/USDT", 1.0, 10.0)
+    assert demo.is_network_error(RateLimitExceeded()) and not demo.is_network_error(ValueError())
+
+
+def test_sell_never_exceeds_the_free_coin():
+    ex, b = _broker()
+    ex.coin_free = {"BTC": 0.999}  # 0.1% went to the fee on the buy
+    b.sell("BTC/USDT", 1.0, 10.0)
+    assert ex.orders[-1]["amount"] == pytest.approx(0.999)
+    ex.coin_free = {}
+    b.sell("BTC/USDT", 0.5, 10.0)  # balance not reported: the amount is left alone
+    assert ex.orders[-1]["amount"] == pytest.approx(0.5)
+
+
+def test_demo_exchange_corrects_clock_drift():
+    ex = demo.demo_exchange(ENV, factory=FakeExchange)
+    assert ex.config["options"]["adjustForTimeDifference"] is True and ex.config["options"]["defaultType"] == "spot"

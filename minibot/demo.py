@@ -43,6 +43,13 @@ POLL_S = 10
 # fill 2 days late).
 STOP_LIMIT_BELOW = 0.01
 DONE = ("closed", "canceled", "cancelled", "expired", "rejected")
+NETWORK_RETRIES = 3  # per exchange call while polling; a longer outage still ends in the 10-minute cancel
+
+
+def is_network_error(e: Exception) -> bool:
+    """ccxt's NetworkError family (RequestTimeout, RateLimitExceeded/429, ExchangeNotAvailable...), by class
+    name so the fake exchange in the tests needs no ccxt."""
+    return any(c.__name__ == "NetworkError" for c in type(e).__mro__)
 
 
 class DemoRefused(SystemExit):
@@ -77,7 +84,9 @@ def demo_exchange(env=os.environ, factory=None):
 
         factory = ccxt.binance
     # The only place in minibot/ that passes keys to ccxt; values come only from keys_from_env (rule 1).
-    exchange = factory({"enableRateLimit": True, "options": {"defaultType": "spot"}, "apiKey": key, "secret": secret})
+    # adjustForTimeDifference: signed requests carry a timestamp; ccxt corrects for a drifting clock
+    exchange = factory({"enableRateLimit": True, "options": {"defaultType": "spot", "adjustForTimeDifference": True},
+                        "apiKey": key, "secret": secret})  # fmt: skip
     exchange.enable_demo_trading(True)
     assert_demo_urls(exchange)
     if exchange.options.get("defaultType", "spot") != "spot":
@@ -113,17 +122,28 @@ class DemoBroker:
     def free_usdt(self) -> float:
         return float(self.exchange.fetch_balance().get("free", {}).get("USDT", 0.0) or 0.0)
 
+    def _call(self, fn, *args):
+        """One exchange call; a network error (timeout, 429 rate limit...) is waited out and retried."""
+        for attempt in range(NETWORK_RETRIES + 1):
+            try:
+                return fn(*args)
+            except Exception as e:  # noqa: BLE001 - only ccxt NetworkError and its subclasses are retried
+                if not is_network_error(e) or attempt == NETWORK_RETRIES:
+                    raise
+                self.sleep(POLL_S)
+        raise RuntimeError("unreachable")
+
     def _wait(self, order: dict, pair: str) -> dict:
         """Poll until filled/cancelled; after UNFILLED_TIMEOUT_S cancel and read the final state."""
         start = self.clock()
         while order.get("status") not in DONE:
             if self.clock() - start >= UNFILLED_TIMEOUT_S:
-                self.exchange.cancel_order(order["id"], pair)
-                order = self.exchange.fetch_order(order["id"], pair)
+                self._call(self.exchange.cancel_order, order["id"], pair)
+                order = self._call(self.exchange.fetch_order, order["id"], pair)
                 order["timed_out"] = True
                 break
             self.sleep(POLL_S)
-            order = self.exchange.fetch_order(order["id"], pair)
+            order = self._call(self.exchange.fetch_order, order["id"], pair)
         return order
 
     def _order(self, pair: str, side: str, kind: str, amount: float, price: float) -> dict:
@@ -142,6 +162,10 @@ class DemoBroker:
             return {"filled": 0.0, "price": 0.0, "fee_usdt": 0.0}
         order = self.exchange.create_order(pair, "limit", side, amount, price, {"timeInForce": "GTC"})
         order = self._wait(order, pair)
+        if float(order.get("filled") or 0.0) > 0 and not order.get("fee") and not order.get("fees"):
+            # Binance's order status (fetch_order) carries no fee: read it from the order's trades
+            trades = self._call(self.exchange.fetch_order_trades, order["id"], pair)
+            order = {**order, "fees": [t["fee"] for t in trades if t.get("fee")]}
         fill = fill_result(order, pair, side)
         self.state["orders"].append({
             "pair": pair, "side": side, "kind": kind, "type": "limit", "requested": price, "amount": amount,
@@ -197,6 +221,10 @@ class DemoBroker:
         return self._stop_result(self.exchange.fetch_order(order_id, pair), pair)
 
     def sell(self, pair: str, amount: float, price: float, kind: str = "exit") -> dict:
+        # never ask to sell more coin than the account holds (a fee taken in the coin, dust...)
+        free = self._call(self.exchange.fetch_balance).get("free", {}).get(pair.split("/")[0])
+        if free is not None and amount > float(free):
+            amount = float(free)
         return self._order(pair, "sell", kind, amount, price)
 
 
