@@ -16,7 +16,9 @@ Success criterion, fixed in advance: Calmar above TrendEma on at least 3 of the
 4 train coin groups AND at least 2 of the 3 validation groups.
 """
 
+import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -1399,3 +1401,57 @@ class VTFearExit19(TrendEmaVolTargetFearExit):
 
 class VTFearExit29(TrendEmaVolTargetFearExit):
     fear_max = 29
+
+
+# T147 (attention, late-euphoria hypothesis like T144): no new entries the day after the English
+# Wikipedia "Bitcoin" article was read more than 3x its median of the 30 days before. Market-wide
+# (per-coin articles are unreliable, docs/research/13). Data: scripts/attention.py. A day's flag is
+# only used from the NEXT UTC day on (fng_for_candles); no data -> allowed.
+WIKI_FILE = Path(__file__).resolve().parent.parent / "data" / "external" / "wiki_bitcoin.json"
+WIKI_SPIKE = 3.0
+WIKI_WINDOW = 30
+
+
+def load_daily_json(path: Path) -> pd.Series:
+    """{"YYYY-MM-DD": number} -> Series indexed by UTC day; empty if the file is missing."""
+    if not path.exists():
+        return pd.Series(dtype=float)
+    days = json.loads(path.read_text())
+    return pd.Series(list(days.values()), index=pd.to_datetime(list(days.keys()), utc=True), dtype=float).sort_index()
+
+
+def spike_days(views: pd.Series, mult: float = WIKI_SPIKE, window: int = WIKI_WINDOW) -> pd.Series:
+    """1.0 on days whose value is above mult x the median of the `window` days BEFORE it, else 0.0
+    (NaN while there is not a full window of history)."""
+    base = views.shift(1).rolling(window).median()
+    out = (views > mult * base).astype(float)
+    return out.where(base.notna())
+
+
+class TrendEmaVolTargetWikiSpike(TrendEmaVolTarget):
+    """VolTarget that skips entries the day after a Bitcoin Wikipedia attention spike (T147)."""
+
+    spike_mult = WIKI_SPIKE
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        views = load_daily_json(WIKI_FILE)
+        if views.empty:
+            logging.getLogger(__name__).warning("Wikipedia file %s missing: filter OFF (run scripts/attention.py).", WIKI_FILE)
+        dataframe["wiki_spike"] = fng_for_candles(dataframe["date"], spike_days(views, self.spike_mult))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["wiki_spike"] == 1.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+# T147 neighbours (only run if T147 passes T110+).
+class VTWikiSpike2x(TrendEmaVolTargetWikiSpike):
+    spike_mult = 2.0
+
+
+class VTWikiSpike4x(TrendEmaVolTargetWikiSpike):
+    spike_mult = 4.0

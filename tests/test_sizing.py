@@ -810,3 +810,40 @@ def test_fear_exit_closes_only_on_known_extreme_fear():
         assert s.custom_exit("BTC/USDT", trade, now, 100.0, 0.0) == expect
     assert sizing.TrendEmaVolTargetFearExit.populate_entry_trend is sizing.TrendEmaVolTarget.populate_entry_trend
     assert (sizing.VTFearExit19.fear_max, sizing.VTFearExit29.fear_max) == (19, 29)
+
+
+def test_spike_days_use_only_the_days_before():
+    idx = pd.date_range("2030-01-01", periods=35, freq="D", tz="UTC")
+    views = pd.Series(100.0, index=idx)
+    views.iloc[32] = 301.0  # > 3 x median(100) of the 30 days before
+    views.iloc[33] = 300.0  # not above 3 x 100
+    out = sizing.spike_days(views)
+    assert out.iloc[:30].isna().all()  # not a full 30-day window yet
+    assert out.iloc[32] == 1.0 and out.iloc[33] == 0.0 and out.iloc[31] == 0.0
+
+
+def test_wiki_spike_blocks_the_next_day_only(monkeypatch, tmp_path):
+    import json as _json
+
+    days = {f"2030-01-{d:02d}": 100 for d in range(1, 32)}
+    days["2030-02-01"] = 500  # spike on Feb 1 -> entries blocked on Feb 2 only
+    days["2030-02-02"] = 100
+    f = tmp_path / "wiki.json"
+    f.write_text(_json.dumps(days))
+    monkeypatch.setattr(sizing, "WIKI_FILE", f)
+    dates = pd.Series(pd.date_range("2030-02-01", periods=72, freq="h", tz="UTC"))
+    df = pd.DataFrame({"date": dates, "close": np.linspace(100, 101, 72), "high": 102.0, "low": 99.0, "volume": 1.0})
+    s = sizing.TrendEmaVolTargetWikiSpike({})
+    out = s.populate_indicators(df, {})
+    out["enter_long"], out["enter_tag"] = 1, "x"
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d)
+    res = s.populate_entry_trend(out, {})
+    assert (res["enter_long"].iloc[:24] == 1).all()  # Feb 1: uses Jan 31 (no spike)
+    assert (res["enter_long"].iloc[24:48] == 0).all()  # Feb 2: uses Feb 1 (spike)
+    assert (res["enter_long"].iloc[48:] == 1).all()
+    assert (sizing.VTWikiSpike2x.spike_mult, sizing.VTWikiSpike4x.spike_mult) == (2.0, 4.0)
+
+
+def test_wiki_missing_file_means_no_filter(monkeypatch, tmp_path):
+    monkeypatch.setattr(sizing, "WIKI_FILE", tmp_path / "missing.json")
+    assert sizing.load_daily_json(tmp_path / "missing.json").empty
