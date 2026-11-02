@@ -696,3 +696,19 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:45 | backtest | TrendEmaVolTargetWikiSpike | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:45 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:45 | backtest | TrendEmaVolTargetWikiSpike | early | universe early, no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTargetAdrTrend | train | no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTargetAdrTrend | validation | no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTargetAdrTrend | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:53 | backtest | TrendEmaVolTargetAdrTrend | early | universe early, no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTargetMvrvBlock | train | no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTargetMvrvBlock | validation | no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTargetMvrvBlock | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:54 | backtest | TrendEmaVolTargetMvrvBlock | early | universe early, no kill switch (research) |
