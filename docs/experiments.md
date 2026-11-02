@@ -743,3 +743,34 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 09:55 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2024 |
 | 2026-11-02 09:55 | backtest | TrendEmaVolTarget2h | fresh | universe alt2024 |
 | 2026-11-02 10:10 | backtest | TrendEmaVolTarget | fresh | universe core_gold |
+| 2026-11-02 21:15 | backtest | TrendEma | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEmaBtcRising | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEmaBtcRisingGap | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTarget | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTargetAdx | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTarget2h | fresh |  |
+| 2026-11-02 21:15 | backtest | TrendEma | fresh | universe wide |
+| 2026-11-02 21:15 | backtest | TrendEmaBtcRising | fresh | universe wide |
+| 2026-11-02 21:15 | backtest | TrendEmaBtcRisingGap | fresh | universe wide |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTarget | fresh | universe wide |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTargetAdx | fresh | universe wide |
+| 2026-11-02 21:15 | backtest | TrendEmaVolTarget2h | fresh | universe wide |
+| 2026-11-02 21:16 | backtest | TrendEma | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRising | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget2h | fresh | universe alt2022 |
+| 2026-11-02 21:16 | backtest | TrendEma | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRising | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget2h | fresh | universe alt2023 |
+| 2026-11-02 21:16 | backtest | TrendEma | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRising | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget2h | fresh | universe alt2024 |
+| 2026-11-02 21:16 | backtest | TrendEmaVolTarget | fresh | universe core_gold |
