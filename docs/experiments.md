@@ -670,3 +670,13 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:32 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | early | universe early, no kill switch (research) |
+| 2026-11-02 00:34 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:34 | backtest | TrendEmaVolTargetFearBlock | train | no kill switch (research) |
+| 2026-11-02 00:35 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:35 | backtest | TrendEmaVolTargetFearBlock | train | no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTargetFearBlock | validation | no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTargetFearBlock | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:36 | backtest | TrendEmaVolTargetFearBlock | early | universe early, no kill switch (research) |
