@@ -632,3 +632,17 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:15 | backtest | VTMax5 | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:15 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:15 | backtest | VTMax5 | early | universe early, no kill switch (research) |
+| 2026-11-02 00:17 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:17 | backtest | TrendEmaVolTargetAdx | train | no kill switch (research) |
+| 2026-11-02 00:17 | backtest | VTAdx15 | train | no kill switch (research) |
+| 2026-11-02 00:17 | backtest | VTAdx25 | train | no kill switch (research) |
+| 2026-11-02 00:18 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | TrendEmaVolTargetAdx | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | VTAdx15 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | VTAdx25 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | TrendEmaVolTargetAdx | early | universe early, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | VTAdx15 | early | universe early, no kill switch (research) |
+| 2026-11-02 00:18 | backtest | VTAdx25 | early | universe early, no kill switch (research) |
+| 2026-11-02 00:19 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-02 00:19 | backtest | TrendEmaVolTargetAdx | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
