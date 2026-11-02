@@ -733,3 +733,24 @@ def test_vote_share_and_vote_size_stake():
     now = datetime(2030, 1, 1, tzinfo=timezone.utc)
     args = ("BTC/USDT", now, 100.0, 50.0, 5.0, 1000.0, 1.0, None, "long")
     assert s.custom_stake_amount(*args) == pytest.approx(base.custom_stake_amount(*args) * 6 / 9)
+
+
+def test_obv_signs_volume_by_close_direction():
+    df = pd.DataFrame({"close": [10.0, 11.0, 10.5, 10.5, 12.0], "volume": [5.0, 2.0, 3.0, 4.0, 1.0]})
+    assert list(sizing.obv(df)) == [0.0, 2.0, -1.0, -1.0, 0.0]
+
+
+def test_obv_strategy_only_swaps_the_trend_filter():
+    from trend_ema import crossed_above, ema
+
+    cls = sizing.TrendEmaVolTargetObv
+    assert cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend and cls.stoploss == -0.08
+    assert (cls.obv_trend, sizing.VTObv150.obv_trend, sizing.VTObv250.obv_trend) == (200, 150, 250)
+    rng = np.random.default_rng(8)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, 3000))))
+    df = pd.DataFrame({"close": close, "high": close, "low": close, "volume": rng.lognormal(0, 0.5, 3000)})
+    s = cls({})
+    out = s.populate_entry_trend(s.populate_indicators(df, {}), {})
+    ent = out["enter_long"].fillna(0) == 1
+    expect = crossed_above(out["ema_fast"], out["ema_slow"]) & (out["obv"] > ema(out["obv"], 200))
+    assert ent.any() and (ent == expect).all()

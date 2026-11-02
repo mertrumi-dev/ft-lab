@@ -1248,3 +1248,49 @@ class TrendEmaVolTargetVoteSize(TrendEmaVolTarget):
             if dataframe is not None and not dataframe.empty and "votes" in dataframe:
                 votes = float(dataframe["votes"].iloc[-1])
         return stake * vote_share(votes)
+
+
+# T143 (volume family). Granville's On-Balance Volume: add the candle's volume when the close rose,
+# subtract it when it fell. The entry's trend filter "close > EMA200" becomes "OBV > EMA200 of OBV"
+# (same span and method, only the source moves from price to volume). Everything else = VolTarget.
+OBV_TREND = 200
+
+
+def obv(dataframe: DataFrame) -> pd.Series:
+    """On-Balance Volume: cumulative volume signed by the close-to-close direction (flat close = 0)."""
+    direction = np.sign(dataframe["close"].diff()).fillna(0.0)
+    return (direction * dataframe["volume"]).cumsum()
+
+
+class TrendEmaVolTargetObv(TrendEmaVolTarget):
+    """VolTarget whose entry trend filter is OBV above its EMA200 instead of price above EMA200 (T143)."""
+
+    obv_trend = OBV_TREND
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import ema
+
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["obv"] = obv(dataframe)
+        dataframe["obv_trend"] = ema(dataframe["obv"], self.obv_trend)
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_ema import crossed_above
+
+        dataframe.loc[
+            crossed_above(dataframe["ema_fast"], dataframe["ema_slow"])
+            & (dataframe["obv"] > dataframe["obv_trend"])
+            & (dataframe["volume"] > 0),
+            ["enter_long", "enter_tag"],
+        ] = (1, "ema_cross_up_obv")
+        return dataframe
+
+
+# T143 neighbours (only run if T143 passes T110+): only the OBV EMA length moves.
+class VTObv150(TrendEmaVolTargetObv):
+    obv_trend = 150
+
+
+class VTObv250(TrendEmaVolTargetObv):
+    obv_trend = 250
