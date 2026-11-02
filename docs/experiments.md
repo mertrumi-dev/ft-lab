@@ -688,3 +688,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:38 | backtest | TrendEmaVolTargetFearExit | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:38 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:38 | backtest | TrendEmaVolTargetFearExit | early | universe early, no kill switch (research) |
+| 2026-11-02 00:44 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:44 | backtest | TrendEmaVolTargetWikiSpike | train | no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTargetWikiSpike | validation | no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTargetWikiSpike | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:45 | backtest | TrendEmaVolTargetWikiSpike | early | universe early, no kill switch (research) |
