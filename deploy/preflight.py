@@ -81,6 +81,10 @@ def check_demo_config(config: dict) -> list[tuple[str, str]]:
                    else ("FAIL", "config.demo.json: dry_run false without demo_trading on a supported demo exchange = REAL MONEY"))  # fmt: skip
     else:
         out.append(("PASS", "config.demo.json: dry_run true (demo switch not made yet)"))
+    ot = config.get("order_types", {})
+    on_exchange = ot.get("stoploss_on_exchange") is True and ot.get("stoploss") == "limit"
+    out.append(("PASS", "config.demo.json: stop lives on the exchange (stop_loss_limit)") if on_exchange
+               else ("FAIL", "config.demo.json: stoploss_on_exchange must be true with stoploss 'limit' (a sleeping bot cannot watch its stop)"))  # fmt: skip
     return out
 
 

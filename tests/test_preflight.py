@@ -82,7 +82,8 @@ def test_preflight_never_opens_env_content():
     assert "ENV.read" not in source and "env.read" not in source and "open(ENV" not in source
 
 
-DEMO = {"dry_run": True, "trading_mode": "spot", "exchange": {"name": "binance", "key": "", "secret": "", "demo_trading": False}}
+DEMO = {"dry_run": True, "trading_mode": "spot", "exchange": {"name": "binance", "key": "", "secret": "", "demo_trading": False},
+        "order_types": {"stoploss": "limit", "stoploss_on_exchange": True}}  # fmt: skip
 
 
 def test_real_demo_config_is_safe_and_not_switched_yet():
@@ -155,3 +156,14 @@ def test_demo_hosts_only():
 def test_real_demo_files_have_only_demo_hosts():
     files = {p.name: p.read_text() for p in [ROOT / "user_data" / "config" / "config.demo.json", *(ROOT / "minibot").glob("*.py")] if p.exists()}
     assert levels(preflight.check_demo_hosts(files)) == ["PASS"]
+
+
+def test_demo_config_keeps_the_stop_on_the_exchange():
+    base = {"dry_run": True, "trading_mode": "spot", "exchange": {"name": "binance", "key": "", "secret": ""}}
+    on = {**base, "order_types": {"stoploss": "limit", "stoploss_on_exchange": True}}
+    assert "FAIL" not in levels(preflight.check_demo_config(on))
+    assert "FAIL" in levels(preflight.check_demo_config(base))  # missing
+    assert "FAIL" in levels(preflight.check_demo_config({**base, "order_types": {"stoploss": "market", "stoploss_on_exchange": True}}))
+    real = json.loads((ROOT / "user_data" / "config" / "config.demo.json").read_text())
+    assert "FAIL" not in levels(preflight.check_demo_config(real))
+    assert real["order_types"]["stoploss_on_exchange_limit_ratio"] == 0.99  # same 1% as minibot STOP_LIMIT_BELOW

@@ -11,6 +11,18 @@
   "ftlab_demo": {
     "target": "Binance Demo Mode (spot), fake balance, order book like the live exchange",
     "keys": "demo-account keys only, in .env, trade permission only; never real-account keys, never withdraw",
-    "status": "NOT READY: Freqtrade 2026.10 refuses demo_trading for Binance (supports_demo_trading False) and refuses demo_trading together with dry_run. See docs/research/07-binance-demo.md"
+    "status": "NOT READY: Freqtrade 2026.10 refuses demo_trading for Binance (supports_demo_trading False) and refuses demo_trading together with dry_run. See docs/research/07-binance-demo.md",
+    "stop": "The -8% stop lives ON the exchange (Binance spot stop_loss_limit, limit 1% below the stop, checked every 60 s), so a sleeping or offline bot is still protected. Must stay on for the demo and the server (deploy/preflight.py, docs/learn/39)."
+  },
+  "order_types": {
+    "entry": "limit",
+    "exit": "limit",
+    "emergency_exit": "market",
+    "force_entry": "market",
+    "force_exit": "market",
+    "stoploss": "limit",
+    "stoploss_on_exchange": true,
+    "stoploss_on_exchange_interval": 60,
+    "stoploss_on_exchange_limit_ratio": 0.99
   }
 }

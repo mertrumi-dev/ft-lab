@@ -99,6 +99,15 @@ docker compose --profile forward logs --tail 50 | grep -iE "strategy|dry run|err
 
 Sunucuda `docker compose --profile forward down`, veritabanlarını Mac'e geri `scp` et, Mac'te iki botu başlat. Veritabanları her an tek bir yerde çalıştığı için hiçbir şey kaybolmaz.
 
+## Stop borsada kalmalı (demo ve sunucu)
+
+Mac'teki dry-run botlarında -%8 stopu botun kendisi izliyor (5 saniyede bir). Mac uyurken kimse izlemiyor (öğretici kart 39). Demo (Faz 5) ve sunucu için kontrol listesi:
+
+- [ ] Demo ya da sunucu Freqtrade ayarında `order_types.stoploss_on_exchange: true`, `stoploss: "limit"` (Binance spotta `stop_loss_limit`), `stoploss_on_exchange_interval: 60`, `stoploss_on_exchange_limit_ratio: 0.99`. Hazır şablon: `user_data/config/config.demo.json`.
+- [ ] `python3 deploy/preflight.py` → "config.demo.json: stop lives on the exchange" PASS olmalı (kapatılırsa FAIL verir).
+- [ ] Mini bot demoda zaten borsada stop kuruyor (minibot/demo.py, `place_stop`).
+- Çalışan Mac dry-run botlarının ayarı **bilerek değiştirilmedi**: kalıcı çözüm, hiç uyumayan sunucu.
+
 ## Faz 0 sayacı
 
 Taşıma kesintisi Faz 0'ın "24 saat kesintisiz" sayacını sıfırlar. Bu beklenen bir durum. Sunucuda sayaç bir kez başlar ve Mac uykusu artık onu kesmez; zaten taşımanın amacı bu.
