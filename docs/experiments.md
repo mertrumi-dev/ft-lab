@@ -662,3 +662,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:30 | backtest | TrendEmaVolTargetObv | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:30 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:30 | backtest | TrendEmaVolTargetObv | early | universe early, no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | train | no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | validation | no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:32 | backtest | TrendEmaVolTargetPartic | early | universe early, no kill switch (research) |
