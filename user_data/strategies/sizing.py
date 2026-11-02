@@ -1327,3 +1327,39 @@ class VTPartic3d(TrendEmaVolTargetPartic):
 
 class VTPartic14d(TrendEmaVolTargetPartic):
     partic_short = 24 * 14
+
+
+# T145 (sentiment family). No new entries the day after an "extreme fear" reading (alternative.me's
+# own band 0-24): rallies in extreme fear are mostly bounces inside a falling market (the chop the
+# final test died in). T021 tested the greed side on TrendEma. Previous UTC day only (no lookahead);
+# a day without data allows the entry.
+FEAR_MAX = 24
+
+
+class TrendEmaVolTargetFearBlock(TrendEmaVolTarget):
+    """VolTarget that skips entries the day after an extreme-fear Fear & Greed reading (T145)."""
+
+    fear_max = FEAR_MAX
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        from trend_sentiment import fng_for_candles, load_fear_greed
+
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["fng"] = fng_for_candles(dataframe["date"], load_fear_greed())
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            fearful = dataframe["fng"] <= self.fear_max  # NaN (no data) -> False -> allowed
+            dataframe.loc[fearful, ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+# T145 neighbours (only run if T145 passes T110+): only the fear threshold moves.
+class VTFear19(TrendEmaVolTargetFearBlock):
+    fear_max = 19
+
+
+class VTFear29(TrendEmaVolTargetFearBlock):
+    fear_max = 29

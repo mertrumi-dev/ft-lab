@@ -765,3 +765,25 @@ def test_participation_uses_previous_candles_only():
     cls = sizing.TrendEmaVolTargetPartic
     assert cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend
     assert (cls.partic_short, sizing.VTPartic3d.partic_short, sizing.VTPartic14d.partic_short) == (168, 72, 336)
+
+
+def test_fear_block_uses_previous_day_and_allows_missing(monkeypatch):
+    import trend_sentiment
+
+    fng = pd.Series([10.0, 50.0], index=pd.to_datetime(["2030-01-01", "2030-01-02"], utc=True))
+    monkeypatch.setattr(trend_sentiment, "load_fear_greed", lambda: fng)
+    dates = pd.Series(pd.date_range("2030-01-01", periods=72, freq="h", tz="UTC"))
+    n = len(dates)
+    df = pd.DataFrame({"date": dates, "close": np.linspace(100, 110, n), "high": 111.0, "low": 99.0, "volume": 1.0})
+    s = sizing.TrendEmaVolTargetFearBlock({})
+    out = s.populate_indicators(df, {})
+    assert out["fng"].iloc[:24].isna().all()  # day 1: no previous day -> unknown
+    assert (out["fng"].iloc[24:48] == 10.0).all() and (out["fng"].iloc[48:] == 50.0).all()
+    out["enter_long"] = 1
+    out["enter_tag"] = "x"
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d)
+    res = s.populate_entry_trend(out, {})
+    assert (res["enter_long"].iloc[:24] == 1).all()  # unknown -> allowed
+    assert (res["enter_long"].iloc[24:48] == 0).all()  # yesterday 10 <= 24 -> blocked
+    assert (res["enter_long"].iloc[48:] == 1).all()
+    assert (sizing.VTFear19.fear_max, sizing.VTFear29.fear_max) == (19, 29)
