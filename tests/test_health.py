@@ -147,3 +147,17 @@ def test_health_can_check_each_dry_run_bot_on_its_own_db():
     compose = (health.ROOT / "docker-compose.yml").read_text()
     for service, db in health.SERVICES.items():
         assert f"\n  {service}:" in compose and db.name in compose
+
+
+def test_websocket_reset_while_offline_is_a_network_error():
+    """Real log, 2026-11-02 19:04 (forward-adx20 during Mac sleep): an aiohttp pong on a closing socket."""
+    lines = [
+        "2026-11-02 19:04:50,755 - asyncio - ERROR - Task exception was never retrieved\n",
+        "future: <Task finished name='Task-38064' coro=<ClientWebSocketResponse.pong() done>\n",
+        "Traceback (most recent call last):\n",
+        '  File "/home/ftuser/.local/lib/python3.14/site-packages/aiohttp/client_ws.py", line 289, in pong\n',
+        "aiohttp.client_exceptions.ClientConnectionResetError: Cannot write to closing transport\n",
+        "2026-11-02 19:21:29,016 - freqtrade.worker - INFO - Bot heartbeat. PID=1, version='2026.10', state='RUNNING'\n",
+    ]
+    s = health.summarize_log(lines, health.parse_time("2026-11-02 00:00:00"))
+    assert s.other_errors == [] and s.network_by_cause["ClientConnectionResetError"] == 1

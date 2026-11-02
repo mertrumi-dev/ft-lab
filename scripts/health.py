@@ -48,6 +48,7 @@ LINE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d+ - (\S+) - (\w+) -
 NETWORK_EXCEPTIONS = (
     "NetworkError", "RequestTimeout", "UnsubscribeError", "CancelledError", "ExchangeNotAvailable",
     "TemporaryError", "gaierror", "ClientConnectorError", "ClientConnectorDNSError", "TimeoutError",
+    "ClientConnectionResetError",  # websocket closed while the connection dropped (Mac sleep), 2026-11-02
 )  # fmt: skip
 NETWORK_SOURCES = ("exchange_ws",)
 EXCEPTION_LINE = re.compile(r"^([\w.]+(?:Error|Exception|Timeout|error)):")
