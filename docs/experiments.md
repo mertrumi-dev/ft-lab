@@ -575,3 +575,21 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:43 | backtest | TrendEmaVolTargetChandelier | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-01 23:43 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-01 23:43 | backtest | TrendEmaVolTargetChandelier | early | universe early, no kill switch (research) |
+| 2026-11-01 23:46 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-01 23:46 | backtest | TrendEmaVolTargetLetRun | train | no kill switch (research) |
+| 2026-11-01 23:46 | backtest | VTLetRun75 | train | no kill switch (research) |
+| 2026-11-01 23:46 | backtest | VTLetRun150 | train | no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTargetLetRun | validation | no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTargetLetRun | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | VTLetRun75 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | VTLetRun150 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | TrendEmaVolTargetLetRun | early | universe early, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | VTLetRun75 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:47 | backtest | VTLetRun150 | early | universe early, no kill switch (research) |
+| 2026-11-01 23:48 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:48 | backtest | TrendEmaVolTargetLetRun | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:49 | backtest | TrendEmaVolTarget | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-01 23:49 | backtest | TrendEmaVolTargetLetRun | early | universe early, fee 0.003, no kill switch (research) |
