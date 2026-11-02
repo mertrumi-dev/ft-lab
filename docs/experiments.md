@@ -654,3 +654,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:22 | backtest | TrendEmaVolTargetVoteSize | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 00:23 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 00:23 | backtest | TrendEmaVolTargetVoteSize | early | universe early, no kill switch (research) |
+| 2026-11-02 00:29 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:29 | backtest | TrendEmaVolTargetObv | train | no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTargetObv | validation | no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTargetObv | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:30 | backtest | TrendEmaVolTargetObv | early | universe early, no kill switch (research) |
