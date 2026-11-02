@@ -646,3 +646,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 00:18 | backtest | VTAdx25 | early | universe early, no kill switch (research) |
 | 2026-11-02 00:19 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
 | 2026-11-02 00:19 | backtest | TrendEmaVolTargetAdx | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTargetVoteSize | train | no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTargetVoteSize | validation | no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:22 | backtest | TrendEmaVolTargetVoteSize | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 00:23 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 00:23 | backtest | TrendEmaVolTargetVoteSize | early | universe early, no kill switch (research) |
