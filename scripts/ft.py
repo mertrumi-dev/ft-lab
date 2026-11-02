@@ -117,6 +117,15 @@ def kill_switch_args(args: argparse.Namespace) -> list[str]:
     return ["--config", RESEARCH_CONFIG, "--backtest-directory", f"/freqtrade/{NO_KILL_DIR}"]
 
 
+# Research strategies that need one extra config layer (always dry_run true, checked by preflight).
+# They run in their own Freqtrade call so the layer never touches the other strategies.
+EXTRA_CONFIG = {"VTMax5": "/freqtrade/user_data/config/research-max5.json"}  # T139: 5 open trades
+
+
+def extra_config_args(config: str | None) -> list[str]:
+    return ["--config", config] if config else []
+
+
 def third_party_args(strategies: list[str]) -> list[str]:
     """Where the benchmark bots live, and their research config (5 open trades, dry-run)."""
     if not any(s in THIRD_PARTY for s in strategies):
@@ -204,12 +213,12 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 "after train and validation are done, and add --final-test."
             )
         strategies_wanted = ALL_STRATEGIES if args.strategy == ["all"] else args.strategy
-        groups: dict[str, list[str]] = {}
+        groups: dict[tuple[str, str | None], list[str]] = {}
         for strategy in strategies_wanted:
-            groups.setdefault(timeframe_of(strategy), []).append(strategy)
+            groups.setdefault((timeframe_of(strategy), EXTRA_CONFIG.get(strategy)), []).append(strategy)
         return [
             docker_cmd(
-                "backtesting", "--config", CONFIG,
+                "backtesting", "--config", CONFIG, *extra_config_args(extra),
                 "--strategy-list", *strategies,
                 "--timeframe", timeframe,
                 "--timerange", SLICES[args.slice].timerange,
@@ -220,7 +229,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
                 *kill_switch_args(args),
                 *pairs_args(args),  # last: --pairs takes every word after it
             )
-            for timeframe, strategies in groups.items()
+            for (timeframe, extra), strategies in groups.items()
         ]  # fmt: skip
 
     if args.command == "chart":

@@ -143,6 +143,16 @@ def test_strategies_grouped_by_timeframe():
     assert "TrendBreakout" in by_tf["1h"]
 
 
+def test_extra_config_strategy_runs_alone_with_its_layer():
+    commands = cmds("backtest", "--slice", "train", "--strategy", "TrendEmaVolTarget", "VTMax5")
+    assert len(commands) == 2
+    plain = next(c for c in commands if "TrendEmaVolTarget" in c)
+    max5 = next(c for c in commands if "VTMax5" in c)
+    assert "VTMax5" not in plain and "/freqtrade/user_data/config/research-max5.json" not in plain
+    i = max5.index("/freqtrade/user_data/config/research-max5.json")
+    assert max5[i - 1] == "--config" and max5.index(ft.CONFIG) < i  # layered on top of config.json
+
+
 def test_timeframe_map_matches_strategies():
     pytest.importorskip("freqtrade")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "user_data" / "strategies"))

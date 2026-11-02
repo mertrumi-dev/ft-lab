@@ -1209,3 +1209,10 @@ class VTLetRun75(TrendEmaVolTargetLetRun):
 
 class VTLetRun150(TrendEmaVolTargetLetRun):
     letrun_ema = 150
+
+
+# T139 (research only, a risk-number change: R5 says at most 3 open trades). Same code as
+# TrendEmaVolTarget; the 5 slots come from user_data/config/research-max5.json, which ft.py adds
+# for this strategy only, in its own Freqtrade run. Never in the live config.
+class VTMax5(TrendEmaVolTarget):
+    pass
