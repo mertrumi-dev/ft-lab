@@ -142,3 +142,16 @@ def test_log_rotation():
     assert levels(preflight.check_log_rotation("json-file", '{"log-opts": {"max-size": "20m"}}')) == ["PASS"]
     assert levels(preflight.check_log_rotation("json-file", "")) == ["WARN"]
     assert levels(preflight.check_log_rotation(None, "")) == ["WARN"]
+
+
+def test_demo_hosts_only():
+    ok = {"minibot/demo.py": 'DEMO_SPOT_HOST = "demo-api.binance.com"  # https://demo-api.binance.com/api'}
+    assert levels(preflight.check_demo_hosts(ok)) == ["PASS"]
+    bad = {"config.demo.json": '{"urls": {"api": "https://api.binance.com/api/v3"}}'}
+    assert levels(preflight.check_demo_hosts(bad)) == ["FAIL"]
+    assert levels(preflight.check_demo_hosts({"x": "https://testnet.binance.vision/api"})) == ["FAIL"]  # testnet != demo
+
+
+def test_real_demo_files_have_only_demo_hosts():
+    files = {p.name: p.read_text() for p in [ROOT / "user_data" / "config" / "config.demo.json", *(ROOT / "minibot").glob("*.py")] if p.exists()}
+    assert levels(preflight.check_demo_hosts(files)) == ["PASS"]

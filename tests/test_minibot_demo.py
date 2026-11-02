@@ -376,3 +376,16 @@ def test_replay_stop_triggers_inside_the_candle():
     ex.now_ms = 5 * H
     g = ex.fetch_order(o["id"], "X/USDT")  # candle 4H climbs back to the limit -> filled at the limit
     assert g["status"] == "closed" and g["average"] == 86.13 and g["lastTradeTimestamp"] == 4 * H
+
+
+def test_real_ccxt_demo_switch_passes_the_guard_and_live_fails():
+    """Against the installed ccxt (no network, no keys): enable_demo_trading(True) points every
+    Binance api url at demo-*.binance.com, and the guard refuses a plain (live) object."""
+    ccxt = pytest.importorskip("ccxt")
+    live = ccxt.binance()
+    with pytest.raises(demo.DemoRefused):
+        demo.assert_demo_urls(live)
+    d = ccxt.binance()
+    d.enable_demo_trading(True)
+    demo.assert_demo_urls(d)
+    assert d.urls["api"]["private"].startswith("https://demo-api.binance.com/")

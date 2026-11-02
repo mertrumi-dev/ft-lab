@@ -101,6 +101,19 @@ def check_minibot_demo(source: str, gitignore: str) -> list[tuple[str, str]]:
     return out
 
 
+BINANCE_HOST = re.compile(r"https?://([a-z0-9.-]*binance\.(?:com|vision|us))", re.IGNORECASE)
+
+
+def check_demo_hosts(named_texts: dict[str, str]) -> list[tuple[str, str]]:
+    """Every Binance address written in the demo config or the mini bot's code must be a demo-* host.
+    (Live trading uses ccxt's built-in addresses, so a live host written into these files is a mistake.)"""
+    bad = sorted({f"{name}: {h}" for name, text in named_texts.items()
+                  for h in BINANCE_HOST.findall(text) if not h.lower().startswith("demo-")})  # fmt: skip
+    if bad:
+        return [("FAIL", f"non-demo Binance address in demo files: {', '.join(bad)}")]
+    return [("PASS", f"only demo-* Binance addresses in {len(named_texts)} demo file(s)")]
+
+
 MAIN_SERVICE = "freqtrade"  # the only service a plain `docker compose up -d` may start
 
 
@@ -266,6 +279,8 @@ def main() -> int:
         results += check_demo_config(json.loads(DEMO_CONFIG.read_text()))
     if MINIBOT_DEMO.exists():
         results += check_minibot_demo(MINIBOT_DEMO.read_text(), (ROOT / ".gitignore").read_text())
+    demo_files = {p.relative_to(ROOT).as_posix(): p.read_text() for p in [DEMO_CONFIG, *sorted((ROOT / "minibot").glob("*.py"))] if p.exists()}
+    results += check_demo_hosts(demo_files)
     results += check_compose(COMPOSE.read_text())
     results += check_env(ENV, (ROOT / ".gitignore").read_text())
     results += check_tools()
