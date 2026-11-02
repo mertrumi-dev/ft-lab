@@ -1455,3 +1455,76 @@ class VTWikiSpike2x(TrendEmaVolTargetWikiSpike):
 
 class VTWikiSpike4x(TrendEmaVolTargetWikiSpike):
     spike_mult = 4.0
+
+
+# T148/T149 (coin data, docs/research/14): market-wide BTC on-chain values from Coin Metrics
+# (scripts/onchain.py). A day's value is only used from the NEXT UTC day on (fng_for_candles).
+CM_FILE = Path(__file__).resolve().parent.parent / "data" / "external" / "cm_btc.json"
+ADR_SHORT, ADR_LONG = 30, 365  # days
+MVRV_MAX = 3.7  # Mahmudov & Puell (2018): above 3.7 = the distribution / top zone
+
+
+def load_cm_metric(metric: str, path: Path | None = None) -> pd.Series:
+    """{"metric": {"YYYY-MM-DD": value}} -> daily Series for one metric; empty if the file is missing."""
+    path = path or CM_FILE
+    if not path.exists():
+        return pd.Series(dtype=float)
+    days = json.loads(path.read_text()).get(metric, {})
+    return pd.Series(list(days.values()), index=pd.to_datetime(list(days.keys()), utc=True), dtype=float).sort_index()
+
+
+def adr_rising(adr: pd.Series, short: int = ADR_SHORT, long: int = ADR_LONG) -> pd.Series:
+    """1.0 on days whose short mean of active addresses beats the long mean (both up to that day), else 0.0;
+    NaN until a full long window exists."""
+    s, l_ = adr.rolling(short).mean(), adr.rolling(long).mean()
+    return (s > l_).astype(float).where(l_.notna())
+
+
+class TrendEmaVolTargetAdrTrend(TrendEmaVolTarget):
+    """VolTarget that only enters while BTC network use (active addresses) is trending up (T148)."""
+
+    adr_short = ADR_SHORT
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["adr_up"] = fng_for_candles(dataframe["date"], adr_rising(load_cm_metric("AdrActCnt"), self.adr_short))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["adr_up"] == 0.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTAdrTrend15(TrendEmaVolTargetAdrTrend):
+    adr_short = 15
+
+
+class VTAdrTrend60(TrendEmaVolTargetAdrTrend):
+    adr_short = 60
+
+
+class TrendEmaVolTargetMvrvBlock(TrendEmaVolTarget):
+    """VolTarget that skips entries the day after BTC MVRV was above 3.7 (T149)."""
+
+    mvrv_max = MVRV_MAX
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["mvrv"] = fng_for_candles(dataframe["date"], load_cm_metric("CapMVRVCur"))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["mvrv"] > self.mvrv_max, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTMvrv32(TrendEmaVolTargetMvrvBlock):
+    mvrv_max = 3.2
+
+
+class VTMvrv42(TrendEmaVolTargetMvrvBlock):
+    mvrv_max = 4.2

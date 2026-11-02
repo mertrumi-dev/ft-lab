@@ -847,3 +847,33 @@ def test_wiki_spike_blocks_the_next_day_only(monkeypatch, tmp_path):
 def test_wiki_missing_file_means_no_filter(monkeypatch, tmp_path):
     monkeypatch.setattr(sizing, "WIKI_FILE", tmp_path / "missing.json")
     assert sizing.load_daily_json(tmp_path / "missing.json").empty
+
+
+def test_cm_metric_loader_and_adr_trend(tmp_path):
+    import json as _json
+
+    f = tmp_path / "cm.json"
+    f.write_text(_json.dumps({"AdrActCnt": {"2030-01-02": 2.0, "2030-01-01": 1.0}}))
+    s = sizing.load_cm_metric("AdrActCnt", f)
+    assert list(s) == [1.0, 2.0] and sizing.load_cm_metric("CapMVRVCur", f).empty
+    assert sizing.load_cm_metric("AdrActCnt", tmp_path / "none.json").empty
+    adr = pd.Series([100.0] * 400 + [200.0] * 30, index=pd.date_range("2030-01-01", periods=430, freq="D", tz="UTC"))
+    up = sizing.adr_rising(adr)
+    assert up.iloc[:364].isna().all() and up.iloc[364] == 0.0 and up.iloc[-1] == 1.0
+
+
+def test_onchain_gates_use_previous_day(monkeypatch):
+    days = pd.date_range("2030-01-01", periods=3, freq="D", tz="UTC")
+    mvrv = pd.Series([1.0, 4.0, 1.0], index=days)
+    monkeypatch.setattr(sizing, "load_cm_metric", lambda metric, path=None: mvrv)
+    dates = pd.Series(pd.date_range("2030-01-02", periods=48, freq="h", tz="UTC"))
+    df = pd.DataFrame({"date": dates, "close": np.linspace(100, 101, 48), "high": 102.0, "low": 99.0, "volume": 1.0})
+    s = sizing.TrendEmaVolTargetMvrvBlock({})
+    out = s.populate_indicators(df, {})
+    out["enter_long"], out["enter_tag"] = 1, "x"
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d)
+    res = s.populate_entry_trend(out, {})
+    assert (res["enter_long"].iloc[:24] == 1).all()  # Jan 2 uses Jan 1 (1.0)
+    assert (res["enter_long"].iloc[24:] == 0).all()  # Jan 3 uses Jan 2 (4.0 > 3.7)
+    assert (sizing.VTMvrv32.mvrv_max, sizing.VTMvrv42.mvrv_max, sizing.TrendEmaVolTargetMvrvBlock.mvrv_max) == (3.2, 4.2, 3.7)
+    assert (sizing.VTAdrTrend15.adr_short, sizing.VTAdrTrend60.adr_short) == (15, 60)
