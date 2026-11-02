@@ -768,10 +768,8 @@ def test_participation_uses_previous_candles_only():
 
 
 def test_fear_block_uses_previous_day_and_allows_missing(monkeypatch):
-    import trend_sentiment
-
     fng = pd.Series([10.0, 50.0], index=pd.to_datetime(["2030-01-01", "2030-01-02"], utc=True))
-    monkeypatch.setattr(trend_sentiment, "load_fear_greed", lambda: fng)
+    monkeypatch.setattr(sizing, "load_fear_greed", lambda: fng)
     dates = pd.Series(pd.date_range("2030-01-01", periods=72, freq="h", tz="UTC"))
     n = len(dates)
     df = pd.DataFrame({"date": dates, "close": np.linspace(100, 110, n), "high": 111.0, "low": 99.0, "volume": 1.0})
@@ -787,3 +785,16 @@ def test_fear_block_uses_previous_day_and_allows_missing(monkeypatch):
     assert (res["enter_long"].iloc[24:48] == 0).all()  # yesterday 10 <= 24 -> blocked
     assert (res["enter_long"].iloc[48:] == 1).all()
     assert (sizing.VTFear19.fear_max, sizing.VTFear29.fear_max) == (19, 29)
+
+
+def test_strategy_modules_import_siblings_only_at_module_level():
+    """Freqtrade adds user_data/strategies to sys.path only while loading a file: an import of a
+    sibling module inside a method fails later unless that module was already loaded (T145 crash)."""
+    import ast
+
+    src = (Path(__file__).resolve().parent.parent / "user_data" / "strategies" / "sizing.py").read_text()
+    siblings = {p.stem for p in (Path(__file__).resolve().parent.parent / "user_data" / "strategies").glob("*.py")}
+    top = {n.module for n in ast.parse(src).body if isinstance(n, ast.ImportFrom)}
+    lazy = {n.module for f in ast.walk(ast.parse(src)) if isinstance(f, ast.FunctionDef)
+            for n in ast.walk(f) if isinstance(n, ast.ImportFrom)}  # fmt: skip
+    assert (lazy & siblings) <= top, f"import these at module level: {sorted((lazy & siblings) - top)}"

@@ -1335,6 +1335,10 @@ class VTPartic14d(TrendEmaVolTargetPartic):
 # a day without data allows the entry.
 FEAR_MAX = 24
 
+# Imported at module load on purpose: Freqtrade puts this folder on sys.path only while it loads
+# the strategy file, so a sibling module imported later inside a method is not found.
+from trend_sentiment import fng_for_candles, load_fear_greed  # noqa: E402
+
 
 class TrendEmaVolTargetFearBlock(TrendEmaVolTarget):
     """VolTarget that skips entries the day after an extreme-fear Fear & Greed reading (T145)."""
@@ -1342,8 +1346,6 @@ class TrendEmaVolTargetFearBlock(TrendEmaVolTarget):
     fear_max = FEAR_MAX
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        from trend_sentiment import fng_for_candles, load_fear_greed
-
         dataframe = super().populate_indicators(dataframe, metadata)
         dataframe["fng"] = fng_for_candles(dataframe["date"], load_fear_greed())
         return dataframe
