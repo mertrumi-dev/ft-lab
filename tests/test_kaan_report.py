@@ -126,3 +126,7 @@ def test_daily_forward_rows_read_each_bot_db():
 
     names = [r["name"] for r in daily.forward_rows()]
     assert names == ["VolTarget (ana bot)", "ADX20 (paralel bot)"]
+
+
+def test_bots_section_shows_the_parallel_adx_bot():
+    assert "TrendEmaVolTargetAdx" in kaan_report.BOT_ROWS

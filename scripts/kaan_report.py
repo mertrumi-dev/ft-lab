@@ -18,7 +18,7 @@ STATE_TR = {
 }
 BOT_ROWS = (
     "Buy & hold", "Weekly DCA", "Grid bot", "DCA bot (3Commas", "TSMOM", "TrendEma ", "TrendEmaVolTarget ",
-    "TrendEmaVolTarget2h", "VolTarget 1h+2h",
+    "TrendEmaVolTarget2h", "VolTarget 1h+2h", "TrendEmaVolTargetAdx",
 )  # fmt: skip
 
 

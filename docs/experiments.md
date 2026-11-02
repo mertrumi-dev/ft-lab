@@ -593,3 +593,36 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-01 23:48 | backtest | TrendEmaVolTargetLetRun | window24 | universe alt2024b, fee 0.003, no kill switch (research) |
 | 2026-11-01 23:49 | backtest | TrendEmaVolTarget | early | universe early, fee 0.003, no kill switch (research) |
 | 2026-11-01 23:49 | backtest | TrendEmaVolTargetLetRun | early | universe early, fee 0.003, no kill switch (research) |
+| 2026-11-02 00:09 | backtest | TrendEma | fresh |  |
+| 2026-11-02 00:09 | backtest | TrendEmaBtcRising | fresh |  |
+| 2026-11-02 00:09 | backtest | TrendEmaBtcRisingGap | fresh |  |
+| 2026-11-02 00:09 | backtest | TrendEmaVolTarget | fresh |  |
+| 2026-11-02 00:09 | backtest | TrendEmaVolTargetAdx | fresh |  |
+| 2026-11-02 00:09 | backtest | TrendEmaVolTarget2h | fresh |  |
+| 2026-11-02 00:10 | backtest | TrendEma | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEmaBtcRising | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEmaBtcRisingGap | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTarget | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTargetAdx | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTarget2h | fresh | universe wide |
+| 2026-11-02 00:10 | backtest | TrendEma | fresh | universe alt2022 |
+| 2026-11-02 00:10 | backtest | TrendEmaBtcRising | fresh | universe alt2022 |
+| 2026-11-02 00:10 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2022 |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTarget | fresh | universe alt2022 |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2022 |
+| 2026-11-02 00:10 | backtest | TrendEmaVolTarget2h | fresh | universe alt2022 |
+| 2026-11-02 00:11 | backtest | TrendEma | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEmaBtcRising | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTarget | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTarget2h | fresh | universe alt2023 |
+| 2026-11-02 00:11 | backtest | TrendEma | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaBtcRising | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaBtcRisingGap | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTarget | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTargetAdx | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTarget2h | fresh | universe alt2024 |
+| 2026-11-02 00:11 | backtest | TrendEmaVolTarget | fresh | universe core_gold |
+| 2026-11-02 00:14 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 00:14 | backtest | VTMax5 | train | no kill switch (research) |
