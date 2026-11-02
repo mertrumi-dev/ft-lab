@@ -1365,3 +1365,37 @@ class VTFear19(TrendEmaVolTargetFearBlock):
 
 class VTFear29(TrendEmaVolTargetFearBlock):
     fear_max = 29
+
+
+# T146 (sentiment as an exit, decided once by the coordinator; prior written down: weak, because
+# exits that cut winners early hurt this rule three times). Close an open trade the day after an
+# extreme-fear reading (<= 24). No data -> no exit. Entries, EMA exit and stop = VolTarget.
+class TrendEmaVolTargetFearExit(TrendEmaVolTarget):
+    """VolTarget that also leaves open trades the day after an extreme-fear Fear & Greed reading (T146)."""
+
+    fear_max = FEAR_MAX
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["fng"] = fng_for_candles(dataframe["date"], load_fear_greed())
+        return dataframe
+
+    def custom_exit(self, pair: str, trade, current_time: datetime, current_rate: float, current_profit: float, **kwargs):
+        dp = getattr(self, "dp", None)
+        if dp is None:
+            return None
+        dataframe, _ = dp.get_analyzed_dataframe(pair, self.timeframe)  # trimmed to now in backtests
+        if dataframe is None or dataframe.empty or "fng" not in dataframe:
+            return None
+        if dataframe["fng"].iloc[-1] <= self.fear_max:  # NaN -> False -> stay
+            return "fear_exit"
+        return None
+
+
+# T146 neighbours (only run if T146 passes T110+).
+class VTFearExit19(TrendEmaVolTargetFearExit):
+    fear_max = 19
+
+
+class VTFearExit29(TrendEmaVolTargetFearExit):
+    fear_max = 29

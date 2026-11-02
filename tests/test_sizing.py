@@ -798,3 +798,15 @@ def test_strategy_modules_import_siblings_only_at_module_level():
     lazy = {n.module for f in ast.walk(ast.parse(src)) if isinstance(f, ast.FunctionDef)
             for n in ast.walk(f) if isinstance(n, ast.ImportFrom)}  # fmt: skip
     assert (lazy & siblings) <= top, f"import these at module level: {sorted((lazy & siblings) - top)}"
+
+
+def test_fear_exit_closes_only_on_known_extreme_fear():
+    s = sizing.TrendEmaVolTargetFearExit({})
+    now = datetime(2030, 1, 2, tzinfo=timezone.utc)
+    trade = SimpleNamespace(open_rate=100.0)
+    for value, expect in ((10.0, "fear_exit"), (24.0, "fear_exit"), (25.0, None), (float("nan"), None)):
+        df = pd.DataFrame({"fng": [value]})
+        s.dp = SimpleNamespace(get_analyzed_dataframe=lambda pair, tf, d=df: (d, None))
+        assert s.custom_exit("BTC/USDT", trade, now, 100.0, 0.0) == expect
+    assert sizing.TrendEmaVolTargetFearExit.populate_entry_trend is sizing.TrendEmaVolTarget.populate_entry_trend
+    assert (sizing.VTFearExit19.fear_max, sizing.VTFearExit29.fear_max) == (19, 29)
