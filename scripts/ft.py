@@ -24,6 +24,7 @@ every run to docs/experiments.md so we can count how many times we tried.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 from datetime import date, datetime, timedelta, timezone
@@ -42,6 +43,7 @@ RESEARCH_CONFIG = "/freqtrade/user_data/config/research-no-kill-switch.json"
 NO_KILL_DIR = "user_data/backtest_results/no_kill_switch"
 STRESS_FEE = "0.003"  # 2x: does the rule survive much worse costs?
 DEFAULT_STRATEGY = "TrendEma"
+DEFAULT_BASELINE = "TrendEmaVolTarget"  # the main bot's rule: every candidate is compared with it
 # Extra months before DATA_START so EMA200 has warm-up candles.
 DOWNLOAD_FROM = f"{DATA_START.year - 1}1001"
 DAILY_FROM = f"{DATA_START.year - 2}0101"
@@ -365,6 +367,30 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--strategy", *args.strategy,
         ]]  # fmt: skip
 
+    if args.command == "prereg-judge":
+        import prereg  # stdlib; docs/ is read on the host
+
+        today = datetime.now(timezone.utc).date()
+        rows = prereg.load()
+        picked = [r for r in rows if prereg.is_due(r, today)] if args.due else [r for r in rows if r["id"] == args.id]
+        if args.id and not picked:
+            raise SystemExit(f"no row {args.id}")
+        steps = []
+        for r in picked:
+            if not prereg.is_due(r, today):
+                raise SystemExit(f"Refusing: {r['id']} is judged on {r['judge']} (status {r['status']}); not before.")
+            if r["kind"] != "strategy":
+                print(f"{r['id']} ({r['kind']}): not a single strategy, judge it by hand with its criterion")
+                continue
+            tr = prereg.timerange(r)
+            steps.append(docker_cmd("backtesting", "--config", CONFIG, "--strategy-list", r["name"], DEFAULT_BASELINE,
+                                    "--timeframe", timeframe_of(r["name"]), "--timerange", tr, "--fee", FEE,
+                                    "--enable-protections", "--export", "trades"))  # fmt: skip
+            steps.append(["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
+                          "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/prereg_eval.py",
+                          "--strategy", r["name"], "--baseline", DEFAULT_BASELINE, "--timerange", tr, "--id", r["id"]])  # fmt: skip
+        return steps
+
     if args.command == "trial":
         # Every step is this script itself, so each backtest is logged in docs/experiments.md and
         # keeps every guard (the test slice can never appear: the cases are fixed below).
@@ -444,7 +470,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
 def log_run(args: argparse.Namespace) -> None:
     if args.command in ("download", "benchmark", "report", "montecarlo", "walkforward", "bots", "analyze", "chart", "scan",
-                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval", "trial", "verdict"):  # fmt: skip
+                        "execution", "expected", "explain", "ai-score", "regimes", "test", "minibot", "deflated", "replay", "drill", "forward-risk", "postmortem", "durations", "judge-eval", "trial", "verdict", "prereg-judge"):  # fmt: skip
         return
     if not EXPERIMENTS_LOG.exists():
         EXPERIMENTS_LOG.write_text(
@@ -587,6 +613,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     vd.add_argument("--neighbours", nargs="*", default=[])
     vd.add_argument("--robust", action="store_true")
 
+    pj = sub.add_parser("prereg-judge", help="judge fresh-only rows on/after their judge date (refuses earlier)")
+    pj_which = pj.add_mutually_exclusive_group(required=True)
+    pj_which.add_argument("--id", help="one row, e.g. F005")
+    pj_which.add_argument("--due", action="store_true", help="every active row whose judge date has come")
+
     ho = sub.add_parser("hyperopt", help="parameter search, train slice only")
     ho.add_argument("--strategy", default=DEFAULT_STRATEGY)
     ho.add_argument("--epochs", type=int, default=200)
@@ -609,9 +640,31 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "drill":
         (ROOT / DRILL_RESULTS).mkdir(parents=True, exist_ok=True)
     for cmd in commands:
-        code = subprocess.call(cmd, cwd=ROOT)
+        if args.command == "prereg-judge" and "/freqtrade/scripts/prereg_eval.py" in cmd:
+            code = record_prereg(cmd)
+        else:
+            code = subprocess.call(cmd, cwd=ROOT)
         if code != 0:
             return code
+    return 0
+
+
+def record_prereg(cmd: list[str]) -> int:
+    """Run prereg_eval.py, then apply the row's locked criterion on the host and write the result."""
+    import prereg
+
+    r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    sys.stdout.write(r.stdout)
+    sys.stderr.write(r.stderr)
+    line = next((ln for ln in r.stdout.splitlines() if ln.startswith("prereg_result: ")), None)
+    if r.returncode != 0 or line is None:
+        return r.returncode or 1
+    res = json.loads(line.removeprefix("prereg_result: "))
+    rid = cmd[cmd.index("--id") + 1]
+    rows = prereg.load()
+    verdict = prereg.record(rows, rid, res["candidate"], res["baseline"], datetime.now(timezone.utc).date())
+    prereg.save(rows)
+    print(f"{rid}: {verdict} (written to docs/fresh/prereg-results.csv, status updated)")
     return 0
 
 
