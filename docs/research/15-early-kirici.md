@@ -73,6 +73,26 @@ Aynı desen T145'te (aşırı korkuda alma): 2018'de -16 USDT (filtre hafifçe y
 3. **early dilimi bir "V dönüşü sınavı" gibi.** Bir fikir sadece early'de kalıyorsa, büyük ihtimalle trend başlangıçlarını kesiyordur. Ölçütü değiştirmek doğru değil: gerçekte de bir V dönüşü gelecek ve kural onu kaçırmamalı.
 4. **Bir analiz aracı olarak kullanılabilir:** yeni bir filtre denendiğinde "çıkarılan işlemlerin yıl yıl kârı" tablosu hükme ek bilgi olarak bakılabilir. Bu bir hüküm kuralı değil, anlamaya yardım eden bir tablo.
 
+## Ek: Canlı ve izlenen adaylar (2026-11-02, `ft.py removed`)
+
+Aynı yöntem, `python3 scripts/ft.py removed --strategy X --slice S --universe U` ile (mevcut sonuçlar, deneme yok). Dönemler: train core 20210101-20240613; alt2024b/window24 20240101-20250807; early 20180101-20210101. Tablo: çıkarılan işlemlerin yıl yıl kârı (USDT). **Artı = o yıl kazananları attı, eksi = kaybedenleri attı.**
+
+| Aday | train (2021 / 2022 / 2023 / 2024) | yeni coinler (2024 / 2025) | early (2018 / 2019 / 2020) | Attığı kârın payı (train) |
+|---|---|---|---|---|
+| **ADX20** (paralel dry-run botu) | **+335** / -101 / **+265** / +76 | -25 / -36 | +34 / +13 / **+119** | **%51** |
+| Vote9 (T132, F008) | -51 / +13 / -10 / +90 | +8 / -27 | +27 / +95 / +17 | %4 |
+| VolConfirm (T114, F007) | **+316** / -47 / +60 / +75 | -18 / -19 | -47 / +45 / +38 | %36 |
+
+Hüküm (tek satır, sadece yargı):
+
+- **ADX20:** Sağlam filtre değil, rejim bahsi. 2022 ayısında ve yeni coinlerde kaybedenleri atıyor; 2021 boğasında ve 2023'te kuralın en iyi işlemlerini atıyor (train kârının yarısı).
+- **Vote9:** Giriş tarafındaki etkisi küçük ve karışık; farkı esas olarak çıkışlardan geliyor. Bu araçla "sağlam" denemez.
+- **VolConfirm:** Rejim bahsi: 2021 boğasının kazananlarını atıyor, 2022'de ve yeni coinlerde kaybedenleri.
+
+**Ortak desen:** Üçü de 2022 ayısında ve 2024-25 yeni coinlerinde yardım ediyor, 2021 boğasında ve 2019-20 dönüşlerinde zarar veriyor. Hiçbiri "her yılda kaybedenleri atma" standardını geçmiyor.
+
+**ADX20 paralel botu için anlamı:** Canlı karşılaştırma bir piyasa türü sınavı olacak. Testere ya da düşüş dönemlerinde ADX20'nin VolTarget'tan **daha az kaybetmesi** beklenir; güçlü bir trend başladığında **geride kalması** beklenir. Bu yüzden kısa bir canlı dönemdeki fark "hangi kural daha iyi" sorusuna cevap değildir; hangi piyasa türünün yaşandığı ile birlikte okunmalıdır. Kural değişikliği yok.
+
 ## Komutlar ve dönemler
 
 - Analiz: scratchpad'deki `early_breaker.py` (salt okunur; `report.latest_stats_per_strategy`, no_kill_switch sonuçları), konteyner içinde.
