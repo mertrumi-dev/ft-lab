@@ -1561,3 +1561,74 @@ class VTNoChase15(TrendEmaVolTargetNoChase):
 
 class VTNoChase25(TrendEmaVolTargetNoChase):
     chase_mult = 2.5
+
+
+# T152: no new entries whose signal candle falls on a weekend (UTC): thinner weekend liquidity and
+# more false crosses (day-of-week effect, Caporale & Plastun 2019). Exits unchanged.
+WEEKEND = (5, 6)  # Saturday, Sunday (pandas dayofweek)
+
+
+class TrendEmaVolTargetNoWeekend(TrendEmaVolTarget):
+    """VolTarget that skips entries signalled on Saturday/Sunday UTC (T152)."""
+
+    skip_days = WEEKEND
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["date"].dt.dayofweek.isin(self.skip_days), ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+class VTNoSunday(TrendEmaVolTargetNoWeekend):  # T152 neighbour (only run if T152 passes)
+    skip_days = (6,)
+
+
+# T153: when BTC's 1h close crosses below BTC's EMA200, every non-BTC open trade gets an exit
+# signal (altcoins follow BTC breakdowns). Entries unchanged. BTC is merged by date only, so each
+# candle sees BTC's value at the same moment (no lookahead); declared as an informative pair for live.
+BTC_EXIT_EMA = 200
+
+
+def btc_cross_down(btc: DataFrame, length: int = BTC_EXIT_EMA) -> DataFrame:
+    """date -> True on the BTC candle whose close crosses below its EMA(length)."""
+    from trend_ema import crossed_below, ema
+
+    out = DataFrame({"date": btc["date"]})
+    out["btc_break"] = crossed_below(btc["close"], ema(btc["close"], length)).astype(bool)
+    return out
+
+
+class TrendEmaVolTargetBtcExit(TrendEmaVolTarget):
+    """VolTarget + exit all non-BTC trades when BTC closes below its EMA200 (T153)."""
+
+    btc_ema = BTC_EXIT_EMA
+
+    def informative_pairs(self):
+        return [("BTC/USDT", self.timeframe)]
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        btc = self.dp.get_pair_dataframe("BTC/USDT", self.timeframe) if getattr(self, "dp", None) else None
+        if btc is None or btc.empty:
+            dataframe["btc_break"] = False
+            return dataframe
+        merged = dataframe[["date"]].merge(btc_cross_down(btc, self.btc_ema), on="date", how="left")
+        dataframe["btc_break"] = merged["btc_break"].fillna(False).astype(bool).to_numpy()
+        return dataframe
+
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_exit_trend(dataframe, metadata)
+        if metadata.get("pair", "").startswith("BTC/"):
+            return dataframe
+        hit = dataframe["btc_break"] & (dataframe.get("exit_long", 0) != 1) & (dataframe["volume"] > 0)
+        dataframe.loc[hit, ["exit_long", "exit_tag"]] = (1, "btc_breakdown")
+        return dataframe
+
+
+class VTBtcExit150(TrendEmaVolTargetBtcExit):  # T153 neighbours (only run if T153 passes)
+    btc_ema = 150
+
+
+class VTBtcExit250(TrendEmaVolTargetBtcExit):
+    btc_ema = 250

@@ -917,3 +917,40 @@ def test_live_strategies_fit_the_exchange_startup_limit():
     for name in names:
         cls = getattr(sizing, name, None) or getattr(trend_ema, name)
         assert 2 * trend_ema.TREND_EMA <= cls.startup_candle_count <= 5 * 1000 - 1, (name, cls.startup_candle_count)
+
+
+def test_no_weekend_skips_only_saturday_and_sunday_signals(monkeypatch):
+    dates = pd.Series(pd.date_range("2030-01-05", periods=72, freq="h", tz="UTC"))  # Sat, Sun, Mon
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend",
+                        lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))  # fmt: skip
+    out = sizing.TrendEmaVolTargetNoWeekend({}).populate_entry_trend(df.copy(), {})
+    assert (out["enter_long"].iloc[:48] == 0).all() and (out["enter_long"].iloc[48:] == 1).all()
+    sun = sizing.VTNoSunday({}).populate_entry_trend(df.copy(), {})
+    assert (sun["enter_long"].iloc[:24] == 1).all() and (sun["enter_long"].iloc[24:48] == 0).all()
+
+
+def test_btc_exit_merges_by_date_and_spares_btc():
+    n = 600
+    dates = pd.Series(pd.date_range("2030-01-01", periods=n, freq="h", tz="UTC"))
+    btc_close = pd.Series(np.r_[np.linspace(100, 200, 500), np.linspace(200, 100, 100)])  # long rise, then a fall
+    btc = pd.DataFrame({"date": dates, "close": btc_close})
+    flags = sizing.btc_cross_down(btc)
+    assert flags["btc_break"].sum() == 1  # exactly one cross below EMA200
+    when = flags.loc[flags["btc_break"], "date"].iloc[0]
+
+    class Dp:
+        def get_pair_dataframe(self, pair, tf):
+            assert pair == "BTC/USDT"
+            return btc
+
+    s = sizing.TrendEmaVolTargetBtcExit({})
+    s.dp = Dp()
+    alt = pd.DataFrame({"date": dates.iloc[100:], "close": np.linspace(10, 12, n - 100), "high": 12.5, "low": 9.5, "volume": 1.0})
+    out = s.populate_exit_trend(s.populate_indicators(alt.reset_index(drop=True), {"pair": "ETH/USDT"}), {"pair": "ETH/USDT"})
+    hits = out.loc[out["exit_tag"] == "btc_breakdown", "date"]
+    assert list(hits) == [when]  # the alt exits on the same candle as BTC's cross, never earlier
+    btc_self = s.populate_exit_trend(s.populate_indicators(btc.assign(high=1.0, low=1.0, volume=1.0), {"pair": "BTC/USDT"}), {"pair": "BTC/USDT"})
+    assert "btc_breakdown" not in set(btc_self.get("exit_tag", pd.Series(dtype=object)).dropna())
+    assert s.informative_pairs() == [("BTC/USDT", "1h")]
+    assert (sizing.VTBtcExit150.btc_ema, sizing.VTBtcExit250.btc_ema) == (150, 250)
