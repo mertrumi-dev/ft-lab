@@ -1528,3 +1528,36 @@ class VTMvrv32(TrendEmaVolTargetMvrvBlock):
 
 class VTMvrv42(TrendEmaVolTargetMvrvBlock):
     mvrv_max = 4.2
+
+
+# T151 ("don't chase"): the EMA cross sometimes comes right after a spike candle; buying when the
+# close is already far above the short mean is a classic whipsaw entry. Skip the entry when the
+# close is more than 2 x ATR(14) above EMA20 (the textbook Keltner band). Everything else = VolTarget.
+CHASE_ATR = 14
+CHASE_MULT = 2.0
+
+
+def too_extended(dataframe: DataFrame, mult: float = CHASE_MULT) -> pd.Series:
+    """True where close - EMA20 is above mult x ATR(14) on the same candle (no future values used)."""
+    return (dataframe["close"] - dataframe["ema_fast"]) > mult * atr(dataframe, CHASE_ATR)
+
+
+class TrendEmaVolTargetNoChase(TrendEmaVolTarget):
+    """VolTarget that skips entries when price is stretched more than 2 ATR above EMA20 (T151)."""
+
+    chase_mult = CHASE_MULT
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[too_extended(dataframe, self.chase_mult), ["enter_long", "enter_tag"]] = (0, None)
+        return dataframe
+
+
+# T151 neighbours (only run if T151 passes T110+).
+class VTNoChase15(TrendEmaVolTargetNoChase):
+    chase_mult = 1.5
+
+
+class VTNoChase25(TrendEmaVolTargetNoChase):
+    chase_mult = 2.5

@@ -877,3 +877,27 @@ def test_onchain_gates_use_previous_day(monkeypatch):
     assert (res["enter_long"].iloc[24:] == 0).all()  # Jan 3 uses Jan 2 (4.0 > 3.7)
     assert (sizing.VTMvrv32.mvrv_max, sizing.VTMvrv42.mvrv_max, sizing.TrendEmaVolTargetMvrvBlock.mvrv_max) == (3.2, 4.2, 3.7)
     assert (sizing.VTAdrTrend15.adr_short, sizing.VTAdrTrend60.adr_short) == (15, 60)
+
+
+def test_no_chase_skips_only_stretched_entries():
+    from trend_variants import atr
+
+    cls = sizing.TrendEmaVolTargetNoChase
+    assert cls.populate_exit_trend is sizing.TrendEmaVolTarget.populate_exit_trend and cls.stoploss == -0.08
+    assert (cls.chase_mult, sizing.VTNoChase15.chase_mult, sizing.VTNoChase25.chase_mult) == (2.0, 1.5, 2.5)
+    rng = np.random.default_rng(12)
+    close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.0003, 0.012, 3000))))
+    df = pd.DataFrame({"close": close, "high": close * (1 + rng.uniform(0, 0.01, 3000)),
+                       "low": close * (1 - rng.uniform(0, 0.01, 3000)), "volume": 1.0})  # fmt: skip
+    base = sizing.TrendEmaVolTarget({})
+    b = base.populate_entry_trend(base.populate_indicators(df.copy(), {}), {})
+    s = cls({})
+    f = s.populate_entry_trend(s.populate_indicators(df.copy(), {}), {})
+    stretched = (f["close"] - f["ema_fast"]) > 2.0 * atr(f, 14)
+    kept, was = f["enter_long"].fillna(0) == 1, b["enter_long"].fillna(0) == 1
+    assert (kept == (was & ~stretched)).all() and kept.any()
+    # no lookahead: changing a later candle never changes an earlier flag
+    df2 = df.copy()
+    df2.loc[2999, "close"] *= 3
+    f2 = s.populate_entry_trend(s.populate_indicators(df2, {}), {})
+    assert (f2["enter_long"].fillna(0).iloc[:2999] == f["enter_long"].fillna(0).iloc[:2999]).all()
