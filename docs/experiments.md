@@ -782,3 +782,19 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 22:15 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 22:15 | backtest | TrendEmaVolTargetNoChase | early | universe early, no kill switch (research) |
+| 2026-11-02 22:35 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 22:35 | backtest | TrendEmaVolTargetNoWeekend | train | no kill switch (research) |
+| 2026-11-02 22:36 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 22:36 | backtest | TrendEmaVolTargetNoWeekend | validation | no kill switch (research) |
+| 2026-11-02 22:37 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:37 | backtest | TrendEmaVolTargetNoWeekend | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:37 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 22:37 | backtest | TrendEmaVolTargetNoWeekend | early | universe early, no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | train | no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | validation | no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | early | universe early, no kill switch (research) |
