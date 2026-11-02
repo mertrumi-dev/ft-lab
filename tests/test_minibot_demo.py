@@ -33,8 +33,9 @@ class FakeExchange:
 
     markets = None  # like ccxt: precision helpers need load_markets() first
 
-    def load_markets(self):
-        self.markets = {"BTC/USDT": {}}
+    def load_markets(self):  # Binance demo spot limits, measured 2026-11-02
+        lim = {"limits": {"amount": {"min": 0.00001}, "cost": {"min": 5.0}}}
+        self.markets = {p: lim for p in ("BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT")}
         return self.markets
 
     def amount_to_precision(self, pair, amount):
@@ -419,3 +420,20 @@ def test_real_ccxt_needs_markets_for_precision():
     e.enable_demo_trading(True)
     with pytest.raises(ccxt.ExchangeError, match="markets not loaded"):
         e.amount_to_precision("BTC/USDT", 0.1)
+
+
+def test_too_small_orders_are_recorded_not_sent():
+    m = {"limits": {"amount": {"min": 0.001}, "cost": {"min": 5.0}}}
+    assert demo.too_small(m, 0.01, 1000.0) is None
+    assert "below the minimum 0.001" in demo.too_small(m, 0.0005, 100000.0)
+    assert "order value 4.00" in demo.too_small(m, 0.004, 1000.0)
+    assert demo.too_small({}, 0.0, 10.0) is not None and demo.too_small({}, 1.0, 10.0) is None
+    ex = FakeExchange({"options": {"defaultType": "spot"}})
+    ex.enable_demo_trading(True)
+    state = {}
+    b = demo.DemoBroker(ex, state, sleep=lambda s: None)
+    fill = b._order("BTC/USDT", "sell", "exit", 0.00004, 80000.0)  # 3.2 USDT of dust
+    assert fill == {"filled": 0.0, "price": 0.0, "fee_usdt": 0.0} and ex.orders == []  # nothing sent
+    assert state["orders"][-1]["status"] == "too_small" and "below the minimum 5.0" in state["orders"][-1]["reason"]
+    b._order("BTC/USDT", "buy", "entry", 0.001, 80000.0)  # 80 USDT: sent normally
+    assert len(ex.orders) == 1

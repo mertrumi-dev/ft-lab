@@ -85,6 +85,19 @@ def demo_exchange(env=os.environ, factory=None):
     return exchange
 
 
+def too_small(market: dict, amount: float, price: float) -> str | None:
+    """Why the exchange would reject this order size, from ccxt's market limits (None = fine).
+    Binance demo spot, 2026-11-02: NOTIONAL minNotional 5 USDT for the 5 core pairs."""
+    limits = market.get("limits", {}) if market else {}
+    amin = (limits.get("amount") or {}).get("min") or 0.0
+    cmin = (limits.get("cost") or {}).get("min") or 0.0
+    if amount <= 0 or amount < amin:
+        return f"amount {amount} below the minimum {amin}"
+    if amount * price < cmin:
+        return f"order value {amount * price:.2f} below the minimum {cmin}"
+    return None
+
+
 class DemoBroker:
     """Sends LIMIT orders to the demo exchange, waits for the result and records every order."""
 
@@ -120,6 +133,13 @@ class DemoBroker:
         amount = float(self.exchange.amount_to_precision(pair, amount))
         price = float(self.exchange.price_to_precision(pair, price))
         created = self.at or datetime.now(timezone.utc).isoformat()
+        small = too_small(self.exchange.markets.get(pair, {}), amount, price)
+        if small:  # Binance would reject it (LOT_SIZE / NOTIONAL): record it, send nothing, fill nothing
+            self.state["orders"].append({"pair": pair, "side": side, "kind": kind, "type": "limit", "requested": price,
+                                         "amount": amount, "id": None, "status": "too_small", "reason": small,
+                                         "timed_out": False, "filled": 0.0, "average": 0.0, "fee_usdt": 0.0,
+                                         "candle": created, "created": created, "filled_at": None})  # fmt: skip
+            return {"filled": 0.0, "price": 0.0, "fee_usdt": 0.0}
         order = self.exchange.create_order(pair, "limit", side, amount, price, {"timeInForce": "GTC"})
         order = self._wait(order, pair)
         fill = fill_result(order, pair, side)
