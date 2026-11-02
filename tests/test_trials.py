@@ -55,3 +55,17 @@ def test_find_reports_earlier_trials_and_journal_lines():
     hits = trials.find(rows, "- Tur 3: ADX (1,28) FAIL\n- unrelated", ["adx"])
     assert hits[0].startswith("T001") and any(h.startswith("journal: - Tur 3: ADX") for h in hits) and len(hits) == 2
     assert trials.find(rows, "", ["nothing-like-this"]) == []
+
+
+def test_find_uses_synonyms_so_renamed_ideas_are_caught():
+    """T150 'relative strength' was a near-copy of T107 'kesitsel momentum / üst yarı'."""
+    rows = [row(name="TrendEmaVolTargetMomHalf", idea="30 günlük getirisi grubun üst yarısında (kesitsel momentum)", notes="")]
+    assert trials.find(rows, "", ["strength"])[0].startswith("T001")
+    assert trials.find(rows, "", ["relative"]) and trials.find(rows, "", ["rank"])
+    assert trials.find(rows, "", ["strength", "volume"]) == []  # still AND across words
+    assert trials.alternatives("hacim") == trials.alternatives("volume") and trials.alternatives("xyz") == ("xyz",)
+
+
+def test_real_register_finds_t107_by_strength():
+    hits = trials.find(trials.load(), "", ["strength"])
+    assert any(h.startswith("T107") for h in hits)

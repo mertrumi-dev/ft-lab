@@ -80,12 +80,45 @@ def n_trials(rows: list[dict]) -> int:
     return sum(r["verdict"] != "REFERENCE" for r in rows)
 
 
+# The same idea is written with different words (2026-11-02: "relative strength" T150 was a
+# near-copy of "kesitsel momentum / üst yarı" T107 and a plain keyword search missed it).
+# A search word also matches the other words of its group. Turkish + English, lower case.
+SYNONYMS = [
+    ("momentum", "strength", "güç", "relative", "göreli", "rank", "sıra", "üst yarı", "top half", "kesitsel", "cross-sectional"),
+    ("stop", "stoploss", "zarar durdur"),
+    ("volume", "hacim", "obv"),
+    ("weekend", "hafta sonu", "cumartesi", "pazar", "saturday", "sunday"),
+    ("exit", "çıkış"),
+    ("fear", "korku", "fng", "greed", "açgözlü"),
+    ("volatility", "oynaklık", "atr"),
+    ("breadth", "genişlik"),
+    ("attention", "ilgi", "wikipedia", "pageview"),
+    ("partial", "kısmi", "yarım", "take profit", "kâr al"),
+    ("cooldown", "bekleme", "kilit", "lock"),
+]  # fmt: skip
+
+
+def alternatives(word: str) -> tuple[str, ...]:
+    """The word and its synonyms (the word alone if it is in no group)."""
+    w = word.lower()
+    for group in SYNONYMS:
+        if w in group:
+            return group
+    return (w,)
+
+
 def find(rows: list[dict], journal_text: str, words: list[str]) -> list[str]:
-    """Rows and journal lines mentioning ALL the words (case-insensitive): check before pre-registering."""
-    ws = [w.lower() for w in words]
+    """Rows and journal lines mentioning ALL the words, each word or one of its synonyms
+    (case-insensitive): check before pre-registering."""
+    alts = [alternatives(w) for w in words]
+
+    def match(text: str) -> bool:
+        low = text.lower()
+        return all(any(a in low for a in group) for group in alts)
+
     hits = [f"{r['id']} {r['verdict']:<10} {r['name']}: {r['idea'][:90]}" for r in rows
-            if all(w in " ".join((r["name"], r["idea"], r["notes"])).lower() for w in ws)]  # fmt: skip
-    hits += [f"journal: {ln.strip()[:160]}" for ln in journal_text.splitlines() if all(w in ln.lower() for w in ws)]
+            if match(" ".join((r["name"], r["idea"], r["notes"])))]  # fmt: skip
+    hits += [f"journal: {ln.strip()[:160]}" for ln in journal_text.splitlines() if match(ln)]
     return hits
 
 
@@ -94,6 +127,9 @@ def main(argv: list[str] | None = None) -> int:
     rows = load()
     if argv[:1] == ["--find"]:
         journal = ROOT / "docs" / "journal.md"
+        used = [g for g in (alternatives(w) for w in argv[1:]) if len(g) > 1]
+        if used:
+            print("also searched (synonyms): " + "; ".join(", ".join(g) for g in used))
         hits = find(rows, journal.read_text() if journal.exists() else "", argv[1:])
         print("\n".join(hits) if hits else f"nothing found for {' '.join(argv[1:])!r}")
         return 0
