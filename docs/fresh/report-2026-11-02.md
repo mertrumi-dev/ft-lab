@@ -4,26 +4,27 @@ Sadece ölçüm. Kurallar bu rapora bakılarak değiştirilmez. Yatırım tavsiy
 
 ## 1. Bot sağlığı
 
-- Çalışıyor mu: ft-lab Up About an hour
-- Kendi kodundaki hata: 0 (bağlantı hatası: 0)
-- En uzun bağlantısız süre: yok
+- Çalışıyor mu: ft-lab Up 12 hours
+- Kendi kodundaki hata: 0 (bağlantı hatası: 56, en çok 2026-11-02 07:00 UTC'de 6)
+- En uzun bağlantısız süre: 0.8h (02.11 08:51 UTC'den itibaren; Mac uykusu ya da internet kesintisi)
 - İşlemler: 0 açık, 0 kapanmış, gerçekleşen kâr/zarar +0.00 USDT
 - Kill switch: zirveden düşüş şu an %0.0, en kötü %0.0 (sınır %20)
-- Faz 0: NOT YET: running 1.2h without a gap, needs 24h
+- Faz 0: FAIL: last heartbeat 0.2h ago (bot down or Mac asleep)
 
 ## 2. Botun 5 coini şu an (1 saatlik grafik)
 
 | Coin | Durum | EMA200'e uzaklık | Pozisyon boyutu |
 |---|---|---|---|
-| BTC/USDT | EMA200 altında (bekliyor) | -1.1% | 100% |
-| ETH/USDT | EMA200 altında (bekliyor) | -1.3% | 100% |
-| BNB/USDT | EMA200 altında (bekliyor) | -1.5% | 100% |
-| XRP/USDT | EMA200 altında (bekliyor) | -2.2% | 100% |
-| SOL/USDT | EMA200 altında (bekliyor) | -4.3% | 100% |
+| ETH/USDT | EMA200 altında (bekliyor) | -0.7% | 100% |
+| BTC/USDT | EMA200 altında (bekliyor) | -1.5% | 100% |
+| XRP/USDT | EMA200 altında (bekliyor) | -2.1% | 100% |
+| BNB/USDT | EMA200 altında (bekliyor) | -2.3% | 100% |
+| SOL/USDT | EMA200 altında (bekliyor) | -4.2% | 100% |
 
 ## 3. Piyasa genişliği (havuzdaki coinlerin yüzde kaçı EMA200 üstünde)
 
 - 2026-11-01: %8 (4 coin trendde, 0 alım sinyali)
+- 2026-11-02: %5 (3 coin trendde, 0 alım sinyali)
 
 ## 4. Taze veri (testten sonraki gerçek fiyatlar), 5 coin
 
@@ -38,6 +39,7 @@ DCA bot (3Commas-style)                  13     -3.2%    -31.7%    4.5%   -7.04 
 TSMOM (ours, daily, vol-scaled)           7     -7.7%    -61.1%   11.7%   -5.23  <50 işlem
 TrendEma                                 17     -3.4%    -33.1%    3.8%   -8.81  <50 işlem
 TrendEmaVolTarget                        17     -3.3%    -32.4%    3.7%   -8.84  <50 işlem
+TrendEmaVolTargetAdx                      9     -1.8%    -19.3%    2.2%   -8.71  <50 işlem
 TrendEmaVolTarget2h                       9     -2.3%    -23.8%    3.0%   -8.02  <50 işlem
 VolTarget 1h+2h 50/50                    26     -2.8%    -28.2%    3.3%   -8.54  <50 işlem
 ```
@@ -70,11 +72,11 @@ Read-only report. Use it with docs/research/05-maliyet-onerisi.md (post-only dec
 ## 7. İşlemler (sade dille)
 
 Henüz işlem yok. Botun 5 coini için bir sonraki alım şartı (1 saatlik grafik):
-- BTC: fiyat EMA200'ün %1.1 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
-- ETH: fiyat EMA200'ün %1.3 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
-- SOL: fiyat EMA200'ün %4.3 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
-- BNB: fiyat EMA200'ün %1.5 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
-- XRP: fiyat EMA200'ün %2.2 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
+- BTC: fiyat EMA200'ün %1.3 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
+- ETH: fiyat EMA200'ün %0.8 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
+- SOL: fiyat EMA200'ün %4.1 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
+- BNB: fiyat EMA200'ün %2.0 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
+- XRP: fiyat EMA200'ün %2.1 altında; önce EMA200 üstüne çıkmalı, sonra EMA20 EMA50'yi yukarı kesmeli
 
 ## Sahte para botları yan yana (sadece yargı, kurallar buna göre değişmez)
 
@@ -86,15 +88,16 @@ Henüz işlem yok. Botun 5 coini için bir sonraki alım şartı (1 saatlik graf
 
 ## Ön kayıtlı fikirler (sadece yeni veride, hüküm günü gelmeden karar yok)
 
-- F001 TrendEmaVolTargetDaily: henüz hüküm yok (0/365 gün)
-- F002 Weekly DCA 50% + VolTarget 50%: henüz hüküm yok (0/91 gün)
-- F003 TrendEmaVolTargetCooldown24: henüz hüküm yok (0/181 gün)
-- F004 TrendEmaVolTargetDerisk72h: henüz hüküm yok (0/181 gün)
-- F005 TrendEmaVolTargetAdx: henüz hüküm yok (0/181 gün)
-- F006 TrendEmaVolTargetTakeHalf2R: henüz hüküm yok (0/181 gün)
-- F007 TrendEmaVolTargetVolConfirm: henüz hüküm yok (0/181 gün)
-- F008 TrendEmaVolTargetVote9: henüz hüküm yok (0/181 gün)
+- F001 TrendEmaVolTargetDaily: henüz hüküm yok (0/365 gün, 365 gün kaldı)
+- F002 Weekly DCA 50% + VolTarget 50%: henüz hüküm yok (0/91 gün, 91 gün kaldı)
+- F003 TrendEmaVolTargetCooldown24: henüz hüküm yok (0/181 gün, 181 gün kaldı)
+- F004 TrendEmaVolTargetDerisk72h: henüz hüküm yok (0/181 gün, 181 gün kaldı)
+- F005 TrendEmaVolTargetAdx: henüz hüküm yok (0/181 gün, 181 gün kaldı)
+- F006 TrendEmaVolTargetTakeHalf2R: henüz hüküm yok (0/181 gün, 181 gün kaldı)
+- F007 TrendEmaVolTargetVolConfirm: henüz hüküm yok (0/181 gün, 181 gün kaldı)
+- F008 TrendEmaVolTargetVote9: henüz hüküm yok (0/181 gün, 181 gün kaldı)
 - F009 TrendEmaVolTargetLetRun: başlamadı (başlangıç 2026-11-03, hüküm 2027-05-03)
+- F010 TrendEmaVolTargetFearBlock: başlamadı (başlangıç 2026-11-03, hüküm 2027-05-03)
 
 ## 8. Grafik okuma (günlük grafik, sade dille)
 
@@ -124,7 +127,7 @@ Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa
 - Son 30 günde işlem hacmi normalin (90 günlük ortalama) 0,9 katı.
 Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa vadeli):
 - Bot şu an almaz, çünkü saatlik grafikte fiyat 200 saatlik ortalamanın altında (büyük resim aşağı).
-- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %44).
+- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %45).
 
 **SOL — günlük grafik, son kapanmış mum 2026-11-01, kapanış 94,5300$**
 - Fiyat 20 günlük ortalamanın %7,4 altında: kısa vadede zayıf.
@@ -138,7 +141,7 @@ Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa
 - Son 30 günde işlem hacmi normalin (90 günlük ortalama) 0,8 katı.
 Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa vadeli):
 - Bot şu an almaz, çünkü saatlik grafikte fiyat 200 saatlik ortalamanın altında (büyük resim aşağı).
-- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %52).
+- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %53).
 
 **BNB — günlük grafik, son kapanmış mum 2026-11-01, kapanış 712,69$**
 - Fiyat 20 günlük ortalamanın %2,5 altında: kısa vadede zayıf.
@@ -166,6 +169,6 @@ Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa
 - Son 30 günde işlem hacmi normalin (90 günlük ortalama) 0,6 katı.
 Botun gözüyle (1 saatlik grafik, yukarıdaki günlük görünümden daha kısa vadeli):
 - Bot şu an almaz, çünkü saatlik grafikte fiyat 200 saatlik ortalamanın altında (büyük resim aşağı).
-- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %50).
+- Alırsa pozisyon boyutu normalin %100'i olur (saatlik oynaklık yıllık %51).
 
 Geçmişin okunması, tahmin değil, yatırım tavsiyesi değil.
