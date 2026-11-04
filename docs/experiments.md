@@ -846,3 +846,19 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 01:02 | backtest | TrendEmaVolTargetAttnTrend | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-04 01:03 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-04 01:03 | backtest | TrendEmaVolTargetAttnTrend | early | universe early, no kill switch (research) |
+| 2026-11-04 01:06 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 01:06 | backtest | TrendEmaVolTargetAttnTrend | train | no kill switch (research) |
+| 2026-11-04 01:06 | backtest | VTAttnTrend2060 | train | no kill switch (research) |
+| 2026-11-04 01:06 | backtest | VTAttnTrend45135 | train | no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTargetAttnTrend | validation | no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend2060 | validation | no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend45135 | validation | no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTargetAttnTrend | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend2060 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend45135 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | TrendEmaVolTargetAttnTrend | early | universe early, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend2060 | early | universe early, no kill switch (research) |
+| 2026-11-04 01:07 | backtest | VTAttnTrend45135 | early | universe early, no kill switch (research) |
