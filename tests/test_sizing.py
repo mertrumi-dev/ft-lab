@@ -1035,3 +1035,22 @@ def test_hash_ribbon_blocks_during_stress_using_yesterday(monkeypatch):
     assert (out["enter_long"].iloc[:24] == 1).all()  # the first stress day is only known the day after
     assert (out["enter_long"].iloc[24:] == 0).all()
     assert (sizing.VTHashRibbon2050.ribbon, sizing.VTHashRibbon4080.ribbon) == ((20, 50), (40, 80))
+
+
+def test_attention_trend_gate_uses_yesterday(monkeypatch):
+    idx = pd.date_range("2030-01-01", periods=200, freq="D", tz="UTC")
+    views = pd.Series(np.r_[np.linspace(100, 300, 150), np.linspace(300, 50, 50)], index=idx)  # rises, then falls
+    up = sizing.attention_rising(views)
+    assert up.iloc[:89].isna().all() and up.iloc[100] == 1.0 and up.iloc[-1] == 0.0
+    flat = pd.Series(5.0, index=idx)
+    assert sizing.attention_rising(flat).iloc[-1] == 1.0  # equal means count as "at or above"
+    first_down = up[up == 0.0].index[0]
+    monkeypatch.setattr(sizing, "load_daily_json", lambda path: views)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_indicators", lambda self, d, m: d)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))
+    dates = pd.Series(pd.date_range(first_down, periods=48, freq="h", tz="UTC"))
+    s = sizing.TrendEmaVolTargetAttnTrend({})
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    out = s.populate_entry_trend(s.populate_indicators(df, {}), {})
+    assert (out["enter_long"].iloc[:24] == 1).all() and (out["enter_long"].iloc[24:] == 0).all()
+    assert (sizing.VTAttnTrend2060.attn, sizing.VTAttnTrend45135.attn) == ((20, 60), (45, 135))

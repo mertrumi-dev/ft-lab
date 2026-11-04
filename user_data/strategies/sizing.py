@@ -1786,3 +1786,40 @@ class VTHashRibbon2050(TrendEmaVolTargetHashRibbon):  # T158 neighbours (only ru
 
 class VTHashRibbon4080(TrendEmaVolTargetHashRibbon):
     ribbon = (40, 80)
+
+
+# T159: a slow attention regime (T147 was the extreme-moment version). Enter only while the 30-day
+# mean of the Bitcoin Wikipedia pageviews is at or above its 90-day mean, using the previous UTC
+# day (fng_for_candles); no data -> allowed. Relatives T144 (volume) and T148 (addresses) failed.
+ATTN_FAST, ATTN_SLOW = 30, 90
+
+
+def attention_rising(views: pd.Series, fast: int = ATTN_FAST, slow: int = ATTN_SLOW) -> pd.Series:
+    """1.0 on days whose fast mean of pageviews is >= the slow mean, else 0.0; NaN until both exist."""
+    f, s = views.rolling(fast).mean(), views.rolling(slow).mean()
+    return (f >= s).astype(float).where(s.notna())
+
+
+class TrendEmaVolTargetAttnTrend(TrendEmaVolTarget):
+    """VolTarget that only enters while public attention to Bitcoin is slowly rising (T159)."""
+
+    attn = (ATTN_FAST, ATTN_SLOW)
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["attn_up"] = fng_for_candles(dataframe["date"], attention_rising(load_daily_json(WIKI_FILE), *self.attn))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["attn_up"] == 0.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTAttnTrend2060(TrendEmaVolTargetAttnTrend):  # T159 neighbours (only run if T159 passes)
+    attn = (20, 60)
+
+
+class VTAttnTrend45135(TrendEmaVolTargetAttnTrend):
+    attn = (45, 135)
