@@ -23,6 +23,7 @@ Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 
 ## Backtest kuralları
 
+- **N=160'ta donduruldu (2026-11-05). Yeni T denemesi veya F satırı için Kaan'ın açık onayı gerekir. Onay olmadan ön kayıt bile açma.** Kod da zorlar: `trials.py --open` / `prereg.py --open` `--kaan-approved "<mesaj id veya tarih>"` olmadan reddeder; elle eklenen satırı kontrol ve testler yakalar; `ft.py trial` trials.csv'de satırı olmayan stratejiyi koşmaz (`scripts/freeze.py`).
 - Her backtest sonucu al-tut benchmark'ı (`scripts/benchmark.py`, Faz 1) ile yan yana raporlanır.
 - (Kaan, 2026-11-01) Her testte ünlü botlar da yan yana: haftalık DCA, grid bot (Pionex tarzı), DCA bot (3Commas tarzı), NFI X8 (`ft.py bots`). NFI sadece araştırma kıyası; `user_data/strategies/thirdparty/`, GPL-3.0, bot yükleyemez.
 - Veri bölme: train / validation / test. **Son %20 test dilimi hyperopt'ta ve strateji geliştirirken asla kullanılmaz.** Test dilimine bakıp strateji değiştirmek yasak; her seferinde Kaan'a hatırlat.

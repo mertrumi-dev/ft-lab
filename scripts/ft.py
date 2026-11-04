@@ -392,6 +392,13 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
         return steps
 
     if args.command == "trial":
+        import freeze  # stdlib; docs/ is read on the host
+        import trials
+
+        known = {r["name"] for r in trials.load()}
+        for name in [args.strategy, *args.neighbours]:  # a neighbour is a look at the data too
+            if name not in known:
+                raise SystemExit(f"Refusing: {name} has no row in docs/trials.csv. {freeze.WARNING}")
         # Every step is this script itself, so each backtest is logged in docs/experiments.md and
         # keeps every guard (the test slice can never appear: the cases are fixed below).
         import criterion  # stdlib; scripts/ is on sys.path when ft.py runs

@@ -154,7 +154,7 @@ def test_extra_config_strategy_runs_alone_with_its_layer():
 
 
 def test_trial_runs_cases_one_by_one_then_the_verdict():
-    steps = cmds("trial", "--strategy", "X")
+    steps = cmds("trial", "--strategy", "TrendEmaVolTargetBtcDom")
     assert [st[st.index("--slice") + 1] for st in steps[:-1]] == ["train", "validation", "window24", "early"]
     backtests = steps[:-1]
     assert all("--no-kill-switch" in st and "test" not in st and "--final-test" not in st for st in backtests)
@@ -163,21 +163,21 @@ def test_trial_runs_cases_one_by_one_then_the_verdict():
 
 
 def test_trial_robust_adds_neighbours_and_fee_stress():
-    steps = cmds("trial", "--strategy", "X", "--neighbours", "A", "B", "--robust")
+    steps = cmds("trial", "--strategy", "TrendEmaVolTargetBtcDom", "--neighbours", "VTAttnTrend2060", "VTAttnTrend45135", "--robust")
     by_slice = {st[st.index("--slice") + 1]: st for st in steps if st[2] == "backtest" and "--fee-stress" not in st}
-    assert "A" in by_slice["train"] and "A" in by_slice["window24"] and "A" in by_slice["early"]
-    assert "A" not in by_slice["validation"]  # neighbours are never looked at on validation
+    assert "VTAttnTrend2060" in by_slice["train"] and "VTAttnTrend2060" in by_slice["window24"] and "VTAttnTrend2060" in by_slice["early"]
+    assert "VTAttnTrend2060" not in by_slice["validation"]  # neighbours are never looked at on validation
     fee = [st for st in steps if "--fee-stress" in st]
-    assert [st[st.index("--slice") + 1] for st in fee] == ["window24", "early"] and all("A" not in st for st in fee)
-    assert steps[-1][-4:] == ["--neighbours", "A", "B", "--robust"]
+    assert [st[st.index("--slice") + 1] for st in fee] == ["window24", "early"] and all("VTAttnTrend2060" not in st for st in fee)
+    assert steps[-1][-4:] == ["--neighbours", "VTAttnTrend2060", "VTAttnTrend45135", "--robust"]
 
 
 def test_trial_entry_filter_adds_removed_after_each_backtest():
-    steps = cmds("trial", "--strategy", "X", "--entry-filter")
+    steps = cmds("trial", "--strategy", "TrendEmaVolTargetBtcDom", "--entry-filter")
     kinds = [st[2] for st in steps]
     assert kinds == ["backtest", "removed"] * 4 + ["verdict"]
     assert all(st[st.index("--slice") + 1] == bt[bt.index("--slice") + 1] for bt, st in zip(steps[0:8:2], steps[1:8:2]))
-    assert "removed" not in [st[2] for st in cmds("trial", "--strategy", "X")]  # only on request
+    assert "removed" not in [st[2] for st in cmds("trial", "--strategy", "TrendEmaVolTargetBtcDom")]  # only on request
 
 
 def test_removed_command_is_read_only():
@@ -561,6 +561,6 @@ def test_judge_eval_is_a_read_only_command_and_respects_restricted_slices():
 
 
 def test_trial_early_slice_moves_only_the_early_case():
-    steps = cmds("trial", "--strategy", "X", "--early-slice", "early19")
+    steps = cmds("trial", "--strategy", "TrendEmaVolTargetBtcDom", "--early-slice", "early19")
     assert [st[st.index("--slice") + 1] for st in steps[:-1]] == ["train", "validation", "window24", "early19"]
     assert steps[-1][-2:] == ["--early-slice", "early19"]

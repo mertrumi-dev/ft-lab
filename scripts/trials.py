@@ -2,22 +2,30 @@
 
     python3 scripts/trials.py            # check the file, print the counts
     python3 scripts/trials.py --find adx # was this idea already tried? (trials.csv + docs/journal.md)
+    python3 scripts/trials.py --open --kaan-approved "<message id or date>" --name X --family F --idea I --criterion C
+                                         # new row, PENDING. Frozen: refused without the approval (scripts/freeze.py)
 
 Rules checked:
   - ids are unique (T001, T002, ...)
   - verdict is one of VERDICTS
   - the three Calmar columns are a number or blank (blank = not measured / not recorded)
   - every strategy name that docs/experiments.md says was backtested appears as a row
+  - no row after the frozen ids without an approval line (scripts/freeze.py)
 
 N for the Deflated Sharpe Ratio (scripts/deflated.py) = every row except REFERENCE rows
 (neighbours count: each one was a real look at the data).
 """
 
+import argparse
 import csv
 import re
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import freeze  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 TRIALS = ROOT / "docs" / "trials.csv"
@@ -68,6 +76,7 @@ def problems(rows: list[dict], tested: set[str]) -> list[str]:
                     out.append(f"{r['id']} {r['name']}: {col} {r[col]!r} is not a number")
     names = {r["name"] for r in rows}
     out += [f"backtested but missing from trials.csv: {n}" for n in sorted(tested - names)]
+    out += [f"{i}: opened after the freeze with no approval line: {freeze.WARNING}" for i in freeze.unapproved([r["id"] for r in rows])]
     return out
 
 
@@ -122,8 +131,35 @@ def find(rows: list[dict], journal_text: str, words: list[str]) -> list[str]:
     return hits
 
 
+def next_id(rows: list[dict]) -> str:
+    return f"T{max(int(r['id'][1:]) for r in rows) + 1:03d}"
+
+
+def open_row(argv: list[str], path: Path = TRIALS, approvals_path: Path = freeze.APPROVALS) -> str:
+    """Pre-register one new trial (verdict PENDING: it counts in N from now on). Returns its id."""
+    p = argparse.ArgumentParser(prog="trials.py --open")
+    p.add_argument("--kaan-approved")
+    for field in ("name", "family", "idea", "criterion"):
+        p.add_argument(f"--{field}")
+    a = p.parse_args(argv)
+    approved = freeze.require_approval(a.kaan_approved)  # the refusal comes before anything else is asked
+    if not all((a.name, a.family, a.idea, a.criterion)):
+        raise SystemExit("Refusing: --name, --family, --idea and --criterion are all needed.")
+    rows = load(path)
+    today = datetime.now(timezone.utc).date()
+    rid = next_id(rows)
+    freeze.record(rid, approved, today, approvals_path)
+    with path.open("a", newline="") as f:
+        csv.DictWriter(f, fieldnames=FIELDS).writerow({**dict.fromkeys(FIELDS, ""), "id": rid, "date": today.isoformat(), "name": a.name,
+                                                       "family": a.family, "idea": a.idea, "criterion": a.criterion, "verdict": "PENDING"})  # fmt: skip
+    return rid
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--open"]:
+        print(f"{open_row(argv[1:])}: opened, PENDING")
+        return 0
     rows = load()
     if argv[:1] == ["--find"]:
         journal = ROOT / "docs" / "journal.md"

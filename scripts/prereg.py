@@ -2,6 +2,9 @@
 
     python3 scripts/prereg.py              # check docs/fresh/preregistered.csv, print each row's progress
     python3 scripts/prereg.py --lock ID    # (re)write ID's lock hash; refused on/after its start date
+    python3 scripts/prereg.py --open --kaan-approved "<message id or date>" --name X --kind strategy --idea I
+                              --criterion C --start YYYY-MM-DD --judge YYYY-MM-DD --min-trades 50
+                                           # new row. Frozen: refused without the approval (scripts/freeze.py)
 
 Every row has a start date (data before it is never counted) and a fixed judge date. Its
 criterion is locked by a hash of (name, idea, criterion, start, judge, min_trades): after the
@@ -10,11 +13,15 @@ is refused, so nobody (human or AI) can move the goalposts after seeing data.
 Until the judge date a row only shows "henüz hüküm yok (X/N gün)". Stdlib only (runs on the Mac).
 """
 
+import argparse
 import csv
 import hashlib
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import freeze  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FILE = ROOT / "docs" / "fresh" / "preregistered.csv"
@@ -57,6 +64,7 @@ def problems(rows: list[dict]) -> list[str]:
             out.append(f"{rid}: status {r['status']!r} not in {STATUSES}")
         if r["lock"] != lock_hash(r):
             out.append(f"{rid}: criterion/idea/dates changed after registration (lock mismatch): not allowed")
+    out += [f"{i}: opened after the freeze with no approval line: {freeze.WARNING}" for i in freeze.unapproved([r["id"] for r in rows])]
     return out
 
 
@@ -119,6 +127,8 @@ def record(rows: list[dict], rid: str, cand: dict, base: dict, today: date, path
 
 
 def relock(rows: list[dict], rid: str, today: date) -> None:
+    if freeze.unapproved([rid]):  # locking a hand-added row would be opening it
+        raise SystemExit(f"Refusing: {rid}. {freeze.WARNING}")
     row = next(r for r in rows if r["id"] == rid)
     if today >= date.fromisoformat(row["start"]):
         raise SystemExit(f"Refusing: {rid} started on {row['start']}; its criterion can no longer change.")
@@ -132,9 +142,37 @@ def save(rows: list[dict], path: Path = FILE) -> None:
         w.writerows(rows)
 
 
+def next_id(rows: list[dict]) -> str:
+    return f"F{max(int(r['id'][1:]) for r in rows) + 1:03d}"
+
+
+def open_row(argv: list[str], today: date, path: Path = FILE, approvals_path: Path = freeze.APPROVALS) -> str:
+    """Pre-register one new fresh-only row, locked from birth. Returns its id."""
+    p = argparse.ArgumentParser(prog="prereg.py --open")
+    p.add_argument("--kaan-approved")
+    for field in ("name", "kind", "idea", "criterion", "start", "judge", "min-trades"):
+        p.add_argument(f"--{field}")
+    a = p.parse_args(argv)
+    approved = freeze.require_approval(a.kaan_approved)  # the refusal comes before anything else is asked
+    if not all((a.name, a.kind, a.idea, a.criterion, a.start, a.judge, a.min_trades)):
+        raise SystemExit("Refusing: every field is needed (--name --kind --idea --criterion --start --judge --min-trades).")
+    if date.fromisoformat(a.start) <= today:
+        raise SystemExit(f"Refusing: start {a.start} must be after today: a fresh row counts only data that does not exist yet.")
+    rows = load(path)
+    row = {"id": next_id(rows), "name": a.name, "kind": a.kind, "idea": a.idea, "criterion": a.criterion, "start": a.start,
+           "judge": a.judge, "min_trades": a.min_trades, "lock": "", "status": "active"}  # fmt: skip
+    row["lock"] = lock_hash(row)
+    freeze.record(row["id"], approved, today, approvals_path)
+    save([*rows, row], path)
+    return row["id"]
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     today = datetime.now(timezone.utc).date()
+    if argv[:1] == ["--open"]:
+        print(f"{open_row(argv[1:], today)}: opened, locked")
+        return 0
     rows = load()
     if argv[:1] == ["--lock"]:
         relock(rows, argv[1], today)
