@@ -821,3 +821,34 @@ Okuma: Hiç görülmemiş 2018 çöküşü + toparlanma döneminde bizim trend k
 | Oynaklık penceresi (720) | 480 → 1,63 (≥%70, al-tut altı) ✗ | 1,86 | 960 → 1,81 ✓ |
 
 Sonuç: **Plato değil.** Stop ve oynaklık penceresi sağlam. EMA uzunlukları **hızlı yönde kırılgan**: 15/40/150 ile Calmar %35-65 düşüyor (daha çok testere işlemi). Yavaş yönde (25/250) aynı ya da biraz iyi. TrendEma'nın train komşularında da aynı desen görülmüştü. Bu bir seçim değil; kural değişmiyor.
+
+## 2026-11-05 · VolTarget vs Al-tut (aynı yatırım)
+
+Sadece ölçüm; kural değişmedi, deneme sayılmaz (N=160). Test dilimi zaten kullanılmıştı; Kaan'ın planı gereği sadece ölçüldü. Komut: `ft.py bots --slice S --no-kill-switch --strategy TrendEmaVolTarget` (test için `--final-test`, early için `--universe early`). Fee 0.0015, Calmar saatlik düşüşle. Tablo main 7042349 üstünde `scripts/benchmark.py` değişikliğiyle üretildi. Fresh verisi 2026-11-03'e kadar.
+
+**Gerçek saatlik oran kullanıldı:** `benchmark.invested_ratio` = açık pozisyon değeri / toplam hesap, işlem listesinden. Oran bir önceki saatten alınır; bu yüzden kıyas her işleme bir saat geç girer.
+
+| Dilim (`--timerange`, coin) | VolTarget | Al-tut | **Al-tut (aynı yatırım)** | + devir komisyonu | Sabit ortalama oran | Ort. oran | İşlem |
+|---|---|---|---|---|---|---|---|
+| train `20210101-20240613`, core | 1,86 (+%113, DD %13,2) | 1,69 (+%2427, DD %92,1) | **2,97** (+%198, DD %12,5) | 1,91 | 0,87 | %12,9 | 638 |
+| validation `20240613-20250807`, core | 1,93 (+%29, DD %13,0) | 2,11 (+%123, DD %47,8) | **2,44** (+%35, DD %12,2) | 1,60 | 1,79 | %15,2 | 217 |
+| test `20250807-20261001`, core | -0,76 (-%19, DD %21,9) | -0,38 (-%27, DD %63,7) | **-0,58** (-%11, DD %16,0) | -0,72 | -0,18 | %12,3 | 226 |
+| early `20180101-20210101`, early | 2,46 (+%72, DD %9,6) | 0,03 (+%6, DD %78,7) | **1,27** (+%36, DD %10,1) | 0,40 | 0,27 | %14,8 | 696 |
+| fresh `20261001-20261104`, core | -8,40 (-%3,3, DD %3,7) | -4,63 (-%14, DD %17,3) | **-7,93** (-%2,6, DD %3,2) | -8,12 | -7,91 | %8,7 | 17 |
+
+Kill switch açıkken: train, validation ve fresh aynı; test -0,84 vs aynı yatırım -0,81 (176 işlem, ort. oran %9,4; + devir -0,84); early 2,47 vs 1,56 (675 işlem; + devir 0,50). Fresh'te 17 işlem var (50'den az): anlamlı değil, Calmar bir aylık sonucu yıllığa çevirdiği için abartılı.
+
+**Üç satır neyi ayırıyor:**
+
+- **Sabit ortalama oran:** aynı ortalama miktar, ama zamanlama yok.
+- **Al-tut (aynı yatırım):** aynı saatlerde aynı miktar, botun zamanlaması içinde; ama coin seçimi yok, bütün sepet. Devir komisyonu yok, yani ucuza yapılmış hali.
+- **+ devir komisyonu:** aynı satır, oran her değiştiğinde komisyon ödeyerek. Gerçekte izlemenin maliyetine daha yakın.
+
+**Okuma:**
+
+1. VolTarget ucuz kıyası (komisyonsuz izleme) 5 dilimin 4'ünde geçemiyor; sadece early'de geçiyor.
+2. Devir komisyonlu kıyasla validation ve early'de açık önde, train ve test'te neredeyse eşit, fresh anlamsız.
+3. Zamanlama değer katıyor gibi: sabit orana göre aynı yatırım satırı train, validation ve early'de çok daha iyi. Test'te ise tersi (-0,58 vs -0,18).
+4. Coin seçimi ve tek tek çıkışlar ek getiri getirmiyor gibi görünüyor: aynı saatlerde bütün sepeti tutmak en az o kadar iyi.
+
+**Sınırlar:** Sepet başta eşit ağırlıklı, sonra yeniden dengelenmiyor; train'in +%2427'si büyük ölçüde SOL'dan geliyor ve aynı yatırım satırını da yukarı çeker. Bu tablo üstünlük ya da yetersizlik kanıtı değil, gözlem. Buradan yeni kural türetmek yasak: denemeler donduruldu.

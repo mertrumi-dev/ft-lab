@@ -23,7 +23,7 @@ import grid  # noqa: E402
 import report  # noqa: E402
 import rotation  # noqa: E402
 import tsmom  # noqa: E402
-from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, load_closes, summarize, universe_pairs, window_warning  # noqa: E402
+from benchmark import DATA_DIR, DEFAULT_FEE, by_year, dca_equity, exposure_matched_equity, invested_ratio, load_closes, summarize, universe_pairs, window_warning  # noqa: E402
 from benchmark import run as benchmark_run  # noqa: E402
 from equity import build_curve  # noqa: E402
 from splits import SLICES  # noqa: E402
@@ -109,6 +109,15 @@ def tsmom_bot(
     return with_years(window / window.iloc[0], orders)
 
 
+MATCHED_NAME = "Al-tut (aynı yatırım)"
+MAIN_BOT = "TrendEmaVolTarget"
+
+
+def matched_to(names: list[str]) -> str | None:
+    """Whose invested ratio the one "same exposure" row uses: the main bot if listed, else the first name."""
+    return MAIN_BOT if MAIN_BOT in names else next(iter(names), None)
+
+
 def half_and_half(a: pd.Series, b: pd.Series) -> pd.Series:
     """Two separate accounts with half the money each (equal_mix of two)."""
     return equal_mix(a, b)
@@ -168,6 +177,7 @@ def main() -> None:
 
     stats = report.latest_stats_per_strategy(
         s.timerange, universe_pairs(args.universe), args.fee, args.results_dir)
+    matched_name = matched_to([n for n in args.strategy if stats.get(n)])
     for name in args.strategy:
         st = stats.get(name)
         if not st:
@@ -176,6 +186,8 @@ def main() -> None:
         curve = build_curve(st.get("trades", []), bh["closes"], st.get("starting_balance", 1000.0), bh["index"])
         r = with_years(curve["equity"], st["total_trades"])
         rows.append((name, r))
+        if name == matched_name:
+            rows.append((MATCHED_NAME, with_years(exposure_matched_equity(bh["closes"], invested_ratio(curve), args.fee), None)))
         if name == "TrendEma":
             # Combination idea (decided before seeing it): trend rule + grid bot, 50/50.
             # They earn in different markets (trends vs sideways), so together the
@@ -219,6 +231,8 @@ def main() -> None:
     for name, r in rows:
         print(row(name, r))
     print("Trades: grid = finished buy-sell round trips, DCA bot = finished deals, rotation = orders, TSMOM = trading days.")
+    if matched_name:
+        print(f"{MATCHED_NAME}: buy & hold scaled by {matched_name}'s own hourly invested ratio, the rest in cash at 0%.")
     print()
     print(format_years(rows))
 

@@ -17,7 +17,7 @@ STATE_TR = {
     "below EMA200": "EMA200 altında (bekliyor)",
 }
 BOT_ROWS = (
-    "Buy & hold", "Weekly DCA", "Grid bot", "DCA bot (3Commas", "TSMOM", "TrendEma ", "TrendEmaVolTarget ",
+    "Buy & hold", "Al-tut (aynı yatırım)", "Weekly DCA", "Grid bot", "DCA bot (3Commas", "TSMOM", "TrendEma ", "TrendEmaVolTarget ",
     "TrendEmaVolTarget2h", "VolTarget 1h+2h", "TrendEmaVolTargetAdx",
 )  # fmt: skip
 
@@ -138,7 +138,8 @@ def render(date: str, health: dict, scan_text: str, breadth: list[dict], bots_co
         lines.append("- Henüz kayıt yok.")
     lines += ["", "## 4. Taze veri (testten sonraki gerçek fiyatlar), 5 coin", "",
               "Getiri ve düşüş, taze dilimin başından bugüne. Yıllık = o hızla bir yıl sürseydi."
-              " 50'den az işlem = henüz anlamlı değil.", "", "```", TABLE_HEAD]  # fmt: skip
+              " 50'den az işlem = henüz anlamlı değil."
+              " Al-tut (aynı yatırım) = VolTarget'ın saatlik yatırım oranı kadar al-tut, kalanı %0 nakit: aynı saatlerde aynı miktar, ama coin seçimi yok.", "", "```", TABLE_HEAD]  # fmt: skip
     lines += bots_rows(bots_core) or ["(tablo yok)"]
     lines += ["```"]
     exp = [ln.removeprefix("expected_line: ") for ln in expected_text.splitlines() if ln.startswith("expected_line: ")]

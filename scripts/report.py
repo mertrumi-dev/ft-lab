@@ -160,6 +160,15 @@ def format_table(rows: list[dict], bh: dict, kill_switch_on: bool = True) -> str
     return "\n".join(lines)
 
 
+def format_matched(rows: list[tuple[str, dict]]) -> str:
+    """One line per strategy: buy-and-hold holding that strategy's own hourly invested ratio."""
+    lines = ["Al-tut (aynı yatırım): stratejinin saatlik yatırım oranı kadar al-tut, kalanı %0 nakit"]
+    lines.append(f"  {'Oranı alınan':<26}{'Return':>9}{'CAGR':>8}{'MaxDD':>8}{'Calmar':>8}")
+    for name, m in rows:
+        lines.append(f"  {name:<26}{m['total_return']:>+9.1%}{m['cagr']:>+8.1%}{m['max_drawdown']:>8.1%}{m['calmar']:>8.2f}")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early"], required=True)
@@ -182,12 +191,14 @@ def main() -> None:
         )
     if args.strategy:
         stats = {name: st for name, st in stats.items() if name in args.strategy}
-    rows = []
+    rows, matched = [], []
     for name, st in stats.items():
         curve = equity.build_curve(
             st.get("trades", []), bh["closes"], st.get("starting_balance", 1000.0), bh["index"]
         )
         rows.append(strategy_row(name, st, equity.summary(curve)))
+        matched.append((name, benchmark.summarize(benchmark.exposure_matched_equity(
+            bh["closes"], benchmark.invested_ratio(curve), args.fee))))  # fmt: skip
     print(
         f"Slice: {args.slice}  --timerange {s.timerange}  universe {args.universe} "
         f"({len(bh['pairs'])} coins)  fee {args.fee:.2%}/side  start 1000 USDT"
@@ -202,6 +213,8 @@ def main() -> None:
     print("MaxDD and Calmar: measured every hour, open trades included (same as buy & hold).")
     print("In coins: average share of the money actually invested.")
     print(format_table(rows, bh, kill_switch_on=args.results_dir == RESULTS_DIR))
+    print()
+    print(format_matched(matched))
     if args.by_year:
         print("\nYear by year (strategy: closed trades only, so its MaxDD is optimistic)")
         print(format_years(stats, bh["years"]))

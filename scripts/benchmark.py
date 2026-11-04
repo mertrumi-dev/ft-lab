@@ -70,6 +70,39 @@ def dca_equity(closes: dict[str, pd.Series], fee: float, every: str = "W") -> pd
     return equity
 
 
+def invested_ratio(curve: pd.DataFrame) -> pd.Series:
+    """Share of the account in coins each hour: open position value / total equity (equity.build_curve)."""
+    return (curve["invested"] / curve["equity"]).clip(0.0, 1.0)
+
+
+def exposure_matched_equity(closes: dict[str, pd.Series], ratio: pd.Series, fee: float, charge_turnover: bool = False) -> pd.Series:
+    """Buy-and-hold scaled by a strategy's own hourly invested ratio; the rest is cash at 0%.
+
+    Answers: "the same amount of money in the market in the same hours, but the whole equal-weight
+    basket instead of the coins the strategy picked: what would it have earned?" It still carries
+    the strategy's in/out timing; a constant ratio (its mean) is the version with no timing at all.
+    Each hour earns ratio(previous hour) x the basket's return: the previous hour, so the benchmark
+    never uses a ratio it could not have known yet. Ratio 0 always = return 0; ratio 1 always =
+    buy_and_hold_equity exactly.
+
+    Fees: like buy-and-hold, once in and once out, on the average invested share. That is kind to
+    the benchmark (following the ratio hour by hour would really cost more), so it makes the
+    strategy's comparison harder. charge_turnover=True instead pays the fee on every change of the
+    ratio, plus the first buy and the last sale: the other end of the honest range.
+    """
+    basket = buy_and_hold_equity(closes, 0.0)
+    r = ratio.reindex(basket.index).fillna(0.0).clip(0.0, 1.0)
+    equity = (1 + r.shift(1).fillna(0.0) * basket.pct_change().fillna(0.0)).cumprod()
+    if charge_turnover:
+        trades = r.diff().abs().fillna(r.iloc[0])
+        trades.iloc[-1] += r.iloc[-1]
+        return equity * (1 - fee * trades).cumprod()
+    average = float(r.mean())
+    equity *= 1 - fee * average
+    equity.iloc[-1] *= 1 - fee * average
+    return equity
+
+
 def max_drawdown(equity: pd.Series) -> float:
     """Largest fall from a peak, as a positive ratio (0.5 = -50%)."""
     return float((1 - equity / equity.cummax()).max())

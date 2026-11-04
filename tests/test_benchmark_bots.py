@@ -52,3 +52,94 @@ def test_fine_download_adds_5m_and_15m():
     cmds = ft.build_commands(ft.parse_args(["download", "--fine"]))
     assert any("5m" in c and "15m" in c for c in cmds)
     assert not any("5m" in c for c in ft.build_commands(ft.parse_args(["download"])))
+
+
+def _closes():
+    import pandas as pd
+
+    idx = pd.date_range("2024-01-01", periods=6, freq="h", tz="UTC")
+    return {"A/USDT": pd.Series([100.0, 110, 90, 95, 120, 130], index=idx), "B/USDT": pd.Series([10.0, 9, 12, 11, 10, 14], index=idx)}, idx
+
+
+def _ratio(value, idx):
+    import pandas as pd
+
+    return pd.Series(value, index=idx)
+
+
+def test_ratio_zero_earns_nothing_and_pays_no_fee():
+    import benchmark
+
+    closes, idx = _closes()
+    for turnover in (False, True):
+        assert (benchmark.exposure_matched_equity(closes, _ratio(0.0, idx), 0.0015, turnover) == 1.0).all()
+
+
+def test_ratio_one_is_exactly_normal_buy_and_hold():
+    import pandas as pd
+
+    import benchmark
+
+    closes, idx = _closes()
+    normal = benchmark.buy_and_hold_equity(closes, 0.0015)
+    for turnover in (False, True):
+        pd.testing.assert_series_equal(benchmark.exposure_matched_equity(closes, _ratio(1.0, idx), 0.0015, turnover), normal, check_names=False)
+
+
+def test_each_hour_uses_the_previous_hours_ratio_never_the_future():
+    import benchmark
+
+    closes, idx = _closes()
+    a_only = {"A/USDT": closes["A/USDT"]}
+    r = _ratio(0.0, idx)
+    r.iloc[1] = 1.0  # invested at the END of hour 1: only hour 2 (110 -> 90) counts, not hour 1 (100 -> 110)
+    eq = benchmark.exposure_matched_equity(a_only, r, 0.0)
+    assert eq.iloc[1] == 1.0 and abs(eq.iloc[2] - 90 / 110) < 1e-12 and abs(eq.iloc[-1] - 90 / 110) < 1e-12
+
+
+def test_half_ratio_earns_half_of_each_hour_and_rest_is_cash():
+    import benchmark
+
+    closes, idx = _closes()
+    a_only = {"A/USDT": closes["A/USDT"]}
+    eq = benchmark.exposure_matched_equity(a_only, _ratio(0.5, idx), 0.0)
+    assert abs(eq.iloc[1] - 1.05) < 1e-12
+
+
+def test_turnover_fee_costs_more_when_the_ratio_jumps_around():
+    import benchmark
+
+    closes, idx = _closes()
+    jumpy = _ratio(0.0, idx)
+    jumpy.iloc[::2] = 1.0
+    calm = benchmark.exposure_matched_equity(closes, jumpy, 0.01).iloc[-1]
+    paid = benchmark.exposure_matched_equity(closes, jumpy, 0.01, charge_turnover=True).iloc[-1]
+    assert paid < calm
+
+
+def test_invested_ratio_is_position_value_over_equity_and_stays_in_0_1():
+    import pandas as pd
+
+    import benchmark
+
+    curve = pd.DataFrame({"equity": [1000.0, 1000.0, 800.0], "invested": [0.0, 250.0, 900.0]})
+    assert benchmark.invested_ratio(curve).tolist() == [0.0, 0.25, 1.0]
+
+
+def test_same_exposure_row_follows_the_main_bot_and_reaches_the_short_report():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import bots
+    import kaan_report
+
+    assert bots.matched_to(["TrendEma", "TrendEmaVolTarget"]) == "TrendEmaVolTarget"
+    assert bots.matched_to(["TrendEma"]) == "TrendEma" and bots.matched_to([]) is None
+    line = bots.row(bots.MATCHED_NAME, {"trades": None, "total_return": 0.1, "cagr": 0.05, "max_drawdown": 0.02, "calmar": 2.5})
+    assert kaan_report.bots_rows(line)[0].startswith("Al-tut (aynı yatırım)")
+
+
+def test_report_prints_the_same_exposure_block():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import report
+
+    text = report.format_matched([("TrendEmaVolTarget", {"total_return": 0.1, "cagr": 0.05, "max_drawdown": 0.02, "calmar": 2.5})])
+    assert "Al-tut (aynı yatırım)" in text and "TrendEmaVolTarget" in text and "2.50" in text
