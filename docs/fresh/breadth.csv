@@ -1,3 +1,4 @@
 date,n_coins,breadth,n_in_trend,n_entry_now,BTC,ETH,SOL,BNB,XRP
 2026-11-01,61,0.082,4,0,below,below,below,below,below
 2026-11-02,61,0.016,1,0,below,below,below,below,below
+2026-11-04,61,0.410,25,0,trend,trend,below,trend,trend
