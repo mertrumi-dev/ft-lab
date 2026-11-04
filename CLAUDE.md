@@ -8,7 +8,7 @@ Freqtrade tabanlı kişisel kripto trading botu. Sahibi Kaan (bilgisayar mühend
 2. **Temel en sağlam şekilde, araştırarak.** Her değişikliği Kaan'a söyle; onay bekleme, uygula, ama açıkla. (Güvenlik çizgileri ve gerçek para bu kuralın dışında: onlar için her zaman önce sor.)
 3. **Hız: bekleme minimum, çalışma maksimum.** Erteleme yok; Kaan'dan bir şey beklerken yapılabilecek her işi paralel yap. Ama sağlamlıktan ödün yok.
    (2026-11-01 ek) Botu Claude kendisi geliştirir: testleri Remote Control ile Kaan'ın Mac'inde kendisi çalıştırır, sonucu yorumlar, sıradaki denemeyi kendisi seçer, boş durmaz, her önemli sonucu thread'e kısaca yazar.
-4. **Kaan'a soru sorma, en iyisini bul (2026-11-01).** Kaan'a soracağın bir soru varsa önce web'de derinlemesine araştır, cevabı kendin bul ve kararı ver; ne seçtiğini ve neden seçtiğini söyle. İstisna: güvenlik çizgileri (gerçek para, kaldıraç, gizli anahtarlar) ve canlı botun risk sayıları. Bunlarda yine önce Kaan'a sor.
+4. **Teknik araştırma sorularını kendin çöz. Ama her önemli değişiklikten sonra Kaan'a 2-3 kısa anlama sorusu sor ('Bu kod ne zaman alım yapmayı reddeder?' gibi). Cevabı yanlışsa açıkla.** (2026-11-05.) İstisna, değişmedi: güvenlik çizgileri (gerçek para, kaldıraç, gizli anahtarlar) ve canlı botun risk sayıları. Bunlarda yine önce Kaan'a sor. Öğrenme haritası ve 7 günlük plan: `docs/learn/00-harita.md`.
 
 Mesajlar kısa, tek seferde tek istek. Detay dosyaya (`docs/`).
 

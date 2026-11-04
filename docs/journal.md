@@ -260,3 +260,7 @@ Yeni satır `Al-tut (aynı yatırım)`: report, bots, latest.md. VolTarget Calma
 ## 2026-11-05 · Çoklu karşılaştırma katmanı
 
 Kilitli şartlara dokunulmadı. PASS artık ADAY; sonraki 6 ayda tek başına aynı şartla geçerse DOĞRULANDI, geçemezse ELENDİ. Rapor "Aynı anda N satır yargılandı" diyor; bootstrap p + Holm sadece bilgi. Ders: negatif getiride Calmar tek başına sıralama yapamıyor (daha derin düşüş oranı sıfıra yaklaştırır), test yakaladı; p kilitli şartın aynısını soruyor. Kart 42.
+
+## 2026-11-05 · Öğrenme modu
+
+CLAUDE.md kural 4 değişti: teknik soruları Claude çözer, ama her önemli değişiklikten sonra Kaan'a 2-3 anlama sorusu sorulur. `docs/learn/00-harita.md`: ana botun altı parçası, doğrulanmış satır numaraları, kendi cümlesiyle cevaplanacak birer soru ve 7 günlük plan. Satır numaralarını `tests/test_learn_map.py` koruyor.
