@@ -838,3 +838,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-04 00:59 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | early | universe early, no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTargetAttnTrend | train | no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTargetAttnTrend | validation | no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:02 | backtest | TrendEmaVolTargetAttnTrend | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 01:03 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-04 01:03 | backtest | TrendEmaVolTargetAttnTrend | early | universe early, no kill switch (research) |
