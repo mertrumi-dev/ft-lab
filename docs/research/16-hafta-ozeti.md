@@ -78,6 +78,6 @@ Bir ayar iyi çıktığında yanındaki ayarlara da bakıyoruz. Yanındakiler k�
 
 ## Anlaman gerekenler
 
-- **Yeni veri kaynağı otomatik olarak yeni bilgi demek değil.** Dokuz fikrin hiçbiri bütün sınavları geçmedi.
+- **Yeni veri kaynağı otomatik olarak yeni bilgi demek değil.** Denenen sekiz fikrin hiçbiri bütün sınavları geçmedi.
 - **Bir sınavı kıl payı kaçırmak yine de kalmaktır.** Kuralı sonuca göre esnetmek, kendini kandırmanın başlangıcıdır.
 - **Yüksek skor tek başına yetmez.** Yıl yıl davranışına, komşu ayarlara ve getiri ile düşüşe ayrı ayrı bak.
