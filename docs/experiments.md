@@ -814,3 +814,19 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 00:52 | backtest | TrendEmaVolTargetStableFlow | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-04 00:53 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-04 00:53 | backtest | TrendEmaVolTargetStableFlow | early | universe early, no kill switch (research) |
+| 2026-11-04 00:55 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 00:55 | backtest | TrendEmaVolTargetStableFlow | train | no kill switch (research) |
+| 2026-11-04 00:55 | backtest | VTStableFlow14 | train | no kill switch (research) |
+| 2026-11-04 00:55 | backtest | VTStableFlow60 | train | no kill switch (research) |
+| 2026-11-04 00:56 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 00:56 | backtest | TrendEmaVolTargetStableFlow | validation | no kill switch (research) |
+| 2026-11-04 00:56 | backtest | VTStableFlow14 | validation | no kill switch (research) |
+| 2026-11-04 00:56 | backtest | VTStableFlow60 | validation | no kill switch (research) |
+| 2026-11-04 00:56 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:56 | backtest | TrendEmaVolTargetStableFlow | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:56 | backtest | VTStableFlow14 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:56 | backtest | VTStableFlow60 | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:57 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-04 00:57 | backtest | TrendEmaVolTargetStableFlow | early | universe early, no kill switch (research) |
+| 2026-11-04 00:57 | backtest | VTStableFlow14 | early | universe early, no kill switch (research) |
+| 2026-11-04 00:57 | backtest | VTStableFlow60 | early | universe early, no kill switch (research) |
