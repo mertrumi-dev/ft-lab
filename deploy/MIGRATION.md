@@ -108,6 +108,10 @@ Mac'teki dry-run botlarında -%8 stopu botun kendisi izliyor (5 saniyede bir). M
 - [ ] Mini bot demoda zaten borsada stop kuruyor (minibot/demo.py, `place_stop`).
 - Çalışan Mac dry-run botlarının ayarı **bilerek değiştirilmedi**: kalıcı çözüm, hiç uyumayan sunucu.
 
+## Sunucuda tekrar denenecek
+
+- [ ] GDELT DOC API bu Mac'in IP'sinden HTTP 429 veriyor (28 saat sessizlikten sonra bile; araştırma 13, journal 2026-11-04). Sunucunun IP'sinden bir kez dene: `curl -s -A "ft-lab-research/0.1" "https://api.gdeltproject.org/api/v2/doc/doc?query=bitcoin&mode=timelinetone&format=json&timespan=7d" | head -c 200`. Çalışırsa haber denemesi ön kayıtla açılabilir.
+
 ## Faz 0 sayacı
 
 Taşıma kesintisi Faz 0'ın "24 saat kesintisiz" sayacını sıfırlar. Bu beklenen bir durum. Sunucuda sayaç bir kez başlar ve Mac uykusu artık onu kesmez; zaten taşımanın amacı bu.
