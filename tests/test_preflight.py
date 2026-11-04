@@ -167,3 +167,10 @@ def test_demo_config_keeps_the_stop_on_the_exchange():
     real = json.loads((ROOT / "user_data" / "config" / "config.demo.json").read_text())
     assert "FAIL" not in levels(preflight.check_demo_config(real))
     assert real["order_types"]["stoploss_on_exchange_limit_ratio"] == 0.99  # same 1% as minibot STOP_LIMIT_BELOW
+
+
+def test_every_bot_restarts_by_itself_as_the_deploy_checklist_says():
+    from pathlib import Path
+
+    compose = (Path(__file__).resolve().parent.parent / "docker-compose.yml").read_text()
+    assert compose.count("restart: unless-stopped") == compose.count("image: freqtradeorg/freqtrade") == 2
