@@ -830,3 +830,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 00:57 | backtest | TrendEmaVolTargetStableFlow | early | universe early, no kill switch (research) |
 | 2026-11-04 00:57 | backtest | VTStableFlow14 | early | universe early, no kill switch (research) |
 | 2026-11-04 00:57 | backtest | VTStableFlow60 | early | universe early, no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | train | no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | validation | no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-04 00:59 | backtest | TrendEmaVolTargetHashRibbon | early | universe early, no kill switch (research) |
