@@ -70,6 +70,25 @@ def parse_stable(payload: dict, into: dict[str, dict[str, float]]) -> str | None
     return payload.get("next_page_url")
 
 
+# T162: market caps for an approximate BTC dominance (the free tier has no total market cap).
+CAPS_OUT = ROOT / "user_data" / "data" / "external" / "cm_caps.json"
+CAPS_ASSETS = ["btc", "eth", "xrp", "bnb"]
+CAPS_START = "2017-01-01"
+
+
+def caps_url(start: str = CAPS_START) -> str:
+    q = {"assets": ",".join(CAPS_ASSETS), "metrics": "CapMrktCurUSD", "frequency": "1d", "start_time": start, "page_size": "10000"}
+    return f"{BASE}?{urllib.parse.urlencode(q)}"
+
+
+def parse_caps(payload: dict, into: dict[str, dict[str, float]]) -> str | None:
+    """Add one page to {asset: {"YYYY-MM-DD": market cap}}; return the next page url (or None)."""
+    for row in payload.get("data", []):
+        if row.get("CapMrktCurUSD") not in (None, ""):
+            into.setdefault(row["asset"], {})[row["time"][:10]] = float(row["CapMrktCurUSD"])
+    return payload.get("next_page_url")
+
+
 def get(url: str) -> dict:  # pragma: no cover - network
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=60) as r:
@@ -104,6 +123,17 @@ def main() -> int:  # pragma: no cover - network
     STABLE_OUT.write_text(json.dumps({a: dict(sorted(v.items())) for a, v in stable.items()}))
     for a, v in stable.items():
         print(f"{a} SplyCur: {len(v)} days, {min(v)} -> {max(v)}")
+    caps: dict[str, dict[str, float]] = {}
+    url = caps_url()
+    while url:
+        time.sleep(PAUSE_S)
+        url = parse_caps(get(url), caps)
+    if not all(caps.get(a) for a in CAPS_ASSETS):
+        print(f"missing market caps: {[a for a in CAPS_ASSETS if not caps.get(a)]}", file=sys.stderr)
+        return 1
+    CAPS_OUT.write_text(json.dumps({a: dict(sorted(v.items())) for a, v in caps.items()}))
+    for a, v in caps.items():
+        print(f"{a} CapMrktCurUSD: {len(v)} days, {min(v)} -> {max(v)}")
     return 0
 
 

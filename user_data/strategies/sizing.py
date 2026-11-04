@@ -1823,3 +1823,57 @@ class VTAttnTrend2060(TrendEmaVolTargetAttnTrend):  # T159 neighbours (only run 
 
 class VTAttnTrend45135(TrendEmaVolTargetAttnTrend):
     attn = (45, 135)
+
+
+# T162 ("altcoin season", a selection rule): non-BTC entries only while BTC's share of the market
+# value of BTC+ETH+XRP+BNB is lower than 30 days before (money moving from BTC into altcoins).
+# BTC itself is always allowed. Previous UTC day only; no data -> allowed. Data: scripts/onchain.py.
+CAPS_FILE = Path(__file__).resolve().parent.parent / "data" / "external" / "cm_caps.json"
+BTCDOM_DAYS = 30
+
+
+def btc_share(path: Path | None = None) -> pd.Series:
+    """Daily BTC cap / (sum of all caps in the file), only on days where every asset has a value."""
+    path = path or CAPS_FILE
+    if not path.exists():
+        return pd.Series(dtype=float)
+    raw = json.loads(path.read_text())
+    df = DataFrame({a: pd.Series(list(v.values()), index=pd.to_datetime(list(v.keys()), utc=True), dtype=float)
+                    for a, v in raw.items()}).sort_index().dropna()  # fmt: skip
+    if df.empty or "btc" not in df:
+        return pd.Series(dtype=float)
+    return df["btc"] / df.sum(axis=1)
+
+
+def btc_losing_share(share: pd.Series, days: int = BTCDOM_DAYS) -> pd.Series:
+    """1.0 on days whose BTC share is below the share `days` calendar days earlier, else 0.0; NaN without history."""
+    if share.empty:
+        return share
+    daily = share.asfreq("D").ffill()
+    before = daily.shift(days)
+    return (daily < before).astype(float).where(before.notna())
+
+
+class TrendEmaVolTargetBtcDom(TrendEmaVolTarget):
+    """VolTarget that buys altcoins only while BTC is losing market share (T162); BTC always allowed."""
+
+    dom_days = BTCDOM_DAYS
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["alt_season"] = fng_for_candles(dataframe["date"], btc_losing_share(btc_share(), self.dom_days))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe and not metadata.get("pair", "").startswith("BTC/"):
+            dataframe.loc[dataframe["alt_season"] == 0.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTBtcDom14(TrendEmaVolTargetBtcDom):  # T162 neighbours (only run if T162 passes)
+    dom_days = 14
+
+
+class VTBtcDom60(TrendEmaVolTargetBtcDom):
+    dom_days = 60

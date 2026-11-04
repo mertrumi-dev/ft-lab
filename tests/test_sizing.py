@@ -1054,3 +1054,35 @@ def test_attention_trend_gate_uses_yesterday(monkeypatch):
     out = s.populate_entry_trend(s.populate_indicators(df, {}), {})
     assert (out["enter_long"].iloc[:24] == 1).all() and (out["enter_long"].iloc[24:] == 0).all()
     assert (sizing.VTAttnTrend2060.attn, sizing.VTAttnTrend45135.attn) == ((20, 60), (45, 135))
+
+
+def test_btc_share_needs_every_asset_and_compares_with_30_days_before(tmp_path):
+    import json as _json
+
+    f = tmp_path / "caps.json"
+    f.write_text(_json.dumps({"btc": {"2030-01-01": 60.0, "2030-01-02": 50.0}, "eth": {"2030-01-02": 50.0, "2030-01-03": 1.0}}))
+    s = sizing.btc_share(f)
+    assert list(s) == [0.5] and sizing.btc_share(tmp_path / "none.json").empty  # only the day both have a value
+    idx = pd.date_range("2030-01-01", periods=40, freq="D", tz="UTC")
+    share = pd.Series(np.r_[np.linspace(0.5, 0.7, 35), np.linspace(0.6, 0.4, 5)], index=idx)
+    flag = sizing.btc_losing_share(share)
+    assert flag.iloc[:30].isna().all() and flag.iloc[34] == 0.0 and flag.iloc[-1] == 1.0
+    assert sizing.btc_losing_share(pd.Series(dtype=float)).empty
+
+
+def test_btc_dom_gate_spares_btc_and_uses_yesterday(monkeypatch):
+    days = pd.date_range("2030-01-01", periods=3, freq="D", tz="UTC")
+    flags = pd.Series([1.0, 0.0, 1.0], index=days)
+    monkeypatch.setattr(sizing, "btc_share", lambda path=None: pd.Series(dtype=float))
+    monkeypatch.setattr(sizing, "btc_losing_share", lambda share, days=30: flags)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_indicators", lambda self, d, m: d)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))
+    dates = pd.Series(pd.date_range(days[1], periods=48, freq="h", tz="UTC"))  # Jan 2 and Jan 3
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    s = sizing.TrendEmaVolTargetBtcDom({})
+    alt = s.populate_entry_trend(s.populate_indicators(df.copy(), {"pair": "ETH/USDT"}), {"pair": "ETH/USDT"})
+    assert (alt["enter_long"].iloc[:24] == 1).all()  # Jan 2 uses Jan 1 (BTC losing share)
+    assert (alt["enter_long"].iloc[24:] == 0).all()  # Jan 3 uses Jan 2 (BTC not losing share)
+    btc = s.populate_entry_trend(s.populate_indicators(df.copy(), {"pair": "BTC/USDT"}), {"pair": "BTC/USDT"})
+    assert (btc["enter_long"] == 1).all()
+    assert (sizing.VTBtcDom14.dom_days, sizing.VTBtcDom60.dom_days) == (14, 60)
