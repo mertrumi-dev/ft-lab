@@ -124,8 +124,9 @@ def prereg_lines() -> list[str]:
         return [f"ön kayıt dosyası okunamadı: {e}"]
     today = datetime.now(timezone.utc).date()
     bad = prereg.problems(rows)
-    results = prereg.load_results()
-    return [f"SORUN: {p}" for p in bad] + [f"{r['id']} {r['name']}: {prereg.progress(r, today, results)}" for r in rows]
+    results, confirms = prereg.load_results(), prereg.load_results(prereg.CONFIRMS)
+    return ([f"SORUN: {p}" for p in bad] + [f"{r['id']} {r['name']}: {prereg.progress(r, today, results, confirms)}" for r in rows]
+            + prereg.family_lines(results))  # fmt: skip
 
 
 def _prereg_rows() -> list[dict]:
@@ -166,7 +167,9 @@ def plan(with_nfi: bool, download: bool) -> list[tuple[str, list[str], bool]]:
     for coin in CHART_COINS:  # plain-Turkish chart reading of the bot's coins -> report section 8
         steps.append((f"chart {coin}", ["chart", "--pair", coin, "--tr"], True))
     steps.append(("scan pool", ["scan", "--csv"], True))  # record only: market breadth per day
-    if any(prereg.is_due(r, datetime.now(timezone.utc).date()) for r in _prereg_rows()):
+    today = datetime.now(timezone.utc).date()
+    results, confirms = prereg.load_results(), prereg.load_results(prereg.CONFIRMS)
+    if any(prereg.is_due(r, today) or prereg.confirm_due(r, results, confirms, today) for r in _prereg_rows()):
         steps.append(("prereg judge", ["prereg-judge", "--due"], True))  # fresh-only rows whose judge date came
     return steps
 

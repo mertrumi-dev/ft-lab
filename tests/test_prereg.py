@@ -115,3 +115,101 @@ def test_daily_adds_the_judge_step_only_when_a_row_is_due(monkeypatch):
     assert not any(t == "prereg judge" for t, _, _ in daily.plan(False, False))
     monkeypatch.setattr(daily, "_prereg_rows", lambda: [row(start="2020-01-01", judge="2020-07-01")])
     assert any(t == "prereg judge" for t, _, _ in daily.plan(False, False))
+
+
+CAND = {"calmar": 1.5, "max_drawdown": 0.08, "trades": 70}
+BASE = {"calmar": 1.0, "max_drawdown": 0.10, "trades": 80}
+WORSE = {"calmar": 0.5, "max_drawdown": 0.08, "trades": 70}
+
+
+def res(verdict="PASS", boot_p=""):
+    return {"id": "F1", "judged_on": "2027-02-01", "verdict": verdict, "candidate_calmar": "1.5", "baseline_calmar": "1.0", "trades": "70", "boot_p": boot_p}
+
+
+def test_add_months_clips_to_the_end_of_the_month():
+    assert prereg.add_months(date(2027, 5, 2), 6) == date(2027, 11, 2)
+    assert prereg.add_months(date(2027, 8, 31), 6) == date(2028, 2, 29)
+    assert prereg.add_months(date(2027, 11, 1), 3) == date(2028, 2, 1)
+
+
+def test_stage_path_of_a_row():
+    assert prereg.stage("F1", {}, {}) is None
+    assert prereg.stage("F1", {"F1": res("FAIL")}, {}) == "FAIL"
+    assert prereg.stage("F1", {"F1": res("yetersiz")}, {}) == "yetersiz"
+    assert prereg.stage("F1", {"F1": res()}, {}) == "ADAY"
+    assert prereg.stage("F1", {"F1": res()}, {"F1": res()}) == "DOĞRULANDI"
+    assert prereg.stage("F1", {"F1": res()}, {"F1": res("FAIL")}) == "ELENDİ"
+    assert prereg.stage("F1", {"F1": res()}, {"F1": res("yetersiz")}) == "ADAY-yetersiz"
+
+
+def test_a_pass_becomes_aday_and_is_judged_again_alone_on_the_next_6_months(tmp_path):
+    rows, first, second = [row()], tmp_path / "r.csv", tmp_path / "c.csv"
+    prereg.record(rows, "F1", CAND, BASE, date(2027, 2, 1), first, boot_p=0.04)
+    results = prereg.load_results(first)
+    assert results["F1"]["boot_p"] == "0.0400"
+    assert prereg.confirm_timerange(rows[0]) == "20270201-20270801"
+    assert "ADAY: tek başına 2. yargı 2027-08-01" in prereg.progress(rows[0], date(2027, 3, 1), results)
+    with pytest.raises(SystemExit, match="second judgement"):
+        prereg.record_confirm(rows, "F1", CAND, BASE, date(2027, 7, 31), first, second)  # no peeking here either
+    assert prereg.record_confirm(rows, "F1", CAND, BASE, date(2027, 8, 1), first, second) == "DOĞRULANDI"
+    assert "→ DOĞRULANDI" in prereg.progress(rows[0], date(2027, 9, 1), results, prereg.load_results(second))
+    with pytest.raises(SystemExit):
+        prereg.record_confirm(rows, "F1", CAND, BASE, date(2027, 8, 2), first, second)  # once only
+
+
+def test_second_failure_eliminates_and_uses_the_same_locked_rule(tmp_path):
+    rows, first, second = [row()], tmp_path / "r.csv", tmp_path / "c.csv"
+    prereg.record(rows, "F1", CAND, BASE, date(2027, 2, 1), first)
+    assert prereg.record_confirm(rows, "F1", WORSE, BASE, date(2027, 8, 1), first, second) == "ELENDİ"
+
+
+def test_the_second_stage_changes_no_locked_field():
+    before = row()
+    lock = before["lock"]
+    assert prereg.lock_hash(before) == lock and prereg.problems([before]) == []
+    assert not {"boot_p", "status"} & set(prereg.LOCKED)
+
+
+def test_a_failed_row_is_never_judged_again():
+    assert not prereg.confirm_due(row(), {"F1": res("FAIL")}, {}, date(2030, 1, 1))
+    assert not prereg.confirm_due(row(), {}, {}, date(2030, 1, 1))
+    assert prereg.confirm_due(row(), {"F1": res()}, {}, date(2027, 8, 1))
+
+
+def test_holm_known_values():
+    got = prereg.holm({"a": 0.01, "b": 0.04, "c": 0.03})
+    assert abs(got["a"] - 0.03) < 1e-12 and abs(got["c"] - 0.06) < 1e-12 and abs(got["b"] - 0.06) < 1e-12  # never decreases
+    assert prereg.holm({"a": 0.6, "b": 0.9}) == {"a": 1.0, "b": 1.0}
+    assert prereg.holm({}) == {}
+
+
+def test_family_warning_counts_rows_and_prints_holm_as_information():
+    assert prereg.family_lines({"F1": res()}) == []
+    lines = prereg.family_lines({"F1": res(boot_p="0.0100"), "F2": res(boot_p="0.0400"), "F3": res()})
+    assert lines[0] == "Aynı anda 3 satır yargılandı. Şansla en az birinin geçmesi beklenir."
+    assert "F1: block-bootstrap p 0.010, Holm 0.020" in lines[1] and "sadece bilgi" in lines[1] and len(lines) == 3
+
+
+def test_bootstrap_p_finds_a_steady_lead_and_none_when_identical():
+    import numpy as np
+
+    import prereg_eval
+
+    rng = np.random.default_rng(1)
+    market = rng.normal(0.0, 0.01, 180)
+    assert prereg_eval.bootstrap_p(market, market, runs=200) == 1.0  # same curve: never better
+    assert prereg_eval.bootstrap_p(market + 0.01, market, runs=200) < 0.05
+    assert prereg_eval.bootstrap_p(market - 0.01, market, runs=200) > 0.95
+    assert prereg_eval.bootstrap_p(market[:5], market[:5]) is None  # too little data
+    assert prereg_eval.bootstrap_p(market, market, runs=50) == prereg_eval.bootstrap_p(market, market, runs=50)  # seeded
+
+
+def test_prereg_judge_runs_an_aday_row_alone_on_the_second_window_with_confirm(monkeypatch):
+    import ft
+
+    done = row(id="F8", start="2020-01-01", judge="2020-07-01", status="judged")
+    monkeypatch.setattr(prereg, "load", lambda path=prereg.FILE: [done])
+    monkeypatch.setattr(prereg, "load_results", lambda path=prereg.RESULTS: {"F8": {**res(), "id": "F8"}} if path == prereg.RESULTS else {})
+    bt, ev = ft.build_commands(ft.parse_args(["prereg-judge", "--due"]))
+    assert bt[bt.index("--timerange") + 1] == "20200701-20210101"
+    assert ev[-1] == "--confirm" and ev[ev.index("--id") + 1] == "F8"

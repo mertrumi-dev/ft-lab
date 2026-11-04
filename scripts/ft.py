@@ -372,23 +372,26 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
         today = datetime.now(timezone.utc).date()
         rows = prereg.load()
-        picked = [r for r in rows if prereg.is_due(r, today)] if args.due else [r for r in rows if r["id"] == args.id]
+        results, confirms = prereg.load_results(), prereg.load_results(prereg.CONFIRMS)
+        second = {r["id"] for r in rows if prereg.confirm_due(r, results, confirms, today)}  # ADAY rows, judged alone
+        picked = [r for r in rows if prereg.is_due(r, today) or r["id"] in second] if args.due else [r for r in rows if r["id"] == args.id]
         if args.id and not picked:
             raise SystemExit(f"no row {args.id}")
         steps = []
         for r in picked:
-            if not prereg.is_due(r, today):
+            if not prereg.is_due(r, today) and r["id"] not in second:
                 raise SystemExit(f"Refusing: {r['id']} is judged on {r['judge']} (status {r['status']}); not before.")
             if r["kind"] != "strategy":
                 print(f"{r['id']} ({r['kind']}): not a single strategy, judge it by hand with its criterion")
                 continue
-            tr = prereg.timerange(r)
+            tr = prereg.confirm_timerange(r) if r["id"] in second else prereg.timerange(r)
             steps.append(docker_cmd("backtesting", "--config", CONFIG, "--strategy-list", r["name"], DEFAULT_BASELINE,
                                     "--timeframe", timeframe_of(r["name"]), "--timerange", tr, "--fee", FEE,
                                     "--enable-protections", "--export", "trades"))  # fmt: skip
             steps.append(["docker", "compose", "run", "--rm", "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
                           "--entrypoint", "python", "freqtrade", "/freqtrade/scripts/prereg_eval.py",
-                          "--strategy", r["name"], "--baseline", DEFAULT_BASELINE, "--timerange", tr, "--id", r["id"]])  # fmt: skip
+                          "--strategy", r["name"], "--baseline", DEFAULT_BASELINE, "--timerange", tr, "--id", r["id"],
+                          *(["--confirm"] if r["id"] in second else [])])  # fmt: skip
         return steps
 
     if args.command == "trial":
@@ -693,9 +696,15 @@ def record_prereg(cmd: list[str]) -> int:
     res = json.loads(line.removeprefix("prereg_result: "))
     rid = cmd[cmd.index("--id") + 1]
     rows = prereg.load()
-    verdict = prereg.record(rows, rid, res["candidate"], res["baseline"], datetime.now(timezone.utc).date())
+    today = datetime.now(timezone.utc).date()
+    if "--confirm" in cmd:
+        print(f"{rid}: {prereg.record_confirm(rows, rid, res['candidate'], res['baseline'], today, boot_p=res.get('boot_p'))} (written to docs/fresh/prereg-confirm.csv)")
+        return 0
+    verdict = prereg.record(rows, rid, res["candidate"], res["baseline"], today, boot_p=res.get("boot_p"))
     prereg.save(rows)
-    print(f"{rid}: {verdict} (written to docs/fresh/prereg-results.csv, status updated)")
+    print(f"{rid}: {verdict}{' → ADAY' if verdict == 'PASS' else ''} (written to docs/fresh/prereg-results.csv, status updated)")
+    for line in prereg.family_lines(prereg.load_results()):
+        print(line)
     return 0
 
 

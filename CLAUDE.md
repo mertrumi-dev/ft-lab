@@ -82,7 +82,7 @@ python3 scripts/ft.py walkforward|montecarlo|benchmark --slice train
 python3 scripts/ft.py trial --strategy X [--neighbours A B --robust]   # standart deneme: 4 dilim sırayla + otomatik hüküm (scripts/criterion.py). Önce ön kayıt!
 python3 scripts/ft.py verdict --strategy X [--neighbours A B --robust]  # mevcut sonuçlardan hüküm (salt okunur)
 python3 scripts/ft.py removed --strategy X --slice S [--universe U]   # filtrenin attığı işlemler yıl yıl (salt okunur; trial --entry-filter bunu her dilimde basar)
-python3 scripts/ft.py prereg-judge --due|--id F005   # taze-veri satırlarını hüküm gününde yargıla (öncesinde REDDEDER); daily.py zamanı gelince kendisi çağırır
+python3 scripts/ft.py prereg-judge --due|--id F005   # taze-veri satırlarını hüküm gününde yargıla (öncesinde REDDEDER); PASS = ADAY, sonraki 6 ayda tek başına geçerse DOĞRULANDI; daily.py zamanı gelince kendisi çağırır
 python3 scripts/ft.py regimes --slice train|early [--no-kill-switch]   # boğa/ayı/testere + oynaklık rejimine göre sonuç (analiz)
 python3 scripts/ft.py expected      # VolTarget taze sonucu beklenen aralıkta mı (block bootstrap)
 python3 scripts/ft.py scan [--universe core] [--csv]   # piyasa tarayıcı (salt okunur)

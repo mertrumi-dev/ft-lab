@@ -256,3 +256,7 @@ Kaan'ın dış değerlendirmeye dayanan yeni planı: deneme döngüsü bitti. Ye
 ## 2026-11-05 · Aynı yatırımlı al-tut ölçüldü
 
 Yeni satır `Al-tut (aynı yatırım)`: report, bots, latest.md. VolTarget Calmar 1,86 / 1,93 / -0,76 / 2,46 / -8,40; aynı yatırım 2,97 / 2,44 / -0,58 / 1,27 / -7,93; devir komisyonlu 1,91 / 1,60 / -0,72 / 0,40 / -8,12 (train, validation, test, early, fresh; kill switch kapalı). Ders: az düşüşün büyük kısmı az yatırımdan ve piyasadan çıkma anlarından geliyor; coin seçimi ayrıca getiri katmıyor gibi. Kural değişmedi. Ayrıntı: results.md, kart 41.
+
+## 2026-11-05 · Çoklu karşılaştırma katmanı
+
+Kilitli şartlara dokunulmadı. PASS artık ADAY; sonraki 6 ayda tek başına aynı şartla geçerse DOĞRULANDI, geçemezse ELENDİ. Rapor "Aynı anda N satır yargılandı" diyor; bootstrap p + Holm sadece bilgi. Ders: negatif getiride Calmar tek başına sıralama yapamıyor (daha derin düşüş oranı sıfıra yaklaştırır), test yakaladı; p kilitli şartın aynısını soruyor. Kart 42.

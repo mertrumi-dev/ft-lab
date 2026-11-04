@@ -11,9 +11,16 @@ criterion is locked by a hash of (name, idea, criterion, start, judge, min_trade
 start date any change to those fields is reported as a PROBLEM and the run fails, and --lock
 is refused, so nobody (human or AI) can move the goalposts after seeing data.
 Until the judge date a row only shows "henüz hüküm yok (X/N gün)". Stdlib only (runs on the Mac).
+
+Multiple-comparison layer (on top; criteria and hashes untouched). Many rows judged together means
+some pass by luck, so a first PASS is only "ADAY". An ADAY row is judged again ALONE, on the same
+locked criterion, on the next 6 months after its judge date: PASS again = "DOĞRULANDI", else "ELENDİ".
+A block-bootstrap p-value per row (prereg_eval.py) and its Holm-adjusted value are information only:
+they never change a verdict.
 """
 
 import argparse
+import calendar
 import csv
 import hashlib
 import sys
@@ -29,7 +36,9 @@ FIELDS = ["id", "name", "kind", "idea", "criterion", "start", "judge", "min_trad
 LOCKED = ("name", "idea", "criterion", "start", "judge", "min_trades")
 STATUSES = ("active", "judged", "yetersiz")
 RESULTS = ROOT / "docs" / "fresh" / "prereg-results.csv"  # append-only: one line per judged row
-RESULT_FIELDS = ["id", "judged_on", "verdict", "candidate_calmar", "baseline_calmar", "candidate_dd", "baseline_dd", "trades"]
+RESULT_FIELDS = ["id", "judged_on", "verdict", "candidate_calmar", "baseline_calmar", "candidate_dd", "baseline_dd", "trades", "boot_p"]
+CONFIRMS = ROOT / "docs" / "fresh" / "prereg-confirm.csv"  # append-only: the second, alone judgement of ADAY rows
+CONFIRM_MONTHS = 6
 
 
 def lock_hash(row: dict) -> str:
@@ -68,11 +77,73 @@ def problems(rows: list[dict]) -> list[str]:
     return out
 
 
-def progress(row: dict, today: date, results: dict | None = None) -> str:
-    res = (results or {}).get(row["id"])
+def add_months(d: date, months: int) -> date:
+    """Same day of the month, `months` later; clipped to the month's last day (Aug 31 -> Feb 28)."""
+    total = d.month - 1 + months
+    year, month = d.year + total // 12, total % 12 + 1
+    return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
+
+
+def confirm_end(row: dict) -> date:
+    """The second window is [judge, this date): prices nobody had at the first judgement."""
+    return add_months(date.fromisoformat(row["judge"]), CONFIRM_MONTHS)
+
+
+def confirm_timerange(row: dict) -> str:
+    return f"{row['judge'].replace('-', '')}-{confirm_end(row).strftime('%Y%m%d')}"
+
+
+def stage(rid: str, results: dict, confirms: dict) -> str | None:
+    """Where a row stands: None (not judged), FAIL/yetersiz, ADAY, DOĞRULANDI, ELENDİ or ADAY-yetersiz."""
+    first = results.get(rid)
+    if not first:
+        return None
+    if first["verdict"] != "PASS":
+        return first["verdict"]
+    second = confirms.get(rid)
+    if not second:
+        return "ADAY"
+    return {"PASS": "DOĞRULANDI", "FAIL": "ELENDİ"}.get(second["verdict"], "ADAY-yetersiz")
+
+
+def confirm_due(row: dict, results: dict, confirms: dict, today: date) -> bool:
+    return stage(row["id"], results, confirms) == "ADAY" and today >= confirm_end(row)
+
+
+def holm(pvalues: dict[str, float]) -> dict[str, float]:
+    """Holm-adjusted p-values: the smallest p x n, the next x (n-1), ..., never decreasing, at most 1."""
+    n, running, out = len(pvalues), 0.0, {}
+    for i, (rid, p) in enumerate(sorted(pvalues.items(), key=lambda kv: kv[1])):
+        running = max(running, min(1.0, p * (n - i)))
+        out[rid] = running
+    return out
+
+
+def family_lines(results: dict) -> list[str]:
+    """The warning for rows judged together + each row's p-values. Information only."""
+    if len(results) < 2:
+        return []
+    lines = [f"Aynı anda {len(results)} satır yargılandı. Şansla en az birinin geçmesi beklenir."]
+    ps = {rid: float(r["boot_p"]) for rid, r in results.items() if r.get("boot_p")}
+    adjusted = holm(ps)
+    lines += [f"{rid}: block-bootstrap p {ps[rid]:.3f}, Holm {adjusted[rid]:.3f} (sadece bilgi, hükmü değiştirmez)" for rid in sorted(ps)]
+    return lines
+
+
+def progress(row: dict, today: date, results: dict | None = None, confirms: dict | None = None) -> str:
+    results, confirms = results or {}, confirms or {}
+    res = results.get(row["id"])
     if res:
-        return (f"HÜKÜM {res['judged_on']}: {res['verdict']} (Calmar {float(res['candidate_calmar']):.2f} vs "
+        text = (f"HÜKÜM {res['judged_on']}: {res['verdict']} (Calmar {float(res['candidate_calmar']):.2f} vs "
                 f"VolTarget {float(res['baseline_calmar']):.2f}, {res['trades']} işlem)")  # fmt: skip
+        now = stage(row["id"], results, confirms)
+        if now == "ADAY":
+            when = confirm_end(row)
+            text += f" → ADAY: tek başına 2. yargı {when}" if today < when else " → ADAY: 2. yargı günü geldi: `python3 scripts/ft.py prereg-judge --due`"
+        elif now in ("DOĞRULANDI", "ELENDİ", "ADAY-yetersiz"):
+            c = confirms[row["id"]]
+            text += f" → {now} (2. yargı {c['judged_on']}: Calmar {float(c['candidate_calmar']):.2f} vs {float(c['baseline_calmar']):.2f})"
+        return text
     start, judge = date.fromisoformat(row["start"]), date.fromisoformat(row["judge"])
     total = (judge - start).days
     if today < start:
@@ -107,12 +178,7 @@ def load_results(path: Path = RESULTS) -> dict[str, dict]:
         return {r["id"]: r for r in csv.DictReader(f)}
 
 
-def record(rows: list[dict], rid: str, cand: dict, base: dict, today: date, path: Path = RESULTS) -> str:
-    """Apply the criterion, append the result line, set the row's status. Returns the verdict."""
-    row = next(r for r in rows if r["id"] == rid)
-    if not is_due(row, today):
-        raise SystemExit(f"Refusing: {rid} is not due (judge {row['judge']}, status {row['status']}).")
-    verdict = judge_row(cand, base, int(row["min_trades"]))
+def _append(path: Path, rid: str, verdict: str, cand: dict, base: dict, today: date, boot_p: float | None) -> None:
     new = not path.exists()
     with path.open("a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
@@ -121,9 +187,29 @@ def record(rows: list[dict], rid: str, cand: dict, base: dict, today: date, path
         w.writerow({"id": rid, "judged_on": today.isoformat(), "verdict": verdict,
                     "candidate_calmar": f"{cand['calmar']:.4f}", "baseline_calmar": f"{base['calmar']:.4f}",
                     "candidate_dd": f"{cand['max_drawdown']:.4f}", "baseline_dd": f"{base['max_drawdown']:.4f}",
-                    "trades": cand["trades"]})  # fmt: skip
+                    "trades": cand["trades"], "boot_p": "" if boot_p is None else f"{boot_p:.4f}"})  # fmt: skip
+
+
+def record(rows: list[dict], rid: str, cand: dict, base: dict, today: date, path: Path = RESULTS, boot_p: float | None = None) -> str:
+    """Apply the criterion, append the result line, set the row's status. Returns the verdict."""
+    row = next(r for r in rows if r["id"] == rid)
+    if not is_due(row, today):
+        raise SystemExit(f"Refusing: {rid} is not due (judge {row['judge']}, status {row['status']}).")
+    verdict = judge_row(cand, base, int(row["min_trades"]))
+    _append(path, rid, verdict, cand, base, today, boot_p)
     row["status"] = "yetersiz" if verdict == "yetersiz" else "judged"
     return verdict
+
+
+def record_confirm(rows: list[dict], rid: str, cand: dict, base: dict, today: date, results_path: Path = RESULTS,
+                   path: Path = CONFIRMS, boot_p: float | None = None) -> str:  # fmt: skip
+    """Second, alone judgement of an ADAY row on the same locked criterion. Returns the new stage."""
+    row = next(r for r in rows if r["id"] == rid)
+    results, confirms = load_results(results_path), load_results(path)
+    if not confirm_due(row, results, confirms, today):
+        raise SystemExit(f"Refusing: {rid} is not due for its second judgement (stage {stage(rid, results, confirms)}, window ends {confirm_end(row)}).")
+    _append(path, rid, judge_row(cand, base, int(row["min_trades"])), cand, base, today, boot_p)
+    return stage(rid, results, load_results(path))
 
 
 def relock(rows: list[dict], rid: str, today: date) -> None:
@@ -182,9 +268,11 @@ def main(argv: list[str] | None = None) -> int:
     found = problems(rows)
     for p in found:
         print("PROBLEM:", p)
-    results = load_results()
+    results, confirms = load_results(), load_results(CONFIRMS)
     for r in rows:
-        print(f"prereg {r['id']} {r['name']}: {progress(r, today, results)}")
+        print(f"prereg {r['id']} {r['name']}: {progress(r, today, results, confirms)}")
+    for line in family_lines(results):
+        print(line)
     return 1 if found else 0
 
 
