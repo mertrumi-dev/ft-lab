@@ -5,6 +5,7 @@
 Daily, one value per UTC day:
   AdrActCnt   active addresses (sent or received that day): how many people use the network
   CapMVRVCur  MVRV = market cap / realized cap (each coin valued at the price it last moved)
+  HashRate    mining power securing the network (Hash Ribbons, T158)
 Market-wide on purpose (docs/research/14-coin-verisi.md): per-coin network data is not clean on the
 free tier (SOL has none; BNB's history mixes its 2019 move from an ERC-20 token to its own chain).
 
@@ -28,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "user_data" / "data" / "external" / "cm_btc.json"
 BASE = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
-METRICS = ["AdrActCnt", "CapMVRVCur"]
+METRICS = ["AdrActCnt", "CapMVRVCur", "HashRate"]
 START = "2010-07-18"
 USER_AGENT = "ft-lab-research/0.1 (crypto trading-rule research; github mertrumi-dev)"
 PAUSE_S = 1.0

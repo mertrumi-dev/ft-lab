@@ -1749,3 +1749,40 @@ class VTStableFlow14(TrendEmaVolTargetStableFlow):  # T155 neighbours (only run 
 
 class VTStableFlow60(TrendEmaVolTargetStableFlow):
     stable_days = 60
+
+
+# T158 Hash Ribbons (Charles Edwards, Capriole): BTC hash rate's 30-day mean below its 60-day mean
+# means miners are under stress. No new entries during that stress; exits unchanged. Slow,
+# market-wide regime. Previous UTC day only (fng_for_candles); no data -> allowed.
+RIBBON_FAST, RIBBON_SLOW = 30, 60
+
+
+def miner_stress(hash_rate: pd.Series, fast: int = RIBBON_FAST, slow: int = RIBBON_SLOW) -> pd.Series:
+    """1.0 on days whose fast SMA of hash rate is below the slow SMA, else 0.0; NaN until both exist."""
+    f, s = hash_rate.rolling(fast).mean(), hash_rate.rolling(slow).mean()
+    return (f < s).astype(float).where(s.notna())
+
+
+class TrendEmaVolTargetHashRibbon(TrendEmaVolTarget):
+    """VolTarget that skips entries while BTC miners are under stress (hash rate SMA30 < SMA60) (T158)."""
+
+    ribbon = (RIBBON_FAST, RIBBON_SLOW)
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["miner_stress"] = fng_for_candles(dataframe["date"], miner_stress(load_cm_metric("HashRate"), *self.ribbon))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["miner_stress"] == 1.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTHashRibbon2050(TrendEmaVolTargetHashRibbon):  # T158 neighbours (only run if T158 passes)
+    ribbon = (20, 50)
+
+
+class VTHashRibbon4080(TrendEmaVolTargetHashRibbon):
+    ribbon = (40, 80)

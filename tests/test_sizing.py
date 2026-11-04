@@ -1017,3 +1017,21 @@ def test_stable_flow_compares_with_the_days_before_and_uses_yesterday(monkeypatc
     assert (out["enter_long"].iloc[:24] == 1).all()  # day 35 uses day 34: still growing (no lookahead)
     assert (out["enter_long"].iloc[24:] == 0).all()  # day 36 uses day 35: below 30 days before
     assert (sizing.VTStableFlow14.stable_days, sizing.VTStableFlow60.stable_days) == (14, 60)
+
+
+def test_hash_ribbon_blocks_during_stress_using_yesterday(monkeypatch):
+    idx = pd.date_range("2030-01-01", periods=120, freq="D", tz="UTC")
+    rate = pd.Series(np.r_[np.linspace(100, 200, 100), np.linspace(200, 120, 20)], index=idx)  # rise, then a fall
+    st = sizing.miner_stress(rate)
+    assert st.iloc[:59].isna().all() and st.iloc[60] == 0.0 and st.iloc[-1] == 1.0
+    first = st[st == 1.0].index[0]
+    monkeypatch.setattr(sizing, "load_cm_metric", lambda metric, path=None: rate)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_indicators", lambda self, d, m: d)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))
+    dates = pd.Series(pd.date_range(first, periods=48, freq="h", tz="UTC"))  # first stress day and the next one
+    s = sizing.TrendEmaVolTargetHashRibbon({})
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    out = s.populate_entry_trend(s.populate_indicators(df, {}), {})
+    assert (out["enter_long"].iloc[:24] == 1).all()  # the first stress day is only known the day after
+    assert (out["enter_long"].iloc[24:] == 0).all()
+    assert (sizing.VTHashRibbon2050.ribbon, sizing.VTHashRibbon4080.ribbon) == ((20, 50), (40, 80))
