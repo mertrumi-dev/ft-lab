@@ -1826,7 +1826,7 @@ class VTAttnTrend45135(TrendEmaVolTargetAttnTrend):
 
 
 # T162 ("altcoin season", a selection rule): non-BTC entries only while BTC's share of the market
-# value of BTC+ETH+XRP+BNB is lower than 30 days before (money moving from BTC into altcoins).
+# value of BTC+ETH+XRP is lower than 30 days before (money moving from BTC into altcoins).
 # BTC itself is always allowed. Previous UTC day only; no data -> allowed. Data: scripts/onchain.py.
 CAPS_FILE = Path(__file__).resolve().parent.parent / "data" / "external" / "cm_caps.json"
 BTCDOM_DAYS = 30

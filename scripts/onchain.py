@@ -72,7 +72,8 @@ def parse_stable(payload: dict, into: dict[str, dict[str, float]]) -> str | None
 
 # T162: market caps for an approximate BTC dominance (the free tier has no total market cap).
 CAPS_OUT = ROOT / "user_data" / "data" / "external" / "cm_caps.json"
-CAPS_ASSETS = ["btc", "eth", "xrp", "bnb"]
+# no bnb: its community series stops at 2019-04-22 (the ERC-20 era), checked 2026-11-04
+CAPS_ASSETS = ["btc", "eth", "xrp"]
 CAPS_START = "2017-01-01"
 
 

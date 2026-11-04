@@ -39,7 +39,7 @@ def test_stable_url_and_parse():
 
 def test_caps_url_and_parse():
     u = onchain.caps_url()
-    assert "assets=btc%2Ceth%2Cxrp%2Cbnb" in u and "metrics=CapMrktCurUSD" in u and "api_key" not in u
+    assert "assets=btc%2Ceth%2Cxrp" in u and "bnb" not in u and "metrics=CapMrktCurUSD" in u and "api_key" not in u
     into = {}
     assert onchain.parse_caps({"data": [{"asset": "btc", "time": "2021-06-01T00:00:00.000000000Z", "CapMrktCurUSD": "7.5"}]}, into) is None
     assert into == {"btc": {"2021-06-01": 7.5}}
