@@ -25,3 +25,13 @@ def test_parse_pages_and_skips_empty_values():
 def test_output_is_gitignored_and_licence_is_named():
     assert onchain.OUT.relative_to(onchain.ROOT).parts[:2] == ("user_data", "data")
     assert "BY-NC" in onchain.__doc__ and onchain.PAUSE_S >= 0.6  # 10 requests / 6 s limit
+
+
+def test_stable_url_and_parse():
+    u = onchain.stable_url()
+    assert "assets=usdt%2Cusdc" in u and "metrics=SplyCur" in u and "api_key" not in u
+    into = {}
+    nxt = onchain.parse_stable({"data": [{"asset": "usdt", "time": "2021-06-01T00:00:00.000000000Z", "SplyCur": "64.4"},
+                                         {"asset": "usdc", "time": "2021-06-01T00:00:00.000000000Z"}]}, into)  # fmt: skip
+    assert nxt is None and into == {"usdt": {"2021-06-01": 64.4}}
+    assert onchain.STABLE_OUT.relative_to(onchain.ROOT).parts[:2] == ("user_data", "data")

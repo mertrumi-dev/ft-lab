@@ -1694,3 +1694,58 @@ class VTFunding80(TrendEmaVolTargetFunding):
 
 class VTFunding95(TrendEmaVolTargetFunding):
     funding_q = 0.95
+
+
+# T155 (slow liquidity regime, not an extreme-moment filter): new stablecoin issuance means fresh
+# dollars entering crypto. Enter only while total USDT + USDC supply is higher than 30 days before,
+# using the previous UTC day's value (fng_for_candles). Market-wide; no data -> allowed.
+# Data: scripts/onchain.py (Coin Metrics Community, CC BY-NC).
+STABLE_FILE = Path(__file__).resolve().parent.parent / "data" / "external" / "cm_stable.json"
+STABLE_DAYS = 30
+
+
+def stable_total(path: Path | None = None) -> pd.Series:
+    """{asset: {day: supply}} -> total supply per calendar day (gaps carried forward, an asset counts
+    0 before its first day); empty if the file is missing."""
+    path = path or STABLE_FILE
+    if not path.exists():
+        return pd.Series(dtype=float)
+    parts = []
+    for days in json.loads(path.read_text()).values():
+        s = pd.Series(list(days.values()), index=pd.to_datetime(list(days.keys()), utc=True), dtype=float).sort_index()
+        parts.append(s)
+    if not parts:
+        return pd.Series(dtype=float)
+    full = pd.date_range(min(s.index[0] for s in parts), max(s.index[-1] for s in parts), freq="D", tz="UTC")
+    return sum(s.reindex(full).ffill().fillna(0.0) for s in parts)
+
+
+def stable_growing(total: pd.Series, days: int = STABLE_DAYS) -> pd.Series:
+    """1.0 on days whose total beats the total `days` days earlier, else 0.0; NaN without that history."""
+    before = total.shift(days)
+    return (total > before).astype(float).where(before.notna())
+
+
+class TrendEmaVolTargetStableFlow(TrendEmaVolTarget):
+    """VolTarget that only enters while stablecoin supply has grown over the last 30 days (T155)."""
+
+    stable_days = STABLE_DAYS
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        dataframe["stable_up"] = fng_for_candles(dataframe["date"], stable_growing(stable_total(), self.stable_days))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["stable_up"] == 0.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+class VTStableFlow14(TrendEmaVolTargetStableFlow):  # T155 neighbours (only run if T155 passes)
+    stable_days = 14
+
+
+class VTStableFlow60(TrendEmaVolTargetStableFlow):
+    stable_days = 60

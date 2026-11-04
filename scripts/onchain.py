@@ -1,6 +1,6 @@
 """Download market-wide BTC on-chain history for backtests (Coin Metrics Community API, no key).
 
-    python3 scripts/onchain.py            # writes user_data/data/external/cm_btc.json
+    python3 scripts/onchain.py            # writes user_data/data/external/cm_btc.json + cm_stable.json
 
 Daily, one value per UTC day:
   AdrActCnt   active addresses (sent or received that day): how many people use the network
@@ -49,6 +49,26 @@ def parse(payload: dict, into: dict[str, dict[str, float]]) -> str | None:
     return payload.get("next_page_url")
 
 
+# T155: stablecoin supply (same API, same licence). `usdt` is all chains together (2021-06-01:
+# 64.4 bn = usdt_eth 30.9 + usdt_trx 32.0 + smaller chains, checked by hand 2026-11-04).
+STABLE_OUT = ROOT / "user_data" / "data" / "external" / "cm_stable.json"
+STABLE_ASSETS = ["usdt", "usdc"]
+STABLE_START = "2014-10-06"
+
+
+def stable_url(start: str = STABLE_START) -> str:
+    q = {"assets": ",".join(STABLE_ASSETS), "metrics": "SplyCur", "frequency": "1d", "start_time": start, "page_size": "10000"}
+    return f"{BASE}?{urllib.parse.urlencode(q)}"
+
+
+def parse_stable(payload: dict, into: dict[str, dict[str, float]]) -> str | None:
+    """Add one page to {asset: {"YYYY-MM-DD": supply}}; return the next page url (or None)."""
+    for row in payload.get("data", []):
+        if row.get("SplyCur") not in (None, ""):
+            into.setdefault(row["asset"], {})[row["time"][:10]] = float(row["SplyCur"])
+    return payload.get("next_page_url")
+
+
 def get(url: str) -> dict:  # pragma: no cover - network
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=60) as r:
@@ -72,6 +92,17 @@ def main() -> int:  # pragma: no cover - network
     for m, v in data.items():
         print(f"{m}: {len(v)} days, {min(v)} -> {max(v)}")
     print(f"wrote {OUT.relative_to(ROOT)} ({pages} page(s))")
+    stable: dict[str, dict[str, float]] = {}
+    url = stable_url()
+    while url:
+        time.sleep(PAUSE_S)
+        url = parse_stable(get(url), stable)
+    if not all(stable.get(a) for a in STABLE_ASSETS):
+        print(f"missing stablecoins: {[a for a in STABLE_ASSETS if not stable.get(a)]}", file=sys.stderr)
+        return 1
+    STABLE_OUT.write_text(json.dumps({a: dict(sorted(v.items())) for a, v in stable.items()}))
+    for a, v in stable.items():
+        print(f"{a} SplyCur: {len(v)} days, {min(v)} -> {max(v)}")
     return 0
 
 

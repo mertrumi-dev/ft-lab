@@ -990,3 +990,30 @@ def test_funding_filter_removes_only_crowded_entries(monkeypatch):
     out = s.populate_entry_trend(s.populate_indicators(df, {"pair": "BTC/USDT"}), {"pair": "BTC/USDT"})
     assert list(out["enter_long"]) == [0, 0, 1, 1]
     assert (sizing.VTFunding80.funding_q, sizing.VTFunding95.funding_q) == (0.80, 0.95)
+
+
+def test_stable_total_sums_assets_and_fills_gaps(tmp_path):
+    import json as _json
+
+    f = tmp_path / "s.json"
+    f.write_text(_json.dumps({"usdt": {"2030-01-01": 10.0, "2030-01-03": 12.0}, "usdc": {"2030-01-02": 1.0, "2030-01-03": 2.0}}))
+    t = sizing.stable_total(f)
+    assert list(t) == [10.0, 11.0, 14.0]  # USDC counts 0 before its first day; the gap in USDT is carried forward
+    assert sizing.stable_total(tmp_path / "none.json").empty
+
+
+def test_stable_flow_compares_with_the_days_before_and_uses_yesterday(monkeypatch):
+    idx = pd.date_range("2030-01-01", periods=40, freq="D", tz="UTC")
+    total = pd.Series(np.r_[np.arange(100.0, 135.0), [100.0] * 5], index=idx)  # grows, then falls on day 35
+    up = sizing.stable_growing(total)
+    assert up.iloc[:30].isna().all() and up.iloc[34] == 1.0 and up.iloc[35] == 0.0
+    monkeypatch.setattr(sizing, "stable_total", lambda path=None: total)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_indicators", lambda self, d, m: d)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))
+    dates = pd.Series(pd.date_range(idx[35], periods=48, freq="h", tz="UTC"))  # day 35 and day 36
+    s = sizing.TrendEmaVolTargetStableFlow({})
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    out = s.populate_entry_trend(s.populate_indicators(df, {}), {})
+    assert (out["enter_long"].iloc[:24] == 1).all()  # day 35 uses day 34: still growing (no lookahead)
+    assert (out["enter_long"].iloc[24:] == 0).all()  # day 36 uses day 35: below 30 days before
+    assert (sizing.VTStableFlow14.stable_days, sizing.VTStableFlow60.stable_days) == (14, 60)
