@@ -954,3 +954,39 @@ def test_btc_exit_merges_by_date_and_spares_btc():
     assert "btc_breakdown" not in set(btc_self.get("exit_tag", pd.Series(dtype=object)).dropna())
     assert s.informative_pairs() == [("BTC/USDT", "1h")]
     assert (sizing.VTBtcExit150.btc_ema, sizing.VTBtcExit250.btc_ema) == (150, 250)
+
+
+def test_funding_uses_only_rates_known_at_the_candle_open(tmp_path):
+    import json as _json
+
+    t0 = pd.Timestamp("2030-01-01", tz="UTC")
+    times = [t0 + pd.Timedelta(hours=8 * i) for i in range(280)]
+    rates = [0.0001] * 275 + [0.01] + [0.0001] * 4  # one spike at index 275
+    f = tmp_path / "funding_BTC.json"
+    f.write_text(_json.dumps({str(int(t.timestamp() * 1000)): r for t, r in zip(times, rates)}))
+    s = sizing.load_funding("BTC", tmp_path)
+    assert len(s) == 280 and sizing.load_funding("NONE", tmp_path).empty
+    flags = sizing.crowded_flags(s)
+    assert flags.iloc[:270].isna().all() and flags.iloc[275] == 1.0 and flags.iloc[274] == 0.0
+    spike = times[275]
+    dates = pd.Series([spike - pd.Timedelta(hours=1), spike, spike + pd.Timedelta(hours=7), spike + pd.Timedelta(hours=8)])
+    out = sizing.crowded_at(dates, flags)
+    # the candle before the funding time cannot know it; from its open on it can, until the next rate
+    assert list(out) == [0.0, 1.0, 1.0, 0.0]
+    early = pd.Series([t0 - pd.Timedelta(hours=1)])
+    assert sizing.crowded_at(early, flags).isna().all()
+    assert sizing.crowded_at(dates, pd.Series(dtype=float)).isna().all()  # no data: filter off
+
+
+def test_funding_filter_removes_only_crowded_entries(monkeypatch):
+    dates = pd.Series(pd.date_range("2030-01-01", periods=4, freq="h", tz="UTC"))
+    flags = pd.Series([1.0, 0.0], index=[dates[0], dates[2]])
+    monkeypatch.setattr(sizing, "load_funding", lambda coin, folder=None: pd.Series([0.1, 0.2], index=[dates[0], dates[2]]))
+    monkeypatch.setattr(sizing, "crowded_flags", lambda rates, q=0.9, window=270: flags)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_indicators", lambda self, d, m: d)
+    monkeypatch.setattr(sizing.TrendEmaVolTarget, "populate_entry_trend", lambda self, d, m: d.assign(enter_long=1, enter_tag="x"))
+    s = sizing.TrendEmaVolTargetFunding({})
+    df = pd.DataFrame({"date": dates, "close": 1.0, "volume": 1.0})
+    out = s.populate_entry_trend(s.populate_indicators(df, {"pair": "BTC/USDT"}), {"pair": "BTC/USDT"})
+    assert list(out["enter_long"]) == [0, 0, 1, 1]
+    assert (sizing.VTFunding80.funding_q, sizing.VTFunding95.funding_q) == (0.80, 0.95)

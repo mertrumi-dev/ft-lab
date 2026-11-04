@@ -1632,3 +1632,65 @@ class VTBtcExit150(TrendEmaVolTargetBtcExit):  # T153 neighbours (only run if T1
 
 class VTBtcExit250(TrendEmaVolTargetBtcExit):
     btc_ema = 250
+
+
+# T154 (funding rate, read only: we still trade spot). A high perpetual funding rate means crowded
+# leveraged longs. Skip entries when the coin's latest rate known at the candle's open is above the
+# 90th percentile of its previous 270 rates (90 days of 8h rates). No data or warm-up -> filter off.
+# An "extreme moment" filter: per docs/research/15 the prior is low. Data: scripts/funding.py.
+FUNDING_DIR = Path(__file__).resolve().parent.parent / "data" / "external"
+FUNDING_WINDOW = 270
+FUNDING_QUANTILE = 0.90
+
+
+def load_funding(coin: str, folder: Path | None = None) -> pd.Series:
+    """{"fundingTime ms": rate} -> Series indexed by UTC time, oldest first; empty if there is no file."""
+    path = (folder or FUNDING_DIR) / f"funding_{coin}.json"
+    if not path.exists():
+        return pd.Series(dtype=float)
+    days = json.loads(path.read_text())
+    idx = pd.to_datetime([int(k) for k in days], unit="ms", utc=True)
+    return pd.Series(list(days.values()), index=idx, dtype=float).sort_index()
+
+
+def crowded_flags(rates: pd.Series, q: float = FUNDING_QUANTILE, window: int = FUNDING_WINDOW) -> pd.Series:
+    """1.0 where a rate is above the q-quantile of the `window` rates BEFORE it, else 0.0; NaN in warm-up."""
+    limit = rates.shift(1).rolling(window).quantile(q)
+    return (rates > limit).astype(float).where(limit.notna())
+
+
+def crowded_at(dates: pd.Series, flags: pd.Series) -> pd.Series:
+    """For each candle: the flag of the last funding time <= the candle's open (NaN if none)."""
+    if flags.empty:
+        return pd.Series(np.nan, index=dates.index)
+    left = pd.DataFrame({"date": pd.to_datetime(dates, utc=True).astype("datetime64[ns, UTC]"), "i": dates.index})
+    right = pd.DataFrame({"t": flags.index.astype("datetime64[ns, UTC]"), "crowded": flags.to_numpy()})
+    merged = pd.merge_asof(left.sort_values("date"), right.sort_values("t"), left_on="date", right_on="t", direction="backward")
+    return merged.set_index("i")["crowded"].reindex(dates.index)
+
+
+class TrendEmaVolTargetFunding(TrendEmaVolTarget):
+    """VolTarget that skips entries while the coin's perpetual funding says longs are crowded (T154)."""
+
+    funding_q = FUNDING_QUANTILE
+
+    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_indicators(dataframe, metadata)
+        coin = metadata.get("pair", "").split("/")[0]
+        dataframe["crowded"] = crowded_at(dataframe["date"], crowded_flags(load_funding(coin), self.funding_q))
+        return dataframe
+
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        if "enter_long" in dataframe:
+            dataframe.loc[dataframe["crowded"] == 1.0, ["enter_long", "enter_tag"]] = (0, None)  # NaN -> allowed
+        return dataframe
+
+
+# T154 neighbours (only run if T154 passes T110+).
+class VTFunding80(TrendEmaVolTargetFunding):
+    funding_q = 0.80
+
+
+class VTFunding95(TrendEmaVolTargetFunding):
+    funding_q = 0.95

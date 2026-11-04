@@ -558,3 +558,9 @@ def test_judge_eval_is_a_read_only_command_and_respects_restricted_slices():
     assert "judge_eval.py" in " ".join(cmd) and "backtesting" not in cmd
     with pytest.raises(SystemExit, match="reserved"):
         ft.build_commands(ft.parse_args(["judge-eval", "--slice", "judge21", "--universe", "core", "--strategy", "X"]))
+
+
+def test_trial_early_slice_moves_only_the_early_case():
+    steps = cmds("trial", "--strategy", "X", "--early-slice", "early19")
+    assert [st[st.index("--slice") + 1] for st in steps[:-1]] == ["train", "validation", "window24", "early19"]
+    assert steps[-1][-2:] == ["--early-slice", "early19"]

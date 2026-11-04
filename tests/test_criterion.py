@@ -67,3 +67,9 @@ def test_render_mentions_every_check():
     text = criterion.render(criterion.verdict(VOTE9, VT), "TrendEmaVolTargetVote9", "TrendEmaVolTarget")
     for word in ("train core", "validation core", "alt2024b/window24", "early", "SONUÇ: PASS"):
         assert word in text
+
+
+def test_cases_can_move_early_to_a_preregistered_slice():
+    assert criterion.cases(criterion.CASES) == criterion.CASES
+    moved = criterion.cases(criterion.CASES, "early19")
+    assert moved[-1] == ("early19", "early") and moved[:3] == criterion.CASES[:3]

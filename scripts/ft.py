@@ -398,19 +398,20 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
         me = [sys.executable, str(ROOT / "scripts" / "ft.py")]
         steps = []
-        for slice_name, universe in criterion.CASES:
+        for (slice_name, universe), case in zip(criterion.cases(criterion.CASES, args.early_slice), criterion.CASES):
             names = [args.baseline, args.strategy]
-            if args.robust and (slice_name, universe) in criterion.NEIGHBOUR_CASES:
+            if args.robust and case in criterion.NEIGHBOUR_CASES:
                 names += args.neighbours
             steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch", "--strategy", *names])
             if args.entry_filter:  # understanding, not the verdict: what did the filter cut on this slice?
                 steps.append([*me, "removed", "--strategy", args.strategy, "--base", args.baseline,
                               "--slice", slice_name, "--universe", universe])  # fmt: skip
         if args.robust:
-            for slice_name, universe in criterion.FEE_CASES:
+            for slice_name, universe in criterion.cases(criterion.FEE_CASES, args.early_slice):
                 steps.append([*me, "backtest", "--slice", slice_name, "--universe", universe, "--no-kill-switch",
                               "--fee-stress", "--strategy", args.baseline, args.strategy])  # fmt: skip
         tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
+        tail += ["--early-slice", args.early_slice] if args.early_slice != "early" else []
         steps.append([*me, "verdict", "--strategy", args.strategy, "--baseline", args.baseline, *tail])
         return steps
 
@@ -425,6 +426,7 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
 
     if args.command == "verdict":
         tail = (["--neighbours", *args.neighbours] if args.neighbours else []) + (["--robust"] if args.robust else [])
+        tail += ["--early-slice", args.early_slice] if args.early_slice != "early" else []
         return [[
             "docker", "compose", "run", "--rm",
             "-v", f"{ROOT / 'scripts'}:/freqtrade/scripts:ro",
@@ -558,7 +560,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sc.add_argument("--csv", action="store_true", help="also print a breadth_csv line (daily.py records it)")
 
     bt = sub.add_parser("backtest", help="backtest on one slice")
-    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
+    bt.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "early19", "window24", "judge21", "judge25"], required=True)
     bt.add_argument("--strategy", nargs="+", default=[DEFAULT_STRATEGY],
                     help="one or more strategies, compared side by side")
     bt.add_argument("--final-test", action="store_true", help="required for --slice test")
@@ -568,12 +570,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="research only: judge the rule over the whole slice (never affects the bot)")
 
     bm = sub.add_parser("benchmark", help="buy-and-hold on one slice (runs in Docker)")
-    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
+    bm.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "early19", "window24", "judge21", "judge25"], required=True)
     bm.add_argument("--universe", choices=UNIVERSES, default="core")
     bm.add_argument("--fee-stress", action="store_true")
 
     rp = sub.add_parser("report", help="short table: all strategies vs buy-and-hold")
-    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
+    rp.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "early19", "window24", "judge21", "judge25"], required=True)
     rp.add_argument("--universe", choices=UNIVERSES, default="core")
     rp.add_argument("--fee-stress", action="store_true")
     rp.add_argument("--no-kill-switch", action="store_true", help="show the no-kill-switch research runs")
@@ -593,7 +595,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     an.add_argument("--no-kill-switch", action="store_true")
 
     bo = sub.add_parser("bots", help="famous bot types (DCA, grid, 3Commas DCA, NFI) vs our rule")
-    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)
+    bo.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "early19", "window24", "judge21", "judge25"], required=True)
     bo.add_argument("--final-test", action="store_true", help="required for --slice test (final exam)")
     bo.add_argument("--universe", choices=UNIVERSES, default="core")
     bo.add_argument("--fee-stress", action="store_true")
@@ -619,12 +621,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     tr.add_argument("--neighbours", nargs="*", default=[], help="robustness neighbours (pre-registered with the candidate)")
     tr.add_argument("--robust", action="store_true", help="also backtest the neighbours and 2x fee, and read them")
 
+    tr.add_argument("--early-slice", default="early", choices=["early", "early19"], help="which slice judges early (fixed in the pre-registration)")
     tr.add_argument("--entry-filter", action="store_true", help="the candidate only removes base entries: print `removed` per slice")
 
     rm = sub.add_parser("removed", help="base entries a filter did not take, by year (read-only, existing exports)")
     rm.add_argument("--strategy", required=True)
     rm.add_argument("--base", default="TrendEmaVolTarget")
-    rm.add_argument("--slice", choices=["train", "validation", "fresh", "early", "window24"], required=True)
+    rm.add_argument("--slice", choices=["train", "validation", "fresh", "early", "early19", "window24"], required=True)
     rm.add_argument("--universe", choices=UNIVERSES, default="core")
 
     vd = sub.add_parser("verdict", help="the standard verdict from existing results (read-only); `trial` calls it")
@@ -632,6 +635,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     vd.add_argument("--baseline", default="TrendEmaVolTarget")
     vd.add_argument("--neighbours", nargs="*", default=[])
     vd.add_argument("--robust", action="store_true")
+    vd.add_argument("--early-slice", default="early", choices=["early", "early19"])
 
     pj = sub.add_parser("prereg-judge", help="judge fresh-only rows on/after their judge date (refuses earlier)")
     pj_which = pj.add_mutually_exclusive_group(required=True)

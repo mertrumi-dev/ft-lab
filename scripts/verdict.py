@@ -42,7 +42,7 @@ def collect(names: list[str], cases, fee: float, results_dir: Path) -> dict:  # 
     per = {n: {} for n in names}
     for slice_name, universe in cases:
         for n, m in measure(names, slice_name, universe, fee, results_dir).items():
-            per[n][slice_name] = m
+            per[n]["early" if slice_name.startswith("early") else slice_name] = m
     return per
 
 
@@ -52,13 +52,14 @@ def main() -> None:  # pragma: no cover - container
     p.add_argument("--baseline", default="TrendEmaVolTarget")
     p.add_argument("--neighbours", nargs="*", default=[])
     p.add_argument("--robust", action="store_true", help="also read the plateau (neighbours) and fee x2")
+    p.add_argument("--early-slice", default="early")
     p.add_argument("--results-dir", type=Path, default=NO_KILL_DIR)
     a = p.parse_args()
-    main_per = collect([a.strategy, a.baseline], criterion.CASES, FEE, a.results_dir)
+    main_per = collect([a.strategy, a.baseline], criterion.cases(criterion.CASES, a.early_slice), FEE, a.results_dir)
     neighbours = cand_fee = base_fee = None
     if a.robust:
-        neighbours = {n: v for n, v in collect(a.neighbours, criterion.NEIGHBOUR_CASES, FEE, a.results_dir).items()}
-        fee_per = collect([a.strategy, a.baseline], criterion.FEE_CASES, STRESS_FEE, a.results_dir)
+        neighbours = {n: v for n, v in collect(a.neighbours, criterion.cases(criterion.NEIGHBOUR_CASES, a.early_slice), FEE, a.results_dir).items()}
+        fee_per = collect([a.strategy, a.baseline], criterion.cases(criterion.FEE_CASES, a.early_slice), STRESS_FEE, a.results_dir)
         cand_fee, base_fee = fee_per[a.strategy], fee_per[a.baseline]
     v = criterion.verdict(main_per[a.strategy], main_per[a.baseline], neighbours, cand_fee, base_fee)
     print(criterion.render(v, a.strategy, a.baseline))

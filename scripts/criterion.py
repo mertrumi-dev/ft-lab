@@ -23,6 +23,12 @@ MIN_TRADES = 50
 SHARE = 0.90
 
 
+def cases(case_list: list[tuple[str, str]], early_slice: str = "early") -> list[tuple[str, str]]:
+    """The cases to run, with the early case on another slice when a pre-registration fixed one
+    (T154: funding data only exists from 2019-09). Results are still judged under the key "early"."""
+    return [(early_slice if name == "early" else name, uni) for name, uni in case_list]
+
+
 def t110_checks(cand: dict, base: dict) -> list[tuple[str, bool, str]]:
     """cand/base: {slice_name: {"calmar", "max_drawdown", "trades"}}; a missing case fails its check."""
     out = []

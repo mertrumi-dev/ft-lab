@@ -71,9 +71,11 @@ WINDOW24_UNIVERSES = ("alt2024b",)
 # trial, logged. Each slice is allowed ONLY with its own judge universe and ends before the test slice.
 JUDGE21 = Slice("judge21", date(2021, 1, 1), date(2025, 8, 7))
 JUDGE25 = Slice("judge25", date(2025, 1, 1), date(2025, 8, 7))
-RESTRICTED_SLICES = {"window24": ("alt2024b",), "judge21": ("judge_old",), "judge25": ("judge_2025a",)}
+# T154: funding rates only exist from 2019-09, so that trial judges early on this part of it.
+EARLY19 = Slice("early19", date(2019, 9, 1), date(2021, 1, 1))
+RESTRICTED_SLICES = {"window24": ("alt2024b",), "judge21": ("judge_old",), "judge25": ("judge_2025a",), "early19": ("early",)}
 
-SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice(), "window24": WINDOW24, "judge21": JUDGE21, "judge25": JUDGE25}
+SLICES = {**compute_slices(), "fresh": fresh_slice(), "early": early_slice(), "window24": WINDOW24, "judge21": JUDGE21, "judge25": JUDGE25, "early19": EARLY19}
 SLICE_NAMES = list(SLICES)  # for argparse choices
 
 

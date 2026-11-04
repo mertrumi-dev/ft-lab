@@ -143,7 +143,7 @@ def row(name: str, r: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "window24", "judge21", "judge25"], required=True)  # ft.py guards test
+    parser.add_argument("--slice", choices=["train", "validation", "test", "fresh", "early", "early19", "window24", "judge21", "judge25"], required=True)  # ft.py guards test
     parser.add_argument("--universe", choices=UNIVERSES, default="core")
     parser.add_argument("--fee", type=float, default=DEFAULT_FEE)
     parser.add_argument("--strategy", nargs="*", default=["TrendEma"])
