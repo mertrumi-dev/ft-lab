@@ -806,3 +806,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 00:44 | backtest | TrendEmaVolTargetFunding | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-04 00:45 | backtest | TrendEmaVolTarget | early19 | universe early, no kill switch (research) |
 | 2026-11-04 00:45 | backtest | TrendEmaVolTargetFunding | early19 | universe early, no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTargetStableFlow | train | no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTargetStableFlow | validation | no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:52 | backtest | TrendEmaVolTargetStableFlow | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:53 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
+| 2026-11-04 00:53 | backtest | TrendEmaVolTargetStableFlow | early | universe early, no kill switch (research) |
