@@ -798,3 +798,11 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-02 22:38 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-02 22:38 | backtest | TrendEmaVolTargetBtcExit | early | universe early, no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTarget | train | no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTargetFunding | train | no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTarget | validation | no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTargetFunding | validation | no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTarget | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:44 | backtest | TrendEmaVolTargetFunding | window24 | universe alt2024b, no kill switch (research) |
+| 2026-11-04 00:45 | backtest | TrendEmaVolTarget | early19 | universe early, no kill switch (research) |
+| 2026-11-04 00:45 | backtest | TrendEmaVolTargetFunding | early19 | universe early, no kill switch (research) |
