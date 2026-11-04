@@ -903,3 +903,6 @@ Her backtest/hyperopt otomatik eklenir. Sonucu ve yorumu elle yaz.
 | 2026-11-04 19:05 | backtest | TrendEmaVolTargetBtcDom | window24 | universe alt2024b, no kill switch (research) |
 | 2026-11-04 19:05 | backtest | TrendEmaVolTarget | early | universe early, no kill switch (research) |
 | 2026-11-04 19:05 | backtest | TrendEmaVolTargetBtcDom | early | universe early, no kill switch (research) |
+| 2026-11-04 21:43 | backtest | TrendEmaVolTarget | test | no kill switch (research) |
+| 2026-11-04 21:43 | backtest | TrendEmaVolTarget | fresh | no kill switch (research) |
+| 2026-11-04 21:44 | backtest | TrendEmaVolTarget | train |  |
