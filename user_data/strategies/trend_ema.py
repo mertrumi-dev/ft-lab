@@ -205,7 +205,7 @@ class TrendEma(IStrategy):
     ) -> bool:
         # Kill switch: realized equity fell 20% from its peak -> no new trades.
         # It is computed from the trade history, so a restart does not reset it;
-        # only a human (new database / config change) can.
+        # only a human starting a new database can; the research no-kill-switch config works only in backtest (see kill_switch_active).
         if self.kill_switch_active():
             closed = sorted(
                 Trade.get_trades_proxy(is_open=False), key=lambda t: t.close_date_utc
